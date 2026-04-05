@@ -1851,6 +1851,36 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          ds_foto: string | null
+          ds_login: string | null
+          email: string | null
+          id: string
+          nm_usuario: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ds_foto?: string | null
+          ds_login?: string | null
+          email?: string | null
+          id: string
+          nm_usuario?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ds_foto?: string | null
+          ds_login?: string | null
+          email?: string | null
+          id?: string
+          nm_usuario?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       unidade: {
         Row: {
           descricao: string | null
