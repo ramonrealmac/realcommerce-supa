@@ -19,7 +19,7 @@ const TopBar = () => {
       if (!session) return;
       setXUserEmail(session.user.email || "");
 
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("profiles")
         .select("nm_usuario, ds_login, ds_foto")
         .eq("id", session.user.id)

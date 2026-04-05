@@ -106,7 +106,7 @@ const UsuarioForm: React.FC = () => {
 
     const XUserIds = XEuData.map(eu => eu.user_id);
 
-    const { data: XProfileData } = await supabase
+    const { data: XProfileData } = await (supabase as any)
       .from("profiles")
       .select("id, email, nm_usuario, ds_login, ds_foto")
       .in("id", XUserIds);
@@ -265,13 +265,13 @@ const UsuarioForm: React.FC = () => {
         return;
       }
 
-      await supabase.from("profiles").upsert({
+      await (supabase as any).from("profiles").upsert({
         id: XNewUserId,
         email: XEmail.trim(),
         nm_usuario: XNmUsuario.trim(),
         ds_login: XDsLogin.trim(),
         ds_foto: XDsFoto.trim(),
-      } as any, { onConflict: "id" });
+      }, { onConflict: "id" });
 
       await supabase.from("empresa_usuario").insert({
         empresa_id: XEmpresaId,
@@ -280,12 +280,12 @@ const UsuarioForm: React.FC = () => {
 
       toast.success("Usuário criado e vinculado com sucesso.");
     } else if (XFormMode === "edit" && XCurrent) {
-      const { error } = await supabase.from("profiles")
+      const { error } = await (supabase as any).from("profiles")
         .update({
           nm_usuario: XNmUsuario.trim(),
           ds_login: XDsLogin.trim(),
           ds_foto: XDsFoto.trim(),
-        } as any)
+        })
         .eq("id", XCurrent.user_id);
 
       if (error) { toast.error("Erro ao salvar: " + error.message); return; }
