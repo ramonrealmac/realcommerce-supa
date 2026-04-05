@@ -1851,6 +1851,27 @@ export type Database = {
           },
         ]
       }
+      unidade: {
+        Row: {
+          descricao: string | null
+          empresa_id: number
+          excluido: boolean | null
+          unidade_id: string
+        }
+        Insert: {
+          descricao?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          unidade_id?: string
+        }
+        Update: {
+          descricao?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          unidade_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
