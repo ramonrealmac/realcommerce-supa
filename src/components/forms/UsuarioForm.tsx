@@ -280,12 +280,12 @@ const UsuarioForm: React.FC = () => {
 
       toast.success("Usuário criado e vinculado com sucesso.");
     } else if (XFormMode === "edit" && XCurrent) {
-      const { error } = await supabase.from("profiles")
+      const { error } = await (supabase as any).from("profiles")
         .update({
           nm_usuario: XNmUsuario.trim(),
           ds_login: XDsLogin.trim(),
           ds_foto: XDsFoto.trim(),
-        } as any)
+        })
         .eq("id", XCurrent.user_id);
 
       if (error) { toast.error("Erro ao salvar: " + error.message); return; }
