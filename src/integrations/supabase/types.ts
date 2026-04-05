@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -28,7 +28,7 @@ export type Database = {
           xusuario_id: string | null
         }
         Insert: {
-          id?: never
+          id?: number
           xacao: string
           xdados_anteriores?: Json | null
           xdados_novos?: Json | null
@@ -40,7 +40,7 @@ export type Database = {
           xusuario_id?: string | null
         }
         Update: {
-          id?: never
+          id?: number
           xacao?: string
           xdados_anteriores?: Json | null
           xdados_novos?: Json | null
@@ -421,45 +421,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cliente_old: {
-        Row: {
-          excluido_visivel: boolean | null
-          id: number
-          xcd_cliente: string
-          xdt_alteracao: string | null
-          xdt_cadastro: string | null
-          xnm_crianca: string
-          xnm_fantasia_social: string
-          xnm_razao_social: string
-          xnr_cpf_cnpj: string
-          xnr_telefone: string
-        }
-        Insert: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xcd_cliente: string
-          xdt_alteracao?: string | null
-          xdt_cadastro?: string | null
-          xnm_crianca?: string
-          xnm_fantasia_social?: string
-          xnm_razao_social: string
-          xnr_cpf_cnpj?: string
-          xnr_telefone?: string
-        }
-        Update: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xcd_cliente?: string
-          xdt_alteracao?: string | null
-          xdt_cadastro?: string | null
-          xnm_crianca?: string
-          xnm_fantasia_social?: string
-          xnm_razao_social?: string
-          xnr_cpf_cnpj?: string
-          xnr_telefone?: string
-        }
-        Relationships: []
-      }
       comissao: {
         Row: {
           cadastro_id: number | null
@@ -495,13 +456,6 @@ export type Database = {
           tp_comissao?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "comissao_cadastro_id_fkey"
-            columns: ["cadastro_id"]
-            isOneToOne: false
-            referencedRelation: "cadastro"
-            referencedColumns: ["cadastro_id"]
-          },
           {
             foreignKeyName: "comissao_empresa_id_fkey"
             columns: ["empresa_id"]
@@ -751,7 +705,7 @@ export type Database = {
         Insert: {
           created_at?: string
           empresa_id: number
-          empresa_usuario_id?: never
+          empresa_usuario_id?: number
           fl_excluido?: boolean
           updated_at?: string
           user_id: string
@@ -759,7 +713,7 @@ export type Database = {
         Update: {
           created_at?: string
           empresa_id?: number
-          empresa_usuario_id?: never
+          empresa_usuario_id?: number
           fl_excluido?: boolean
           updated_at?: string
           user_id?: string
@@ -825,20 +779,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "empresa"
             referencedColumns: ["empresa_id"]
-          },
-          {
-            foreignKeyName: "estoque_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produto"
-            referencedColumns: ["produto_id"]
-          },
-          {
-            foreignKeyName: "estoque_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "vw_produtos_disponiveis"
-            referencedColumns: ["produto_id"]
           },
         ]
       }
@@ -1090,33 +1030,6 @@ export type Database = {
           },
         ]
       }
-      grupo_produto_old: {
-        Row: {
-          excluido_visivel: boolean | null
-          id: number
-          xcd_grupo_produto: string
-          xdt_alteracao: string | null
-          xdt_cadastro: string | null
-          xnm_grupo_produto: string
-        }
-        Insert: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xcd_grupo_produto: string
-          xdt_alteracao?: string | null
-          xdt_cadastro?: string | null
-          xnm_grupo_produto: string
-        }
-        Update: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xcd_grupo_produto?: string
-          xdt_alteracao?: string | null
-          xdt_cadastro?: string | null
-          xnm_grupo_produto?: string
-        }
-        Relationships: []
-      }
       linha_produto: {
         Row: {
           dt_alteracao: string | null
@@ -1336,27 +1249,6 @@ export type Database = {
             referencedRelation: "movimento"
             referencedColumns: ["movimento_id"]
           },
-          {
-            foreignKeyName: "movimento_item_movimento_id_fkey"
-            columns: ["movimento_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_completos"
-            referencedColumns: ["movimento_id"]
-          },
-          {
-            foreignKeyName: "movimento_item_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produto"
-            referencedColumns: ["produto_id"]
-          },
-          {
-            foreignKeyName: "movimento_item_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "vw_produtos_disponiveis"
-            referencedColumns: ["produto_id"]
-          },
         ]
       }
       movimento_pagamento: {
@@ -1408,13 +1300,6 @@ export type Database = {
             referencedRelation: "movimento"
             referencedColumns: ["movimento_id"]
           },
-          {
-            foreignKeyName: "movimento_pagamento_movimento_id_fkey"
-            columns: ["movimento_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_completos"
-            referencedColumns: ["movimento_id"]
-          },
         ]
       }
       parametro: {
@@ -1451,7 +1336,7 @@ export type Database = {
         }
         Insert: {
           excluido_visivel?: boolean | null
-          id?: never
+          id?: number
           xabacatepay_api_key?: string
           xabacatepay_webhook_secret?: string
           xabacatepay_webhook_url?: string
@@ -1482,7 +1367,7 @@ export type Database = {
         }
         Update: {
           excluido_visivel?: boolean | null
-          id?: never
+          id?: number
           xabacatepay_api_key?: string
           xabacatepay_webhook_secret?: string
           xabacatepay_webhook_url?: string
@@ -1529,7 +1414,7 @@ export type Database = {
         }
         Insert: {
           excluido_visivel?: boolean | null
-          id?: never
+          id?: number
           xdia_semana: number
           xhr_fim_matutino?: string | null
           xhr_fim_noturno?: string | null
@@ -1542,7 +1427,7 @@ export type Database = {
         }
         Update: {
           excluido_visivel?: boolean | null
-          id?: never
+          id?: number
           xdia_semana?: number
           xhr_fim_matutino?: string | null
           xhr_fim_noturno?: string | null
@@ -1563,199 +1448,6 @@ export type Database = {
           },
         ]
       }
-      pedido_item_old: {
-        Row: {
-          excluido_visivel: boolean | null
-          id: number
-          xcd_produto: string
-          xnm_produto: string
-          xpedido_id: number
-          xproduto_id: number | null
-          xqt_item: number | null
-          xun_produto: string
-          xvl_total_item: number | null
-          xvl_unitario: number | null
-        }
-        Insert: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xcd_produto?: string
-          xnm_produto?: string
-          xpedido_id: number
-          xproduto_id?: number | null
-          xqt_item?: number | null
-          xun_produto?: string
-          xvl_total_item?: number | null
-          xvl_unitario?: number | null
-        }
-        Update: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xcd_produto?: string
-          xnm_produto?: string
-          xpedido_id?: number
-          xproduto_id?: number | null
-          xqt_item?: number | null
-          xun_produto?: string
-          xvl_total_item?: number | null
-          xvl_unitario?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pedido_item_xpedido_id_fkey"
-            columns: ["xpedido_id"]
-            isOneToOne: false
-            referencedRelation: "pedido_old"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_item_xproduto_id_fkey"
-            columns: ["xproduto_id"]
-            isOneToOne: false
-            referencedRelation: "produto_old"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pedido_old: {
-        Row: {
-          excluido_visivel: boolean | null
-          id: number
-          xcliente_id: number | null
-          xdt_cancelamento: string | null
-          xdt_faturamento: string | null
-          xdt_finalizacao: string | null
-          xdt_pagamento: string | null
-          xdt_pedido: string | null
-          xemail_responsavel: string
-          xhr_pedido: string
-          xid_transacao_abacatepay: string
-          xlg_pagamento_online: boolean | null
-          xlg_pedido_link: boolean | null
-          xlg_pedido_pdv: boolean | null
-          xnm_crianca: string
-          xnm_responsavel: string
-          xnr_pedido: number | null
-          xnr_telefone_responsavel: string
-          xobs_pedido: string
-          xqr_code_pagamento: string
-          xst_pedido: string | null
-          xtipo_origem_pedido: string | null
-          xurl_pagamento: string
-          xusuario_id: string | null
-          xvl_total_bruto: number | null
-          xvl_total_desconto: number | null
-          xvl_total_liquido: number | null
-        }
-        Insert: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xcliente_id?: number | null
-          xdt_cancelamento?: string | null
-          xdt_faturamento?: string | null
-          xdt_finalizacao?: string | null
-          xdt_pagamento?: string | null
-          xdt_pedido?: string | null
-          xemail_responsavel?: string
-          xhr_pedido?: string
-          xid_transacao_abacatepay?: string
-          xlg_pagamento_online?: boolean | null
-          xlg_pedido_link?: boolean | null
-          xlg_pedido_pdv?: boolean | null
-          xnm_crianca?: string
-          xnm_responsavel?: string
-          xnr_pedido?: number | null
-          xnr_telefone_responsavel?: string
-          xobs_pedido?: string
-          xqr_code_pagamento?: string
-          xst_pedido?: string | null
-          xtipo_origem_pedido?: string | null
-          xurl_pagamento?: string
-          xusuario_id?: string | null
-          xvl_total_bruto?: number | null
-          xvl_total_desconto?: number | null
-          xvl_total_liquido?: number | null
-        }
-        Update: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xcliente_id?: number | null
-          xdt_cancelamento?: string | null
-          xdt_faturamento?: string | null
-          xdt_finalizacao?: string | null
-          xdt_pagamento?: string | null
-          xdt_pedido?: string | null
-          xemail_responsavel?: string
-          xhr_pedido?: string
-          xid_transacao_abacatepay?: string
-          xlg_pagamento_online?: boolean | null
-          xlg_pedido_link?: boolean | null
-          xlg_pedido_pdv?: boolean | null
-          xnm_crianca?: string
-          xnm_responsavel?: string
-          xnr_pedido?: number | null
-          xnr_telefone_responsavel?: string
-          xobs_pedido?: string
-          xqr_code_pagamento?: string
-          xst_pedido?: string | null
-          xtipo_origem_pedido?: string | null
-          xurl_pagamento?: string
-          xusuario_id?: string | null
-          xvl_total_bruto?: number | null
-          xvl_total_desconto?: number | null
-          xvl_total_liquido?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pedido_xcliente_id_fkey"
-            columns: ["xcliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente_old"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pedido_pagamento_old: {
-        Row: {
-          excluido_visivel: boolean | null
-          id: number
-          xdt_pagamento: string | null
-          xnr_autorizacao: string
-          xobs_pagamento: string
-          xpedido_id: number
-          xtp_pagamento: string
-          xvl_pagamento: number | null
-        }
-        Insert: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xdt_pagamento?: string | null
-          xnr_autorizacao?: string
-          xobs_pagamento?: string
-          xpedido_id: number
-          xtp_pagamento: string
-          xvl_pagamento?: number | null
-        }
-        Update: {
-          excluido_visivel?: boolean | null
-          id?: never
-          xdt_pagamento?: string | null
-          xnr_autorizacao?: string
-          xobs_pagamento?: string
-          xpedido_id?: number
-          xtp_pagamento?: string
-          xvl_pagamento?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pedido_pagamento_xpedido_id_fkey"
-            columns: ["xpedido_id"]
-            isOneToOne: false
-            referencedRelation: "pedido_old"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       perfil: {
         Row: {
           created_at: string
@@ -1772,7 +1464,7 @@ export type Database = {
           fl_administrador?: boolean
           fl_excluido?: boolean
           nm_perfil: string
-          perfil_id?: never
+          perfil_id?: number
           updated_at?: string
         }
         Update: {
@@ -1781,7 +1473,7 @@ export type Database = {
           fl_administrador?: boolean
           fl_excluido?: boolean
           nm_perfil?: string
-          perfil_id?: never
+          perfil_id?: number
           updated_at?: string
         }
         Relationships: []
@@ -1805,7 +1497,7 @@ export type Database = {
           fl_excluido?: boolean
           nm_botao: string
           nm_formulario: string
-          perfil_acesso_botao_id?: never
+          perfil_acesso_botao_id?: number
           perfil_id: number
           updated_at?: string
         }
@@ -1816,7 +1508,7 @@ export type Database = {
           fl_excluido?: boolean
           nm_botao?: string
           nm_formulario?: string
-          perfil_acesso_botao_id?: never
+          perfil_acesso_botao_id?: number
           perfil_id?: number
           updated_at?: string
         }
@@ -1848,7 +1540,7 @@ export type Database = {
           fl_excluido?: boolean
           nm_campo: string
           nm_formulario: string
-          perfil_acesso_campo_id?: never
+          perfil_acesso_campo_id?: number
           perfil_id: number
           tp_editavel?: string
           updated_at?: string
@@ -1859,7 +1551,7 @@ export type Database = {
           fl_excluido?: boolean
           nm_campo?: string
           nm_formulario?: string
-          perfil_acesso_campo_id?: never
+          perfil_acesso_campo_id?: number
           perfil_id?: number
           tp_editavel?: string
           updated_at?: string
@@ -1897,7 +1589,7 @@ export type Database = {
           fl_incluir?: boolean
           fl_visualizar?: boolean
           nm_formulario: string
-          perfil_acesso_formulario_id?: never
+          perfil_acesso_formulario_id?: number
           perfil_id: number
           updated_at?: string
         }
@@ -1910,7 +1602,7 @@ export type Database = {
           fl_incluir?: boolean
           fl_visualizar?: boolean
           nm_formulario?: string
-          perfil_acesso_formulario_id?: never
+          perfil_acesso_formulario_id?: number
           perfil_id?: number
           updated_at?: string
         }
@@ -1943,7 +1635,7 @@ export type Database = {
           fl_visivel?: boolean
           nm_menu: string
           nm_menu_pai?: string | null
-          perfil_acesso_menu_id?: never
+          perfil_acesso_menu_id?: number
           perfil_id: number
           updated_at?: string
         }
@@ -1954,7 +1646,7 @@ export type Database = {
           fl_visivel?: boolean
           nm_menu?: string
           nm_menu_pai?: string | null
-          perfil_acesso_menu_id?: never
+          perfil_acesso_menu_id?: number
           perfil_id?: number
           updated_at?: string
         }
@@ -2001,7 +1693,7 @@ export type Database = {
           hr_vespertino_fim?: string | null
           hr_vespertino_inicio?: string | null
           nr_dia_semana: number
-          perfil_horario_id?: never
+          perfil_horario_id?: number
           perfil_id: number
           updated_at?: string
         }
@@ -2019,13 +1711,13 @@ export type Database = {
           hr_vespertino_fim?: string | null
           hr_vespertino_inicio?: string | null
           nr_dia_semana?: number
-          perfil_horario_id?: never
+          perfil_horario_id?: number
           perfil_id?: number
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_perfil_horario_perfil"
+            foreignKeyName: "perfil_horario_perfil_id_fkey"
             columns: ["perfil_id"]
             isOneToOne: false
             referencedRelation: "perfil"
@@ -2048,7 +1740,7 @@ export type Database = {
           empresa_id: number
           fl_excluido?: boolean
           perfil_id: number
-          perfil_usuario_id?: never
+          perfil_usuario_id?: number
           updated_at?: string
           user_id: string
         }
@@ -2057,7 +1749,7 @@ export type Database = {
           empresa_id?: number
           fl_excluido?: boolean
           perfil_id?: number
-          perfil_usuario_id?: never
+          perfil_usuario_id?: number
           updated_at?: string
           user_id?: string
         }
@@ -2151,787 +1843,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "portador_banco_id_fkey"
-            columns: ["banco_id"]
-            isOneToOne: false
-            referencedRelation: "banco"
-            referencedColumns: ["banco_id"]
-          },
-          {
             foreignKeyName: "portador_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      produto: {
-        Row: {
-          altura: number
-          area: number
-          ativo: string | null
-          cest: string
-          comprimento: number
-          controla_estoque: string | null
-          descricao: string
-          dias_venda_online: string | null
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          grupo_icms_id: number | null
-          grupo_id: number | null
-          grupo_ipi_id: number | null
-          grupo_pis_cofins_id: number | null
-          gtin: string
-          largura: number
-          linha_id: number | null
-          mva: number
-          ncm: string
-          nome: string
-          nome_reduzido: string
-          pc_cofins: number
-          pc_desconto: number
-          pc_difal_sn: number
-          pc_emb: number
-          pc_fcp_st: number
-          pc_frete: number
-          pc_icms_cred: number
-          pc_ipi: number
-          pc_ipi_cred: number
-          pc_markup: number | null
-          pc_multiplicador: number
-          pc_outras_desp: number
-          pc_pis: number
-          pc_seguro: number
-          pc_st_trib: number
-          peso_bruto: number
-          peso_liquido: number
-          preco_promocional: number
-          preco_promocional_fat: number
-          preco_sugerido: number | null
-          preco_venda: number | null
-          preco_venda_faturado: number
-          produto_id: number
-          referencia: string
-          st_promo: string
-          subgrupo_id: number | null
-          tb_a_origem: string
-          tp_produto: string | null
-          unidade_id: string | null
-          url_foto: string
-          venda_online: boolean | null
-          vl_cofins: number
-          vl_compra: number | null
-          vl_custo: number
-          vl_custo_medio: number
-          vl_desconto: number
-          vl_difal_sn: number
-          vl_emb: number
-          vl_fcp_st: number
-          vl_frete: number
-          vl_icms_cred: number
-          vl_ipi: number
-          vl_ipi_cred: number
-          vl_multiplicador: number
-          vl_outras_desp: number
-          vl_outro: number
-          vl_pis: number
-          vl_seguro: number
-          vl_st: number
-        }
-        Insert: {
-          altura?: number
-          area?: number
-          ativo?: string | null
-          cest?: string
-          comprimento?: number
-          controla_estoque?: string | null
-          descricao?: string
-          dias_venda_online?: string | null
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          grupo_icms_id?: number | null
-          grupo_id?: number | null
-          grupo_ipi_id?: number | null
-          grupo_pis_cofins_id?: number | null
-          gtin?: string
-          largura?: number
-          linha_id?: number | null
-          mva?: number
-          ncm?: string
-          nome: string
-          nome_reduzido?: string
-          pc_cofins?: number
-          pc_desconto?: number
-          pc_difal_sn?: number
-          pc_emb?: number
-          pc_fcp_st?: number
-          pc_frete?: number
-          pc_icms_cred?: number
-          pc_ipi?: number
-          pc_ipi_cred?: number
-          pc_markup?: number | null
-          pc_multiplicador?: number
-          pc_outras_desp?: number
-          pc_pis?: number
-          pc_seguro?: number
-          pc_st_trib?: number
-          peso_bruto?: number
-          peso_liquido?: number
-          preco_promocional?: number
-          preco_promocional_fat?: number
-          preco_sugerido?: number | null
-          preco_venda?: number | null
-          preco_venda_faturado?: number
-          produto_id?: number
-          referencia?: string
-          st_promo?: string
-          subgrupo_id?: number | null
-          tb_a_origem?: string
-          tp_produto?: string | null
-          unidade_id?: string | null
-          url_foto?: string
-          venda_online?: boolean | null
-          vl_cofins?: number
-          vl_compra?: number | null
-          vl_custo?: number
-          vl_custo_medio?: number
-          vl_desconto?: number
-          vl_difal_sn?: number
-          vl_emb?: number
-          vl_fcp_st?: number
-          vl_frete?: number
-          vl_icms_cred?: number
-          vl_ipi?: number
-          vl_ipi_cred?: number
-          vl_multiplicador?: number
-          vl_outras_desp?: number
-          vl_outro?: number
-          vl_pis?: number
-          vl_seguro?: number
-          vl_st?: number
-        }
-        Update: {
-          altura?: number
-          area?: number
-          ativo?: string | null
-          cest?: string
-          comprimento?: number
-          controla_estoque?: string | null
-          descricao?: string
-          dias_venda_online?: string | null
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          grupo_icms_id?: number | null
-          grupo_id?: number | null
-          grupo_ipi_id?: number | null
-          grupo_pis_cofins_id?: number | null
-          gtin?: string
-          largura?: number
-          linha_id?: number | null
-          mva?: number
-          ncm?: string
-          nome?: string
-          nome_reduzido?: string
-          pc_cofins?: number
-          pc_desconto?: number
-          pc_difal_sn?: number
-          pc_emb?: number
-          pc_fcp_st?: number
-          pc_frete?: number
-          pc_icms_cred?: number
-          pc_ipi?: number
-          pc_ipi_cred?: number
-          pc_markup?: number | null
-          pc_multiplicador?: number
-          pc_outras_desp?: number
-          pc_pis?: number
-          pc_seguro?: number
-          pc_st_trib?: number
-          peso_bruto?: number
-          peso_liquido?: number
-          preco_promocional?: number
-          preco_promocional_fat?: number
-          preco_sugerido?: number | null
-          preco_venda?: number | null
-          preco_venda_faturado?: number
-          produto_id?: number
-          referencia?: string
-          st_promo?: string
-          subgrupo_id?: number | null
-          tb_a_origem?: string
-          tp_produto?: string | null
-          unidade_id?: string | null
-          url_foto?: string
-          venda_online?: boolean | null
-          vl_cofins?: number
-          vl_compra?: number | null
-          vl_custo?: number
-          vl_custo_medio?: number
-          vl_desconto?: number
-          vl_difal_sn?: number
-          vl_emb?: number
-          vl_fcp_st?: number
-          vl_frete?: number
-          vl_icms_cred?: number
-          vl_ipi?: number
-          vl_ipi_cred?: number
-          vl_multiplicador?: number
-          vl_outras_desp?: number
-          vl_outro?: number
-          vl_pis?: number
-          vl_seguro?: number
-          vl_st?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "produto_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-          {
-            foreignKeyName: "produto_grupo_id_fkey"
-            columns: ["grupo_id"]
-            isOneToOne: false
-            referencedRelation: "produto_grupo"
-            referencedColumns: ["grupo_id"]
-          },
-        ]
-      }
-      produto_conversao: {
-        Row: {
-          conversao_id: number
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          fator_mult: number
-          produto_id: number
-          tp_movimento: string
-          unidade_id: string
-        }
-        Insert: {
-          conversao_id?: number
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          fator_mult?: number
-          produto_id: number
-          tp_movimento?: string
-          unidade_id?: string
-        }
-        Update: {
-          conversao_id?: number
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          fator_mult?: number
-          produto_id?: number
-          tp_movimento?: string
-          unidade_id?: string
-        }
-        Relationships: []
-      }
-      produto_grupo: {
-        Row: {
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          grupo_id: number
-          nome: string
-          ultima_sequencia: number | null
-        }
-        Insert: {
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          grupo_id?: number
-          nome: string
-          ultima_sequencia?: number | null
-        }
-        Update: {
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          grupo_id?: number
-          nome?: string
-          ultima_sequencia?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "produto_grupo_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      produto_old: {
-        Row: {
-          empresa_id: number | null
-          excluido_visivel: boolean | null
-          id: number
-          xcd_barra: string
-          xcd_produto: string
-          xdias_venda_online: string | null
-          xdt_alteracao: string | null
-          xdt_cadastro: string | null
-          xgrupo_produto_id: number | null
-          xlg_venda_online: boolean | null
-          xnm_produto: string
-          xpc_markup: number | null
-          xqt_estoque_disponivel: number | null
-          xqt_estoque_fisico: number | null
-          xqt_estoque_minimo: number | null
-          xqt_estoque_padrao: number | null
-          xqt_estoque_reservado: number | null
-          xun_produto: string | null
-          xurl_foto: string
-          xvl_preco_compra: number | null
-          xvl_preco_sugerido: number | null
-          xvl_preco_venda: number | null
-        }
-        Insert: {
-          empresa_id?: number | null
-          excluido_visivel?: boolean | null
-          id?: never
-          xcd_barra?: string
-          xcd_produto: string
-          xdias_venda_online?: string | null
-          xdt_alteracao?: string | null
-          xdt_cadastro?: string | null
-          xgrupo_produto_id?: number | null
-          xlg_venda_online?: boolean | null
-          xnm_produto: string
-          xpc_markup?: number | null
-          xqt_estoque_disponivel?: number | null
-          xqt_estoque_fisico?: number | null
-          xqt_estoque_minimo?: number | null
-          xqt_estoque_padrao?: number | null
-          xqt_estoque_reservado?: number | null
-          xun_produto?: string | null
-          xurl_foto?: string
-          xvl_preco_compra?: number | null
-          xvl_preco_sugerido?: number | null
-          xvl_preco_venda?: number | null
-        }
-        Update: {
-          empresa_id?: number | null
-          excluido_visivel?: boolean | null
-          id?: never
-          xcd_barra?: string
-          xcd_produto?: string
-          xdias_venda_online?: string | null
-          xdt_alteracao?: string | null
-          xdt_cadastro?: string | null
-          xgrupo_produto_id?: number | null
-          xlg_venda_online?: boolean | null
-          xnm_produto?: string
-          xpc_markup?: number | null
-          xqt_estoque_disponivel?: number | null
-          xqt_estoque_fisico?: number | null
-          xqt_estoque_minimo?: number | null
-          xqt_estoque_padrao?: number | null
-          xqt_estoque_reservado?: number | null
-          xun_produto?: string | null
-          xurl_foto?: string
-          xvl_preco_compra?: number | null
-          xvl_preco_sugerido?: number | null
-          xvl_preco_venda?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "produto_xgrupo_produto_id_fkey"
-            columns: ["xgrupo_produto_id"]
-            isOneToOne: false
-            referencedRelation: "grupo_produto_old"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          ds_foto: string | null
-          ds_login: string | null
-          email: string | null
-          id: string
-          nm_usuario: string | null
-        }
-        Insert: {
-          created_at?: string
-          ds_foto?: string | null
-          ds_login?: string | null
-          email?: string | null
-          id: string
-          nm_usuario?: string | null
-        }
-        Update: {
-          created_at?: string
-          ds_foto?: string | null
-          ds_login?: string | null
-          email?: string | null
-          id?: string
-          nm_usuario?: string | null
-        }
-        Relationships: []
-      }
-      rota: {
-        Row: {
-          cadastro_id: number | null
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          nome: string
-          rota_id: number
-        }
-        Insert: {
-          cadastro_id?: number | null
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          nome: string
-          rota_id?: number
-        }
-        Update: {
-          cadastro_id?: number | null
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          nome?: string
-          rota_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rota_cadastro_id_fkey"
-            columns: ["cadastro_id"]
-            isOneToOne: false
-            referencedRelation: "cadastro"
-            referencedColumns: ["cadastro_id"]
-          },
-          {
-            foreignKeyName: "rota_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      subgrupo_produto: {
-        Row: {
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          grupo_id: number | null
-          nome: string
-          subgrupo_id: number
-        }
-        Insert: {
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          grupo_id?: number | null
-          nome: string
-          subgrupo_id?: number
-        }
-        Update: {
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          grupo_id?: number | null
-          nome?: string
-          subgrupo_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subgrupo_produto_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-          {
-            foreignKeyName: "subgrupo_produto_grupo_id_fkey"
-            columns: ["grupo_id"]
-            isOneToOne: false
-            referencedRelation: "produto_grupo"
-            referencedColumns: ["grupo_id"]
-          },
-        ]
-      }
-      tabela_preco: {
-        Row: {
-          ativo: boolean | null
-          descricao: string
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          tabela_id: number
-        }
-        Insert: {
-          ativo?: boolean | null
-          descricao: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          tabela_id?: number
-        }
-        Update: {
-          ativo?: boolean | null
-          descricao?: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          tabela_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tabela_preco_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      tipo_cadastro: {
-        Row: {
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          nome: string
-          tp_cadastro_id: number
-        }
-        Insert: {
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          nome: string
-          tp_cadastro_id?: number
-        }
-        Update: {
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          nome?: string
-          tp_cadastro_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tipo_cadastro_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      tipo_operacao: {
-        Row: {
-          descricao: string
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          gera_boleto: boolean | null
-          gera_financeiro: boolean | null
-          gera_nf: boolean | null
-          modifica_estoque: boolean | null
-          tipo_movimento: string | null
-          tipo_operacao_id: number
-          valida_preco: boolean | null
-        }
-        Insert: {
-          descricao: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          gera_boleto?: boolean | null
-          gera_financeiro?: boolean | null
-          gera_nf?: boolean | null
-          modifica_estoque?: boolean | null
-          tipo_movimento?: string | null
-          tipo_operacao_id?: number
-          valida_preco?: boolean | null
-        }
-        Update: {
-          descricao?: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          gera_boleto?: boolean | null
-          gera_financeiro?: boolean | null
-          gera_nf?: boolean | null
-          modifica_estoque?: boolean | null
-          tipo_movimento?: string | null
-          tipo_operacao_id?: number
-          valida_preco?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tipo_operacao_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      tipo_pag_rec: {
-        Row: {
-          ativo: boolean | null
-          descricao: string
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          tipo: string | null
-          tipo_pag_rec_id: number
-        }
-        Insert: {
-          ativo?: boolean | null
-          descricao: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          tipo?: string | null
-          tipo_pag_rec_id?: number
-        }
-        Update: {
-          ativo?: boolean | null
-          descricao?: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          tipo?: string | null
-          tipo_pag_rec_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tipo_pag_rec_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      unidade: {
-        Row: {
-          descricao: string
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          unidade_id: string
-        }
-        Insert: {
-          descricao: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          unidade_id: string
-        }
-        Update: {
-          descricao?: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          unidade_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "unidade_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      veiculo: {
-        Row: {
-          ativo: boolean | null
-          cadastro_id: number | null
-          descricao: string
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido_visivel: boolean | null
-          marca: string
-          modelo: string
-          placa: string
-          veiculo_id: number
-        }
-        Insert: {
-          ativo?: boolean | null
-          cadastro_id?: number | null
-          descricao: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          marca?: string
-          modelo?: string
-          placa?: string
-          veiculo_id?: number
-        }
-        Update: {
-          ativo?: boolean | null
-          cadastro_id?: number | null
-          descricao?: string
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido_visivel?: boolean | null
-          marca?: string
-          modelo?: string
-          placa?: string
-          veiculo_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "veiculo_cadastro_id_fkey"
-            columns: ["cadastro_id"]
-            isOneToOne: false
-            referencedRelation: "cadastro"
-            referencedColumns: ["cadastro_id"]
-          },
-          {
-            foreignKeyName: "veiculo_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresa"
@@ -2941,108 +1853,7 @@ export type Database = {
       }
     }
     Views: {
-      vw_pedidos_completos: {
-        Row: {
-          cadastro_id: number | null
-          dt_cancelamento: string | null
-          dt_emissao: string | null
-          dt_faturamento: string | null
-          dt_finalizacao: string | null
-          dt_pagamento: string | null
-          email_responsavel: string | null
-          empresa_id: number | null
-          excluido_visivel: boolean | null
-          faturado: string | null
-          hr_movimento: string | null
-          id_transacao_abacatepay: string | null
-          lg_pagamento_online: boolean | null
-          lg_pedido_link: boolean | null
-          lg_pedido_pdv: boolean | null
-          movimento_id: number | null
-          nm_cliente: string | null
-          nm_crianca: string | null
-          nm_responsavel: string | null
-          nr_movimento: number | null
-          nr_telefone_responsavel: string | null
-          obs_pedido: string | null
-          observacao: string | null
-          qr_code_pagamento: string | null
-          st_pedido: string | null
-          status: string | null
-          tp_movimento: string | null
-          tp_origem: string | null
-          url_pagamento: string | null
-          usuario_id: string | null
-          vl_desconto: number | null
-          vl_movimento: number | null
-          vl_produto: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "movimento_cadastro_id_fkey"
-            columns: ["cadastro_id"]
-            isOneToOne: false
-            referencedRelation: "cadastro"
-            referencedColumns: ["cadastro_id"]
-          },
-          {
-            foreignKeyName: "movimento_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-        ]
-      }
-      vw_produtos_disponiveis: {
-        Row: {
-          ativo: string | null
-          controla_estoque: string | null
-          descricao: string | null
-          dias_venda_online: string | null
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number | null
-          estoque_disponivel: number | null
-          estoque_fisico: number | null
-          estoque_minimo: number | null
-          estoque_padrao: number | null
-          estoque_reservado: number | null
-          excluido_visivel: boolean | null
-          grupo_id: number | null
-          gtin: string | null
-          nm_grupo_produto: string | null
-          nome: string | null
-          nome_reduzido: string | null
-          pc_markup: number | null
-          preco_promocional: number | null
-          preco_sugerido: number | null
-          preco_venda: number | null
-          produto_id: number | null
-          referencia: string | null
-          tp_produto: string | null
-          unidade_id: string | null
-          url_foto: string | null
-          venda_online: boolean | null
-          vl_compra: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "produto_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresa"
-            referencedColumns: ["empresa_id"]
-          },
-          {
-            foreignKeyName: "produto_grupo_id_fkey"
-            columns: ["grupo_id"]
-            isOneToOne: false
-            referencedRelation: "produto_grupo"
-            referencedColumns: ["grupo_id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       fu_form_permissao: {
