@@ -265,13 +265,13 @@ const UsuarioForm: React.FC = () => {
         return;
       }
 
-      await supabase.from("profiles").upsert({
+      await (supabase as any).from("profiles").upsert({
         id: XNewUserId,
         email: XEmail.trim(),
         nm_usuario: XNmUsuario.trim(),
         ds_login: XDsLogin.trim(),
         ds_foto: XDsFoto.trim(),
-      } as any, { onConflict: "id" });
+      }, { onConflict: "id" });
 
       await supabase.from("empresa_usuario").insert({
         empresa_id: XEmpresaId,
