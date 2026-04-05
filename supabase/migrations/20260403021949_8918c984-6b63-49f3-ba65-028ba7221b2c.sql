@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS public.produto_conversao (
   unidade_id varchar(10) NOT NULL DEFAULT '',
   tp_movimento varchar(30) NOT NULL DEFAULT '',
   fator_mult numeric(12,5) NOT NULL DEFAULT 1,
-  excluido_visivel boolean DEFAULT false,
+  excluido boolean DEFAULT false,
   dt_cadastro timestamptz DEFAULT now(),
   dt_alteracao timestamptz DEFAULT now()
 );

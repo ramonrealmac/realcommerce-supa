@@ -59,7 +59,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           nome: string
           razao_social: string
         }
@@ -68,7 +68,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome: string
           razao_social?: string
         }
@@ -77,7 +77,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome?: string
           razao_social?: string
         }
@@ -133,7 +133,7 @@ export type Database = {
           endereco_numero: string
           endereco_ptoref: string
           estado_civil: string
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           fone_comercial: string
           fone_faturamento: string
           fone_financeiro: string
@@ -205,7 +205,7 @@ export type Database = {
           endereco_numero?: string
           endereco_ptoref?: string
           estado_civil?: string
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           fone_comercial?: string
           fone_faturamento?: string
           fone_financeiro?: string
@@ -277,7 +277,7 @@ export type Database = {
           endereco_numero?: string
           endereco_ptoref?: string
           estado_civil?: string
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           fone_comercial?: string
           fone_faturamento?: string
           fone_financeiro?: string
@@ -324,7 +324,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           nome: string
         }
         Insert: {
@@ -332,7 +332,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome: string
         }
         Update: {
@@ -340,7 +340,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome?: string
         }
         Relationships: [
@@ -361,7 +361,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
         }
         Insert: {
           cfop_id?: number
@@ -370,7 +370,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
         }
         Update: {
           cfop_id?: number
@@ -379,7 +379,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
         }
         Relationships: [
           {
@@ -398,7 +398,7 @@ export type Database = {
           descricao: string
           dt_alteracao: string | null
           dt_cadastro: string | null
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           uf: string | null
         }
         Insert: {
@@ -407,7 +407,7 @@ export type Database = {
           descricao: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           uf?: string | null
         }
         Update: {
@@ -416,7 +416,7 @@ export type Database = {
           descricao?: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           uf?: string | null
         }
         Relationships: []
@@ -428,7 +428,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           pc_comis_av: number | null
           pc_comis_pr: number | null
           tp_comissao: string | null
@@ -439,7 +439,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           pc_comis_av?: number | null
           pc_comis_pr?: number | null
           tp_comissao?: string | null
@@ -450,7 +450,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           pc_comis_av?: number | null
           pc_comis_pr?: number | null
           tp_comissao?: string | null
@@ -472,7 +472,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           prazo_1: number | null
           prazo_10: number
           prazo_11: number
@@ -493,7 +493,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           prazo_1?: number | null
           prazo_10?: number
           prazo_11?: number
@@ -514,7 +514,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           prazo_1?: number | null
           prazo_10?: number
           prazo_11?: number
@@ -545,7 +545,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           nome: string
         }
         Insert: {
@@ -553,7 +553,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome: string
         }
         Update: {
@@ -561,7 +561,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome?: string
         }
         Relationships: [
@@ -581,7 +581,7 @@ export type Database = {
           dt_cadastro: string | null
           empresa_id: number
           endereco: string
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           nome: string
         }
         Insert: {
@@ -590,7 +590,7 @@ export type Database = {
           dt_cadastro?: string | null
           empresa_id?: number
           endereco?: string
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome: string
         }
         Update: {
@@ -599,7 +599,7 @@ export type Database = {
           dt_cadastro?: string | null
           empresa_id?: number
           endereco?: string
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome?: string
         }
         Relationships: [
@@ -624,7 +624,7 @@ export type Database = {
           endereco_cidade_id: number | null
           endereco_logradouro: string | null
           endereco_numero: string | null
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           fone_comercial: string | null
           fone_faturamento: string | null
           fone_financeiro: string | null
@@ -650,7 +650,7 @@ export type Database = {
           endereco_cidade_id?: number | null
           endereco_logradouro?: string | null
           endereco_numero?: string | null
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           fone_comercial?: string | null
           fone_faturamento?: string | null
           fone_financeiro?: string | null
@@ -676,7 +676,7 @@ export type Database = {
           endereco_cidade_id?: number | null
           endereco_logradouro?: string | null
           endereco_numero?: string | null
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           fone_comercial?: string | null
           fone_faturamento?: string | null
           fone_financeiro?: string | null
@@ -735,7 +735,7 @@ export type Database = {
           estoque_minimo: number | null
           estoque_padrao: number | null
           estoque_reservado: number | null
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           produto_id: number
         }
         Insert: {
@@ -752,7 +752,7 @@ export type Database = {
           estoque_minimo?: number | null
           estoque_padrao?: number | null
           estoque_reservado?: number | null
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           produto_id: number
         }
         Update: {
@@ -769,7 +769,7 @@ export type Database = {
           estoque_minimo?: number | null
           estoque_padrao?: number | null
           estoque_reservado?: number | null
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           produto_id?: number
         }
         Relationships: [
@@ -792,7 +792,7 @@ export type Database = {
           dt_pagamento: string | null
           dt_vencimento: string
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           financeiro_id: number
           movimento_id: number | null
           nr_documento: string
@@ -819,7 +819,7 @@ export type Database = {
           dt_pagamento?: string | null
           dt_vencimento: string
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           financeiro_id?: number
           movimento_id?: number | null
           nr_documento?: string
@@ -846,7 +846,7 @@ export type Database = {
           dt_pagamento?: string | null
           dt_vencimento?: string
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           financeiro_id?: number
           movimento_id?: number | null
           nr_documento?: string
@@ -871,7 +871,7 @@ export type Database = {
           dt_baixa: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           financeiro_baixa_id: number
           financeiro_id: number
           nr_autorizacao: string
@@ -887,7 +887,7 @@ export type Database = {
           dt_baixa?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           financeiro_baixa_id?: number
           financeiro_id: number
           nr_autorizacao?: string
@@ -903,7 +903,7 @@ export type Database = {
           dt_baixa?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           financeiro_baixa_id?: number
           financeiro_id?: number
           nr_autorizacao?: string
@@ -931,7 +931,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           grupo_icms_id: number
         }
         Insert: {
@@ -939,7 +939,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           grupo_icms_id?: number
         }
         Update: {
@@ -947,7 +947,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           grupo_icms_id?: number
         }
         Relationships: [
@@ -966,7 +966,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           grupo_ipi_id: number
         }
         Insert: {
@@ -974,7 +974,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           grupo_ipi_id?: number
         }
         Update: {
@@ -982,7 +982,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           grupo_ipi_id?: number
         }
         Relationships: [
@@ -1001,7 +1001,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           grupo_pis_cofins_id: number
         }
         Insert: {
@@ -1009,7 +1009,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           grupo_pis_cofins_id?: number
         }
         Update: {
@@ -1017,7 +1017,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           grupo_pis_cofins_id?: number
         }
         Relationships: [
@@ -1035,7 +1035,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           linha_id: number
           nome: string
         }
@@ -1043,7 +1043,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           linha_id?: number
           nome: string
         }
@@ -1051,7 +1051,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           linha_id?: number
           nome?: string
         }
@@ -1075,7 +1075,7 @@ export type Database = {
           dt_pagamento: string | null
           email_responsavel: string
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           faturado: string | null
           hr_movimento: string
           id_transacao_abacatepay: string
@@ -1109,7 +1109,7 @@ export type Database = {
           dt_pagamento?: string | null
           email_responsavel?: string
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           faturado?: string | null
           hr_movimento?: string
           id_transacao_abacatepay?: string
@@ -1143,7 +1143,7 @@ export type Database = {
           dt_pagamento?: string | null
           email_responsavel?: string
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           faturado?: string | null
           hr_movimento?: string
           id_transacao_abacatepay?: string
@@ -1189,7 +1189,7 @@ export type Database = {
         Row: {
           cd_produto: string
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           movimento_id: number
           movimento_item_id: number
           nm_produto: string
@@ -1205,7 +1205,7 @@ export type Database = {
         Insert: {
           cd_produto?: string
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           movimento_id: number
           movimento_item_id?: number
           nm_produto?: string
@@ -1221,7 +1221,7 @@ export type Database = {
         Update: {
           cd_produto?: string
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           movimento_id?: number
           movimento_item_id?: number
           nm_produto?: string
@@ -1255,7 +1255,7 @@ export type Database = {
         Row: {
           dt_pagamento: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           movimento_id: number
           movimento_pagamento_id: number
           nr_autorizacao: string
@@ -1266,7 +1266,7 @@ export type Database = {
         Insert: {
           dt_pagamento?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           movimento_id: number
           movimento_pagamento_id?: number
           nr_autorizacao?: string
@@ -1277,7 +1277,7 @@ export type Database = {
         Update: {
           dt_pagamento?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           movimento_id?: number
           movimento_pagamento_id?: number
           nr_autorizacao?: string
@@ -1304,7 +1304,7 @@ export type Database = {
       }
       parametro: {
         Row: {
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           id: number
           xabacatepay_api_key: string
           xabacatepay_webhook_secret: string
@@ -1335,7 +1335,7 @@ export type Database = {
           xurl_logo: string
         }
         Insert: {
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           id?: number
           xabacatepay_api_key?: string
           xabacatepay_webhook_secret?: string
@@ -1366,7 +1366,7 @@ export type Database = {
           xurl_logo?: string
         }
         Update: {
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           id?: number
           xabacatepay_api_key?: string
           xabacatepay_webhook_secret?: string
@@ -1400,7 +1400,7 @@ export type Database = {
       }
       parametro_horario: {
         Row: {
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           id: number
           xdia_semana: number
           xhr_fim_matutino: string | null
@@ -1413,7 +1413,7 @@ export type Database = {
           xparametro_id: number | null
         }
         Insert: {
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           id?: number
           xdia_semana: number
           xhr_fim_matutino?: string | null
@@ -1426,7 +1426,7 @@ export type Database = {
           xparametro_id?: number | null
         }
         Update: {
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           id?: number
           xdia_semana?: number
           xhr_fim_matutino?: string | null
@@ -1769,7 +1769,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           nome: string
           plano_id: number
           tp_conta: string | null
@@ -1780,7 +1780,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome: string
           plano_id?: number
           tp_conta?: string | null
@@ -1791,7 +1791,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome?: string
           plano_id?: number
           tp_conta?: string | null
@@ -1815,7 +1815,7 @@ export type Database = {
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
-          excluido_visivel: boolean | null
+          excluido: boolean | null
           nome: string
           portador_id: number
         }
@@ -1826,7 +1826,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome: string
           portador_id?: number
         }
@@ -1837,7 +1837,7 @@ export type Database = {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
-          excluido_visivel?: boolean | null
+          excluido?: boolean | null
           nome?: string
           portador_id?: number
         }

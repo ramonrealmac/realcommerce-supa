@@ -21,7 +21,7 @@ interface ILinhaProduto {
   linha_id: number;
   nome: string;
   empresa_id: number;
-  excluido_visivel: boolean;
+  excluido: boolean;
 }
 
 const LinhaProdutoForm: React.FC = () => {
@@ -42,7 +42,7 @@ const LinhaProdutoForm: React.FC = () => {
       .from("linha_produto")
       .select("*")
       .eq("empresa_id", XEmpresaId)
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("linha_id");
     setXData(data || []);
   }, [XEmpresaId]);
@@ -78,7 +78,7 @@ const LinhaProdutoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (confirm(`Deseja realmente excluir a linha "${XCurrentRecord.nome}"?`)) {
-      const { error } = await db.from("linha_produto").update({ excluido_visivel: true, dt_alteracao: new Date().toISOString() }).eq("linha_id", XCurrentRecord.linha_id);
+      const { error } = await db.from("linha_produto").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("linha_id", XCurrentRecord.linha_id);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Linha excluída com sucesso.");
       await loadData();

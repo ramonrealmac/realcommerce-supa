@@ -23,7 +23,7 @@ interface IDeposito {
   nome: string;
   endereco: string;
   empresa_id: number;
-  excluido_visivel: boolean;
+  excluido: boolean;
 }
 
 const DepositoForm: React.FC = () => {
@@ -45,7 +45,7 @@ const DepositoForm: React.FC = () => {
       .from("deposito")
       .select("*")
       .eq("empresa_id", XEmpresaId)
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("deposito_id");
     setXData(data || []);
   }, [XEmpresaId]);
@@ -82,7 +82,7 @@ const DepositoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (confirm(`Deseja realmente excluir o depósito "${XCurrentRecord.nome}"?`)) {
-      const { error } = await db.from("deposito").update({ excluido_visivel: true, dt_alteracao: new Date().toISOString() }).eq("deposito_id", XCurrentRecord.deposito_id);
+      const { error } = await db.from("deposito").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("deposito_id", XCurrentRecord.deposito_id);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Depósito excluído com sucesso.");
       await loadData();

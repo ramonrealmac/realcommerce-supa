@@ -55,9 +55,9 @@ const EstoqueForm: React.FC = () => {
 
   const loadData = useCallback(async () => {
     const [{ data: XEstData }, { data: XProdData }, { data: XDepData }] = await Promise.all([
-      db.from("estoque").select("*").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("estoque_id"),
-      db.from("produto").select("produto_id, nm_produto").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nm_produto"),
-      db.from("deposito").select("deposito_id, nome").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
+      db.from("estoque").select("*").eq("empresa_id", XEmpresaId).eq("excluido", false).order("estoque_id"),
+      db.from("produto").select("produto_id, nm_produto").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nm_produto"),
+      db.from("deposito").select("deposito_id, nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
     ]);
     setXEstoques(XEstData || []);
     setXProdutos(XProdData || []);
@@ -175,7 +175,7 @@ const EstoqueForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XSelectedEstoque) return;
     if (confirm("Deseja realmente excluir este registro de estoque?")) {
-      await db.from("estoque").update({ excluido_visivel: true }).eq("estoque_id", XSelectedEstoque.estoque_id);
+      await db.from("estoque").update({ excluido: true }).eq("estoque_id", XSelectedEstoque.estoque_id);
       toast.success("Estoque excluído.");
       setXSelectedIdx(null);
       loadData();

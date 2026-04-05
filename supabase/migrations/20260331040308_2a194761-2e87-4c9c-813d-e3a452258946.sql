@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.empresa (
     razao_social text DEFAULT 'Empresa Padrão' NOT NULL,
     nome_fantasia text DEFAULT '' NOT NULL,
     cnpj character varying(18) DEFAULT '' NOT NULL,
-    excluido_visivel boolean DEFAULT false,
+    excluido boolean DEFAULT false,
     dt_cadastro timestamp with time zone DEFAULT now(),
     dt_alteracao timestamp with time zone DEFAULT now()
 );
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.banco (
     nome text NOT NULL,
     razao_social text DEFAULT '' NOT NULL,
     empresa_id integer DEFAULT 1 NOT NULL,
-    excluido_visivel boolean DEFAULT false,
+    excluido boolean DEFAULT false,
     dt_cadastro timestamp with time zone DEFAULT now(),
     dt_alteracao timestamp with time zone
 );
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.cidade (
     descricao text NOT NULL,
     uf character varying(2) DEFAULT 'PR',
     empresa_id integer DEFAULT 1 NOT NULL,
-    excluido_visivel boolean DEFAULT false,
+    excluido boolean DEFAULT false,
     dt_cadastro timestamp with time zone DEFAULT now(),
     dt_alteracao timestamp with time zone
 );
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.grupo_cadastro (
     nome character varying NOT NULL,
     dt_cadastro timestamp with time zone DEFAULT now(),
     dt_alteracao timestamp with time zone DEFAULT now(),
-    excluido_visivel boolean DEFAULT false
+    excluido boolean DEFAULT false
 );
 
 -- PRODUTO_GRUPO
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.produto_grupo (
     empresa_id bigint DEFAULT 1 NOT NULL,
     nome character varying(50) NOT NULL,
     ultima_sequencia integer DEFAULT 0,
-    excluido_visivel boolean DEFAULT false,
+    excluido boolean DEFAULT false,
     dt_cadastro timestamp with time zone DEFAULT now(),
     dt_alteracao timestamp with time zone DEFAULT now()
 );
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS public.cadastro (
     st_cliente character(1) DEFAULT 'S',
     st_vendedor character(1) DEFAULT 'N',
     st_fornecedor character(1) DEFAULT 'N',
-    excluido_visivel boolean DEFAULT false,
+    excluido boolean DEFAULT false,
     dt_cadastro timestamp with time zone DEFAULT now(),
     dt_alteracao timestamp with time zone DEFAULT now(),
     inscricao_estadual character varying DEFAULT '' NOT NULL,
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS public.produto (
     venda_online boolean DEFAULT true,
     dias_venda_online text DEFAULT '0,1,2,3,4',
     controla_estoque character varying(1) DEFAULT 'S',
-    excluido_visivel boolean DEFAULT false,
+    excluido boolean DEFAULT false,
     dt_cadastro timestamp with time zone DEFAULT now(),
     dt_alteracao timestamp with time zone DEFAULT now()
 );

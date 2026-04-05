@@ -94,14 +94,14 @@ const ProdutoForm: React.FC = () => {
   /* ─── Load lookups ─── */
   const loadLookups = useCallback(async () => {
     const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
-      db.from("produto_grupo").select("grupo_id,nome").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
-      db.from("subgrupo_produto").select("subgrupo_id,nome,grupo_id").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
-      db.from("linha_produto").select("linha_id,nome").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
-      db.from("unidade").select("unidade_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("descricao"),
-      db.from("grupo_icms").select("grupo_icms_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("descricao"),
-      db.from("grupo_ipi").select("grupo_ipi_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("descricao"),
-      db.from("grupo_pis_cofins").select("grupo_pis_cofins_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("descricao"),
-      db.from("deposito").select("deposito_id,nome").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
+      db.from("produto_grupo").select("grupo_id,nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
+      db.from("subgrupo_produto").select("subgrupo_id,nome,grupo_id").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
+      db.from("linha_produto").select("linha_id,nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
+      db.from("unidade").select("unidade_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido", false).order("descricao"),
+      db.from("grupo_icms").select("grupo_icms_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido", false).order("descricao"),
+      db.from("grupo_ipi").select("grupo_ipi_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido", false).order("descricao"),
+      db.from("grupo_pis_cofins").select("grupo_pis_cofins_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido", false).order("descricao"),
+      db.from("deposito").select("deposito_id,nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
     ]);
     setXGrupos(r1.data || []);
     setXSubgrupos(r2.data || []);
@@ -120,7 +120,7 @@ const ProdutoForm: React.FC = () => {
       .from("produto")
       .select("*")
       .eq("empresa_id", XEmpresaId)
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("produto_id");
     setXData(XRows || []);
     setXLoading(false);
@@ -129,8 +129,8 @@ const ProdutoForm: React.FC = () => {
   /* ─── Load sub-data for current product ─── */
   const loadSubData = useCallback(async (produtoId: number) => {
     const [rEst, rConv] = await Promise.all([
-      db.from("estoque").select("*").eq("empresa_id", XEmpresaId).eq("produto_id", produtoId).eq("excluido_visivel", false),
-      db.from("produto_conversao").select("*").eq("empresa_id", XEmpresaId).eq("produto_id", produtoId).eq("excluido_visivel", false).order("conversao_id"),
+      db.from("estoque").select("*").eq("empresa_id", XEmpresaId).eq("produto_id", produtoId).eq("excluido", false),
+      db.from("produto_conversao").select("*").eq("empresa_id", XEmpresaId).eq("produto_id", produtoId).eq("excluido", false).order("conversao_id"),
     ]);
     const XDepMap: Record<number, string> = {};
     XDepositos.forEach((d: any) => { XDepMap[d.deposito_id] = d.nome; });
@@ -328,7 +328,7 @@ const ProdutoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.nome}"?`)) return;
-    await db.from("produto").update({ excluido_visivel: true }).eq("produto_id", XCurrentRecord.produto_id);
+    await db.from("produto").update({ excluido: true }).eq("produto_id", XCurrentRecord.produto_id);
     toast.success("Produto excluído com sucesso.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
@@ -374,7 +374,7 @@ const ProdutoForm: React.FC = () => {
   const handleConvExcluir = async () => {
     if (XConvIdx < 0 || !XCurrentRecord) return;
     if (!confirm("Excluir esta conversão?")) return;
-    await db.from("produto_conversao").update({ excluido_visivel: true }).eq("conversao_id", XConversoes[XConvIdx].conversao_id);
+    await db.from("produto_conversao").update({ excluido: true }).eq("conversao_id", XConversoes[XConvIdx].conversao_id);
     toast.success("Conversão excluída.");
     setXConvIdx(-1);
     loadSubData(XCurrentRecord.produto_id);

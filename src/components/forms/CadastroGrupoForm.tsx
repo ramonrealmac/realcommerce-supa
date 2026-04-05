@@ -41,7 +41,7 @@ const CadastroGrupoForm: React.FC = () => {
       .from("cadastro_grupo")
       .select("*")
       .eq("empresa_id", XEmpresaId)
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("cadastro_grupo_id");
     setXData(data || []);
   }, [XEmpresaId]);
@@ -81,7 +81,7 @@ const CadastroGrupoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.nome}"?`)) return;
-    await db.from("cadastro_grupo").update({ excluido_visivel: true }).eq("cadastro_grupo_id", XCurrentRecord.cadastro_grupo_id);
+    await db.from("cadastro_grupo").update({ excluido: true }).eq("cadastro_grupo_id", XCurrentRecord.cadastro_grupo_id);
     toast.success("Grupo excluído.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);

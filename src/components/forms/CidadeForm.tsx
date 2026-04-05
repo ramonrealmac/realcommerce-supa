@@ -50,7 +50,7 @@ const CidadeForm: React.FC = () => {
     const { data } = await db
       .from("cidade")
       .select("*")
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("cidade_id");
     setXData(data || []);
   }, []);
@@ -88,7 +88,7 @@ const CidadeForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.descricao}"?`)) return;
-    await db.from("cidade").update({ excluido_visivel: true }).eq("cidade_id", XCurrentRecord.cidade_id);
+    await db.from("cidade").update({ excluido: true }).eq("cidade_id", XCurrentRecord.cidade_id);
     toast.success("Cidade excluída.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);

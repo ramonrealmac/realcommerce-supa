@@ -52,7 +52,7 @@ const VeiculoGrid: React.FC<VeiculoGridProps> = ({ XEmpresaId, XCadastroId }) =>
       .select("*")
       .eq("cadastro_id", XCadastroId)
       .eq("empresa_id", XEmpresaId)
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("veiculo_id");
     setXVeiculos(data || []);
   }, [XEmpresaId, XCadastroId]);
@@ -135,7 +135,7 @@ const VeiculoGrid: React.FC<VeiculoGridProps> = ({ XEmpresaId, XCadastroId }) =>
   const handleExcluir = async () => {
     if (!XSelectedVeiculo) return;
     if (confirm(`Excluir veículo "${XSelectedVeiculo.placa}"?`)) {
-      await db.from("veiculo").update({ excluido_visivel: true }).eq("veiculo_id", XSelectedVeiculo.veiculo_id);
+      await db.from("veiculo").update({ excluido: true }).eq("veiculo_id", XSelectedVeiculo.veiculo_id);
       toast.success("Veículo excluído.");
       setXSelectedIdx(null);
       loadData();

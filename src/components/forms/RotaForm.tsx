@@ -41,7 +41,7 @@ const RotaForm: React.FC = () => {
       .from("rota")
       .select("*")
       .eq("empresa_id", XEmpresaId)
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("rota_id");
     setXData(data || []);
   }, [XEmpresaId]);
@@ -78,7 +78,7 @@ const RotaForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.nome}"?`)) return;
-    await db.from("rota").update({ excluido_visivel: true }).eq("rota_id", XCurrentRecord.rota_id);
+    await db.from("rota").update({ excluido: true }).eq("rota_id", XCurrentRecord.rota_id);
     toast.success("Rota excluída.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);

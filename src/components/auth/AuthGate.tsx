@@ -91,7 +91,7 @@ const AuthGate = ({ children, onEmpresaSelected }: AuthGateProps) => {
           .from("empresa")
           .select("empresa_id, razao_social, nome_fantasia")
           .in("empresa_id", XEmpresaIds)
-          .eq("excluido_visivel", false)
+          .eq("excluido", false)
           .order("razao_social");
 
         const XList = (XEmpresas || []) as IEmpresaVinculada[];

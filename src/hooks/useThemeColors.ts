@@ -52,7 +52,7 @@ export function useThemeColors() {
       const { data } = await db
         .from("parametro")
         .select("*")
-        .eq("excluido_visivel", false)
+        .eq("excluido", false)
         .limit(1)
         .single();
 

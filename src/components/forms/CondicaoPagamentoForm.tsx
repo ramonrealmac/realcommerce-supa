@@ -77,7 +77,7 @@ const CondicaoPagamentoForm: React.FC = () => {
       .from("condicao_pagamento")
       .select("*")
       .eq("empresa_id", XEmpresaId)
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("condicao_id");
     setXData(data || []);
   }, [XEmpresaId]);
@@ -126,7 +126,7 @@ const CondicaoPagamentoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.descricao}"?`)) return;
-    await db.from("condicao_pagamento").update({ excluido_visivel: true }).eq("condicao_id", XCurrentRecord.condicao_id);
+    await db.from("condicao_pagamento").update({ excluido: true }).eq("condicao_id", XCurrentRecord.condicao_id);
     toast.success("Condição excluída.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);

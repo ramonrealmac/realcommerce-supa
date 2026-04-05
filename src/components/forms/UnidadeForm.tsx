@@ -21,7 +21,7 @@ interface IUnidade {
   unidade_id: string;
   descricao: string;
   empresa_id: number;
-  excluido_visivel: boolean;
+  excluido: boolean;
 }
 
 const UnidadeForm: React.FC = () => {
@@ -43,7 +43,7 @@ const UnidadeForm: React.FC = () => {
       .from("unidade")
       .select("*")
       .eq("empresa_id", XEmpresaId)
-      .eq("excluido_visivel", false)
+      .eq("excluido", false)
       .order("unidade_id");
     setXData(data || []);
   }, [XEmpresaId]);
@@ -81,7 +81,7 @@ const UnidadeForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (confirm(`Deseja realmente excluir a unidade "${XCurrentRecord.unidade_id}"?`)) {
-      const { error } = await db.from("unidade").update({ excluido_visivel: true, dt_alteracao: new Date().toISOString() }).eq("unidade_id", XCurrentRecord.unidade_id).eq("empresa_id", XEmpresaId);
+      const { error } = await db.from("unidade").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("unidade_id", XCurrentRecord.unidade_id).eq("empresa_id", XEmpresaId);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Unidade excluída com sucesso.");
       await loadData();

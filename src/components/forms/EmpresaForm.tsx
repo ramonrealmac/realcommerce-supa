@@ -87,7 +87,7 @@ const emptyEmpresa = () => ({
   qt_venda_qt_decimais: 2,
   vl_saida_qt_decimais: 2,
   qt_saida_qt_decimais: 2,
-  excluido_visivel: false,
+  excluido: false,
 });
 
 type TEmpresa = ReturnType<typeof emptyEmpresa>;
@@ -116,21 +116,21 @@ const EmpresaForm: React.FC = () => {
 
   /* ── Load ── */
   const loadData = useCallback(async () => {
-    const { data } = await db.from("empresa").select("*").eq("excluido_visivel", false).order("empresa_id");
+    const { data } = await db.from("empresa").select("*").eq("excluido", false).order("empresa_id");
     if (data) setXData(data);
   }, []);
 
   const loadLookups = useCallback(async () => {
     const [empRes, cidRes] = await Promise.all([
-      db.from("empresa").select("empresa_id, razao_social").eq("excluido_visivel", false).order("razao_social"),
-      db.from("cidade").select("cidade_id, descricao").eq("excluido_visivel", false).order("descricao"),
+      db.from("empresa").select("empresa_id, razao_social").eq("excluido", false).order("razao_social"),
+      db.from("cidade").select("cidade_id, descricao").eq("excluido", false).order("descricao"),
     ]);
     if (empRes.data) setXEmpresasLookup(empRes.data);
     if (cidRes.data) setXCidades(cidRes.data);
   }, []);
 
   const loadParams = useCallback(async () => {
-    const { data: p } = await db.from("parametro").select("*").eq("excluido_visivel", false).limit(1).single();
+    const { data: p } = await db.from("parametro").select("*").eq("excluido", false).limit(1).single();
     if (p) setXParams(p);
     const { data: h } = await db.from("parametro_horario").select("*").order("xdia_semana");
     if (h) setXHorarios(h);
@@ -188,7 +188,7 @@ const EmpresaForm: React.FC = () => {
 
       // Save parametro + horarios
       if (XParams) {
-        const { id: paramId, xdt_cadastro: _dc, xdt_alteracao: _da, excluido_visivel: _ev, ...paramRest } = XParams;
+        const { id: paramId, xdt_cadastro: _dc, xdt_alteracao: _da, excluido: _ev, ...paramRest } = XParams;
         if (paramId) {
           const { error: paramErr } = await db.from("parametro").update({ ...paramRest, xdt_alteracao: new Date().toISOString() }).eq("id", paramId);
           if (paramErr) {
@@ -239,7 +239,7 @@ const EmpresaForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrent) return;
     if (!confirm(`Deseja realmente excluir "${XCurrent.razao_social}"?`)) return;
-    const { error } = await db.from("empresa").update({ excluido_visivel: true }).eq("empresa_id", XCurrent.empresa_id);
+    const { error } = await db.from("empresa").update({ excluido: true }).eq("empresa_id", XCurrent.empresa_id);
     if (error) { toast.error(error.message); return; }
     toast.success("Empresa excluída.");
     await loadData();

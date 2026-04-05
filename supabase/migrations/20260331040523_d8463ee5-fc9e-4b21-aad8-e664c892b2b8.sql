@@ -227,7 +227,7 @@ DO $$ BEGIN
   DROP POLICY IF EXISTS "Auth can view produto" ON public.produto;
   CREATE POLICY "Auth can view produto" ON public.produto FOR SELECT TO authenticated USING (true);
   DROP POLICY IF EXISTS "Anon can view produto online" ON public.produto;
-  CREATE POLICY "Anon can view produto online" ON public.produto FOR SELECT TO anon USING (venda_online = true AND excluido_visivel = false);
+  CREATE POLICY "Anon can view produto online" ON public.produto FOR SELECT TO anon USING (venda_online = true AND excluido = false);
   DROP POLICY IF EXISTS "Auth can manage produto" ON public.produto;
   CREATE POLICY "Auth can manage produto" ON public.produto FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -241,7 +241,7 @@ DO $$ BEGIN
   DROP POLICY IF EXISTS "Auth can view produtos" ON public.produto_old;
   CREATE POLICY "Auth can view produtos" ON public.produto_old FOR SELECT TO authenticated USING (true);
   DROP POLICY IF EXISTS "Anon can view produtos online" ON public.produto_old;
-  CREATE POLICY "Anon can view produtos online" ON public.produto_old FOR SELECT TO anon USING (xlg_venda_online = true AND excluido_visivel = false);
+  CREATE POLICY "Anon can view produtos online" ON public.produto_old FOR SELECT TO anon USING (xlg_venda_online = true AND excluido = false);
 
   -- ROTA
   DROP POLICY IF EXISTS "rota_auth" ON public.rota;
