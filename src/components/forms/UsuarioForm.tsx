@@ -106,7 +106,7 @@ const UsuarioForm: React.FC = () => {
 
     const XUserIds = XEuData.map(eu => eu.user_id);
 
-    const { data: XProfileData } = await supabase
+    const { data: XProfileData } = await (supabase as any)
       .from("profiles")
       .select("id, email, nm_usuario, ds_login, ds_foto")
       .in("id", XUserIds);
