@@ -1,0 +1,800 @@
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { useAppContext } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import FormToolbar from "@/components/shared/FormToolbar";
+import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, SquarePen, Trash2, RefreshCw } from "lucide-react";
+import { ToolbarBtn } from "@/components/shared/FormToolbar";
+
+const db = supabase as any;
+type TFormMode = "view" | "edit" | "insert";
+
+/* ─── Search columns ─── */
+const XLocalizarColumns: IGridColumn[] = [
+  { key: "produto_id", label: "Código", width: "80px", align: "right" },
+  { key: "nome", label: "Descrição", width: "2fr" },
+  { key: "nome_reduzido", label: "Nome Reduzido", width: "1fr" },
+  { key: "gtin", label: "GTIN", width: "140px" },
+  { key: "preco_venda", label: "Preço Venda", width: "110px", align: "right" },
+];
+
+/* ─── Empty form ─── */
+const emptyForm = (): Record<string, string> => ({
+  nome: "", nome_reduzido: "", descricao: "", unidade_id: "", gtin: "", referencia: "",
+  tp_produto: "PA", ativo: "S", preco_venda: "0", preco_promocional: "0", vl_compra: "0",
+  pc_markup: "0", preco_sugerido: "0", url_foto: "", venda_online: "true",
+  dias_venda_online: "0,1,2,3,4", controla_estoque: "S",
+  grupo_id: "", subgrupo_id: "", linha_id: "",
+  ncm: "", cest: "", mva: "0", tb_a_origem: "", grupo_icms_id: "", grupo_ipi_id: "", grupo_pis_cofins_id: "",
+  pc_ipi: "0", pc_frete: "0", pc_icms_cred: "0", pc_ipi_cred: "0", pc_emb: "0", pc_seguro: "0",
+  pc_st_trib: "0", pc_outras_desp: "0", pc_pis: "0", pc_cofins: "0", pc_fcp_st: "0", pc_difal_sn: "0",
+  vl_ipi: "0", vl_frete: "0", vl_icms_cred: "0", vl_ipi_cred: "0", vl_emb: "0", vl_seguro: "0",
+  vl_st: "0", vl_outras_desp: "0", vl_pis: "0", vl_cofins: "0", vl_fcp_st: "0", vl_difal_sn: "0",
+  vl_custo: "0", vl_custo_medio: "0", vl_desconto: "0", vl_outro: "0", pc_desconto: "0",
+  pc_multiplicador: "0", vl_multiplicador: "0", st_promo: "N",
+  preco_venda_faturado: "0", preco_promocional_fat: "0",
+  altura: "0", comprimento: "0", largura: "0", area: "0", peso_bruto: "0", peso_liquido: "0",
+});
+
+/* ─── Conversão grid columns ─── */
+const XConvGridCols: IGridColumn[] = [
+  { key: "unidade_id", label: "Unid.", width: "100px" },
+  { key: "tp_movimento", label: "Tipo de Movimento", width: "1fr" },
+  { key: "fator_mult", label: "Fator Mult.", width: "120px", align: "right" },
+];
+
+/* ─── Estoque grid columns ─── */
+const XEstoqueGridCols: IGridColumn[] = [
+  { key: "deposito_nome", label: "Depósito", width: "1fr" },
+  { key: "endereco", label: "Endereço", width: "120px" },
+  { key: "estoque_fisico", label: "Qt. Física", width: "120px", align: "right" },
+  { key: "estoque_reservado", label: "Qt. Reservada", width: "120px", align: "right" },
+  { key: "estoque_disponivel", label: "Qt. Disponível", width: "120px", align: "right" },
+];
+
+const ProdutoForm: React.FC = () => {
+  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
+
+  const [XFormMode, setXFormMode] = useState<TFormMode>("view");
+  const [XInnerTab, setXInnerTab] = useState<string>("cadastro");
+  const [XSubTab, setXSubTab] = useState<string>("cadastro");
+  const [XData, setXData] = useState<any[]>([]);
+  const [XCurrentIdx, setXCurrentIdx] = useState(0);
+  const [XF, setXF] = useState(emptyForm());
+  const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
+  const [_XLoading, setXLoading] = useState(false);
+
+  // Lookups
+  const [XGrupos, setXGrupos] = useState<any[]>([]);
+  const [XSubgrupos, setXSubgrupos] = useState<any[]>([]);
+  const [XLinhas, setXLinhas] = useState<any[]>([]);
+  const [XUnidades, setXUnidades] = useState<any[]>([]);
+  const [XGrupoIcms, setXGrupoIcms] = useState<any[]>([]);
+  const [XGrupoIpi, setXGrupoIpi] = useState<any[]>([]);
+  const [XGrupoPisCofins, setXGrupoPisCofins] = useState<any[]>([]);
+  const [XDepositos, setXDepositos] = useState<any[]>([]);
+
+  // Sub-grids
+  const [XEstoques, setXEstoques] = useState<any[]>([]);
+  const [XConversoes, setXConversoes] = useState<any[]>([]);
+  const [XConvMode, setXConvMode] = useState<"view" | "edit" | "insert">("view");
+  const [XConvIdx, setXConvIdx] = useState(-1);
+  const [XConvForm, setXConvForm] = useState({ unidade_id: "", tp_movimento: "", fator_mult: "1" });
+
+  const XCurrentRecord = XData[XCurrentIdx] || null;
+  const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
+
+  const set = useCallback((key: string, val: string) => {
+    setXF(prev => ({ ...prev, [key]: val }));
+  }, []);
+
+  /* ─── Load lookups ─── */
+  const loadLookups = useCallback(async () => {
+    const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
+      db.from("produto_grupo").select("grupo_id,nome").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
+      db.from("subgrupo_produto").select("subgrupo_id,nome,grupo_id").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
+      db.from("linha_produto").select("linha_id,nome").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
+      db.from("unidade").select("unidade_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("descricao"),
+      db.from("grupo_icms").select("grupo_icms_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("descricao"),
+      db.from("grupo_ipi").select("grupo_ipi_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("descricao"),
+      db.from("grupo_pis_cofins").select("grupo_pis_cofins_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("descricao"),
+      db.from("deposito").select("deposito_id,nome").eq("empresa_id", XEmpresaId).eq("excluido_visivel", false).order("nome"),
+    ]);
+    setXGrupos(r1.data || []);
+    setXSubgrupos(r2.data || []);
+    setXLinhas(r3.data || []);
+    setXUnidades(r4.data || []);
+    setXGrupoIcms(r5.data || []);
+    setXGrupoIpi(r6.data || []);
+    setXGrupoPisCofins(r7.data || []);
+    setXDepositos(r8.data || []);
+  }, [XEmpresaId]);
+
+  /* ─── Load data ─── */
+  const loadData = useCallback(async () => {
+    setXLoading(true);
+    const { data: XRows } = await db
+      .from("produto")
+      .select("*")
+      .eq("empresa_id", XEmpresaId)
+      .eq("excluido_visivel", false)
+      .order("produto_id");
+    setXData(XRows || []);
+    setXLoading(false);
+  }, [XEmpresaId]);
+
+  /* ─── Load sub-data for current product ─── */
+  const loadSubData = useCallback(async (produtoId: number) => {
+    const [rEst, rConv] = await Promise.all([
+      db.from("estoque").select("*").eq("empresa_id", XEmpresaId).eq("produto_id", produtoId).eq("excluido_visivel", false),
+      db.from("produto_conversao").select("*").eq("empresa_id", XEmpresaId).eq("produto_id", produtoId).eq("excluido_visivel", false).order("conversao_id"),
+    ]);
+    const XDepMap: Record<number, string> = {};
+    XDepositos.forEach((d: any) => { XDepMap[d.deposito_id] = d.nome; });
+    setXEstoques((rEst.data || []).map((e: any) => ({ ...e, deposito_nome: XDepMap[e.deposito_id] || String(e.deposito_id) })));
+    setXConversoes(rConv.data || []);
+  }, [XEmpresaId, XDepositos]);
+
+  useEffect(() => {
+    loadData();
+    loadLookups();
+    setXCurrentIdx(0);
+    setXFormMode("view");
+  }, [XEmpresaId]);
+
+  useEffect(() => {
+    if (XCurrentRecord) loadSubData(XCurrentRecord.produto_id);
+  }, [XCurrentRecord?.produto_id, XDepositos]);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (XCurrentRecord && XFormMode === "edit") {
+      const XNf: Record<string, string> = {};
+      for (const key of Object.keys(emptyForm())) {
+        const XVal = (XCurrentRecord as any)[key];
+        XNf[key] = XVal != null ? String(XVal) : "";
+      }
+      setXF(XNf);
+    }
+  }, [XCurrentRecord, XFormMode]);
+
+  // Filtered subgrupos based on selected grupo
+  const XFilteredSubgrupos = useMemo(() => {
+    if (!XIsEditing) return XSubgrupos;
+    const XGrupoId = parseInt(XF.grupo_id);
+    if (!XGrupoId) return [];
+    return XSubgrupos.filter((s: any) => s.grupo_id === XGrupoId);
+  }, [XSubgrupos, XF.grupo_id, XIsEditing]);
+
+  /* ─── Cost pairs mapping ─── */
+  const XCostPairs: [string, string][] = [
+    ["pc_ipi", "vl_ipi"], ["pc_frete", "vl_frete"], ["pc_icms_cred", "vl_icms_cred"],
+    ["pc_ipi_cred", "vl_ipi_cred"], ["pc_emb", "vl_emb"], ["pc_seguro", "vl_seguro"],
+    ["pc_st_trib", "vl_st"], ["pc_outras_desp", "vl_outras_desp"],
+    ["pc_pis", "vl_pis"], ["pc_cofins", "vl_cofins"],
+    ["pc_fcp_st", "vl_fcp_st"], ["pc_difal_sn", "vl_difal_sn"],
+  ];
+
+  /* ─── Calculate cost values ─── */
+  const recalcFromPercentages = useCallback((form: Record<string, string>, changedPcKey?: string) => {
+    const vl = parseFloat(form.vl_compra) || 0;
+    const XUpdates: Record<string, string> = {};
+    for (const [pcKey, vlKey] of XCostPairs) {
+      if (changedPcKey && pcKey !== changedPcKey) continue;
+      const pc = parseFloat(form[pcKey]) || 0;
+      XUpdates[vlKey] = ((pc / 100) * vl).toFixed(2);
+    }
+    return XUpdates;
+  }, []);
+
+  const recalcFromValue = useCallback((form: Record<string, string>, changedVlKey: string) => {
+    const vl = parseFloat(form.vl_compra) || 0;
+    const XUpdates: Record<string, string> = {};
+    for (const [pcKey, vlKey] of XCostPairs) {
+      if (vlKey !== changedVlKey) continue;
+      const vlItem = parseFloat(form[vlKey]) || 0;
+      XUpdates[pcKey] = vl > 0 ? ((vlItem / vl) * 100).toFixed(4) : "0";
+    }
+    return XUpdates;
+  }, []);
+
+  const recalcTotals = useCallback((form: Record<string, string>) => {
+    const vl = parseFloat(form.vl_compra) || 0;
+    let XSumVl = 0;
+    for (const [, vlKey] of XCostPairs) {
+      XSumVl += parseFloat(form[vlKey]) || 0;
+    }
+    const XCusto = vl + XSumVl;
+    const XMark = parseFloat(form.pc_multiplicador) || 0;
+    const XVlMark = (XMark / 100) * XCusto;
+    return {
+      vl_custo: XCusto.toFixed(2),
+      vl_multiplicador: XVlMark.toFixed(2),
+      preco_sugerido: (XCusto + XVlMark).toFixed(2),
+    };
+  }, []);
+
+  const handleCostFieldChange = useCallback((key: string, val: string) => {
+    setXF(prev => {
+      const XNext = { ...prev, [key]: val };
+      // If a percentage changed, recalc the corresponding value
+      if (key.startsWith("pc_") || key === "vl_compra") {
+        if (key === "vl_compra") {
+          // Recalc ALL values from percentages
+          Object.assign(XNext, recalcFromPercentages(XNext));
+        } else {
+          Object.assign(XNext, recalcFromPercentages(XNext, key));
+        }
+      }
+      // If a vl_ cost field changed, recalc the corresponding percentage
+      if (key.startsWith("vl_") && XCostPairs.some(([, vlK]) => vlK === key)) {
+        Object.assign(XNext, recalcFromValue(XNext, key));
+      }
+      // Always recalc totals
+      Object.assign(XNext, recalcTotals(XNext));
+      return XNext;
+    });
+  }, [recalcFromPercentages, recalcFromValue, recalcTotals]);
+
+  /* ─── CRUD handlers ─── */
+  const handleIncluir = () => {
+    setXFormMode("insert");
+    setXF(emptyForm());
+    setXInnerTab("cadastro");
+    setXSubTab("cadastro");
+  };
+
+  const handleEditar = () => {
+    if (!XCurrentRecord) return;
+    setXFormMode("edit");
+    setXInnerTab("cadastro");
+    setXSubTab("cadastro");
+  };
+
+  const handleSalvar = async () => {
+    if (!XF.nome.trim()) { toast.error("A Descrição é obrigatória."); return; }
+
+    const toNum = (v: string) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+    const toInt = (v: string) => { const n = parseInt(v); return isNaN(n) ? null : n; };
+
+    const XPayload: any = {
+      empresa_id: XEmpresaId,
+      nome: XF.nome.trim(),
+      nome_reduzido: XF.nome_reduzido.trim(),
+      descricao: XF.descricao.trim(),
+      unidade_id: XF.unidade_id || null,
+      gtin: XF.gtin.trim(),
+      referencia: XF.referencia.trim(),
+      tp_produto: XF.tp_produto || "PA",
+      ativo: XF.ativo || "S",
+      grupo_id: toInt(XF.grupo_id),
+      subgrupo_id: toInt(XF.subgrupo_id),
+      linha_id: toInt(XF.linha_id),
+      ncm: XF.ncm.trim(),
+      cest: XF.cest.trim(),
+      mva: toNum(XF.mva),
+      tb_a_origem: XF.tb_a_origem,
+      grupo_icms_id: toInt(XF.grupo_icms_id),
+      grupo_ipi_id: toInt(XF.grupo_ipi_id),
+      grupo_pis_cofins_id: toInt(XF.grupo_pis_cofins_id),
+      vl_compra: toNum(XF.vl_compra),
+      pc_ipi: toNum(XF.pc_ipi), pc_frete: toNum(XF.pc_frete),
+      pc_icms_cred: toNum(XF.pc_icms_cred), pc_ipi_cred: toNum(XF.pc_ipi_cred),
+      pc_emb: toNum(XF.pc_emb), pc_seguro: toNum(XF.pc_seguro),
+      pc_st_trib: toNum(XF.pc_st_trib), pc_outras_desp: toNum(XF.pc_outras_desp),
+      pc_pis: toNum(XF.pc_pis), pc_cofins: toNum(XF.pc_cofins),
+      pc_fcp_st: toNum(XF.pc_fcp_st), pc_difal_sn: toNum(XF.pc_difal_sn),
+      vl_ipi: toNum(XF.vl_ipi), vl_frete: toNum(XF.vl_frete),
+      vl_icms_cred: toNum(XF.vl_icms_cred), vl_ipi_cred: toNum(XF.vl_ipi_cred),
+      vl_emb: toNum(XF.vl_emb), vl_seguro: toNum(XF.vl_seguro),
+      vl_st: toNum(XF.vl_st), vl_outras_desp: toNum(XF.vl_outras_desp),
+      vl_pis: toNum(XF.vl_pis), vl_cofins: toNum(XF.vl_cofins),
+      vl_fcp_st: toNum(XF.vl_fcp_st), vl_difal_sn: toNum(XF.vl_difal_sn),
+      vl_custo: toNum(XF.vl_custo), vl_custo_medio: toNum(XF.vl_custo_medio),
+      vl_desconto: toNum(XF.vl_desconto), vl_outro: toNum(XF.vl_outro),
+      pc_desconto: toNum(XF.pc_desconto),
+      pc_multiplicador: toNum(XF.pc_multiplicador), vl_multiplicador: toNum(XF.vl_multiplicador),
+      st_promo: XF.st_promo || "N",
+      preco_venda: toNum(XF.preco_venda),
+      preco_venda_faturado: toNum(XF.preco_venda_faturado),
+      preco_promocional: toNum(XF.preco_promocional),
+      preco_promocional_fat: toNum(XF.preco_promocional_fat),
+      preco_sugerido: toNum(XF.preco_sugerido),
+      pc_markup: toNum(XF.pc_markup),
+      altura: toNum(XF.altura), comprimento: toNum(XF.comprimento),
+      largura: toNum(XF.largura), area: toNum(XF.area),
+      peso_bruto: toNum(XF.peso_bruto), peso_liquido: toNum(XF.peso_liquido),
+      controla_estoque: XF.controla_estoque || "S",
+    };
+
+    if (XFormMode === "edit" && XCurrentRecord) {
+      const { error } = await db.from("produto").update({ ...XPayload, dt_alteracao: new Date().toISOString() }).eq("produto_id", XCurrentRecord.produto_id);
+      if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    } else {
+      const { error } = await db.from("produto").insert(XPayload);
+      if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    }
+
+    toast.success(XFormMode === "edit" ? "Produto alterado com sucesso." : "Produto incluído com sucesso.");
+    setXFormMode("view");
+    await loadData();
+  };
+
+  const handleCancelar = () => setXFormMode("view");
+
+  const handleExcluir = async () => {
+    if (!XCurrentRecord) return;
+    if (!confirm(`Deseja realmente excluir "${XCurrentRecord.nome}"?`)) return;
+    await db.from("produto").update({ excluido_visivel: true }).eq("produto_id", XCurrentRecord.produto_id);
+    toast.success("Produto excluído com sucesso.");
+    await loadData();
+    if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
+  };
+
+  const handleFirst = () => setXCurrentIdx(0);
+  const handlePrev = () => setXCurrentIdx(Math.max(0, XCurrentIdx - 1));
+  const handleNext = () => setXCurrentIdx(Math.min(XData.length - 1, XCurrentIdx + 1));
+  const handleLast = () => setXCurrentIdx(XData.length - 1);
+  const handleRefresh = async () => { await loadData(); toast.info("Dados recarregados."); };
+  const handleSair = () => { const t = XTabs.find(t => t.id === XActiveTabId); if (t) closeTab(t.id); };
+
+  /* ─── Conversão CRUD ─── */
+  const handleConvIncluir = () => {
+    setXConvMode("insert");
+    setXConvIdx(-1);
+    setXConvForm({ unidade_id: "", tp_movimento: "", fator_mult: "1" });
+  };
+  const handleConvEditar = () => {
+    if (XConvIdx < 0) return;
+    const r = XConversoes[XConvIdx];
+    setXConvMode("edit");
+    setXConvForm({ unidade_id: r.unidade_id, tp_movimento: r.tp_movimento, fator_mult: String(r.fator_mult) });
+  };
+  const handleConvSalvar = async () => {
+    if (!XCurrentRecord) return;
+    const XPay = {
+      produto_id: XCurrentRecord.produto_id,
+      empresa_id: XEmpresaId,
+      unidade_id: XConvForm.unidade_id,
+      tp_movimento: XConvForm.tp_movimento,
+      fator_mult: parseFloat(XConvForm.fator_mult) || 1,
+    };
+    if (XConvMode === "edit" && XConvIdx >= 0) {
+      await db.from("produto_conversao").update({ ...XPay, dt_alteracao: new Date().toISOString() }).eq("conversao_id", XConversoes[XConvIdx].conversao_id);
+    } else {
+      await db.from("produto_conversao").insert(XPay);
+    }
+    toast.success("Conversão salva.");
+    setXConvMode("view");
+    loadSubData(XCurrentRecord.produto_id);
+  };
+  const handleConvExcluir = async () => {
+    if (XConvIdx < 0 || !XCurrentRecord) return;
+    if (!confirm("Excluir esta conversão?")) return;
+    await db.from("produto_conversao").update({ excluido_visivel: true }).eq("conversao_id", XConversoes[XConvIdx].conversao_id);
+    toast.success("Conversão excluída.");
+    setXConvIdx(-1);
+    loadSubData(XCurrentRecord.produto_id);
+  };
+
+  /* ─── Search filter ─── */
+  const XFilteredData = useMemo(() => {
+    return XData.filter(r => {
+      for (const col of XLocalizarColumns) {
+        const f = XSearchFilters[col.key] || "";
+        if (f && !String((r as any)[col.key] ?? "").toLowerCase().includes(f.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [XData, XSearchFilters]);
+
+  const handleSelectFromSearch = (row: any) => {
+    const idx = XData.findIndex(r => r.produto_id === row.produto_id);
+    if (idx >= 0) { setXCurrentIdx(idx); setXInnerTab("cadastro"); setXFormMode("view"); }
+  };
+
+  /* ─── Field render helpers ─── */
+  const XBgEdit = "bg-card";
+  const XBgRead = "bg-secondary";
+
+  const renderReadField = (label: string, value: any, className?: string) => (
+    <div className={className}>
+      <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
+      <input type="text" value={value ?? ""} readOnly className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XBgRead}`} />
+    </div>
+  );
+
+  const renderEditField = (label: string, key: string, opts?: { required?: boolean; className?: string; readOnly?: boolean; onChange?: (key: string, val: string) => void; align?: string }) => (
+    <div className={opts?.className}>
+      <label className="block text-xs font-medium text-muted-foreground mb-1">
+        {label} {opts?.required && <span className="text-destructive">*</span>}
+      </label>
+      <input
+        type="text"
+        value={XF[key] || ""}
+        onChange={(e) => opts?.onChange ? opts.onChange(key, e.target.value.toUpperCase()) : set(key, e.target.value.toUpperCase())}
+        readOnly={opts?.readOnly}
+        className={`w-full border border-border rounded px-3 py-1.5 text-sm ${opts?.readOnly ? XBgRead : XBgEdit} focus:ring-2 focus:ring-ring outline-none ${opts?.align === "right" ? "text-right" : ""}`}
+      />
+    </div>
+  );
+
+  const renderField = (label: string, key: string, opts?: { required?: boolean; className?: string; readOnly?: boolean; onChange?: (key: string, val: string) => void; align?: string }) => {
+    if (XIsEditing) return renderEditField(label, key, opts);
+    const val = XCurrentRecord ? (XCurrentRecord as any)[key] : "";
+    return renderReadField(label, val, opts?.className);
+  };
+
+  const renderNumField = (label: string, key: string, opts?: { readOnly?: boolean; className?: string }) => {
+    if (XIsEditing) {
+      return renderEditField(label, key, {
+        ...opts,
+        align: "right",
+        onChange: (k: string, v: string) => handleCostFieldChange(k, v.replace(/[^0-9.,-]/g, "")),
+      });
+    }
+    const val = XCurrentRecord ? (XCurrentRecord as any)[key] : 0;
+    return renderReadField(label, val != null ? Number(val).toFixed(2) : "0.00", opts?.className);
+  };
+
+  const renderSelect = (label: string, key: string, items: { v: string; l: string }[]) => {
+    if (!XIsEditing) {
+      const d = items.find(i => i.v === (XCurrentRecord as any)?.[key])?.l || (XCurrentRecord as any)?.[key] || "";
+      return renderReadField(label, d);
+    }
+    return (
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
+        <Select value={XF[key] || ""} onValueChange={(v) => set(key, v)}>
+          <SelectTrigger className={`h-[34px] text-sm ${XBgEdit}`}><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {items.filter(i => i.v !== "").map(i => <SelectItem key={i.v} value={i.v}>{i.l}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
+  const renderLookup = (label: string, key: string, items: any[], valueKey: string, labelKey: string) => {
+    if (!XIsEditing) {
+      const id = XCurrentRecord ? (XCurrentRecord as any)[key] : null;
+      const item = items.find((i: any) => i[valueKey] === id);
+      return renderReadField(label, item ? item[labelKey] : "");
+    }
+    return (
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
+        <Select value={XF[key] || "__none__"} onValueChange={(v) => set(key, v === "__none__" ? "" : v)}>
+          <SelectTrigger className={`h-[34px] text-sm ${XBgEdit}`}><SelectValue placeholder="Selecione..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— Nenhum —</SelectItem>
+            {items.filter((i: any) => String(i[valueKey] ?? "") !== "").map((i: any) => <SelectItem key={i[valueKey]} value={String(i[valueKey])}>{i[labelKey]}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
+  /* ─── Cost row pair (percentage + R$) — both editable ─── */
+  const renderCostRow = (labelPc: string, pcKey: string, vlKey: string) => (
+    <>
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">{labelPc}</label>
+        <input
+          type="text"
+          value={XIsEditing ? (XF[pcKey] || "0") : (XCurrentRecord ? Number((XCurrentRecord as any)[pcKey] || 0).toFixed(4) : "0")}
+          onChange={(e) => handleCostFieldChange(pcKey, e.target.value)}
+          readOnly={!XIsEditing}
+          className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">R$</label>
+        <input
+          type="text"
+          value={XIsEditing ? (XF[vlKey] || "0") : (XCurrentRecord ? Number((XCurrentRecord as any)[vlKey] || 0).toFixed(2) : "0")}
+          onChange={(e) => handleCostFieldChange(vlKey, e.target.value)}
+          readOnly={!XIsEditing}
+          className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
+        />
+      </div>
+    </>
+  );
+
+  /* ─── Sub-tabs configuration ─── */
+  const XSubTabs = ["cadastro", "estoques", "tributacoes", "custo", "adicionais"];
+  const XSubTabLabels: Record<string, string> = {
+    cadastro: "Cadastro", estoques: "Estoques", tributacoes: "Tributações",
+    custo: "Formação do Custo da Compra", adicionais: "Dados Adicionais",
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-card" data-form-container>
+      <FormToolbar
+        XIsEditing={XIsEditing}
+        XHasRecord={!!XCurrentRecord}
+        XIsFirst={XCurrentIdx === 0}
+        XIsLast={XCurrentIdx >= XData.length - 1}
+        onIncluir={handleIncluir}
+        onEditar={handleEditar}
+        onSalvar={handleSalvar}
+        onCancelar={handleCancelar}
+        onExcluir={handleExcluir}
+        onFirst={handleFirst}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onLast={handleLast}
+        onRefresh={handleRefresh}
+        onLocalizar={() => setXInnerTab("localizar")}
+        onSair={handleSair}
+      />
+
+      {/* Main tabs: Produto / Localizar */}
+      <div className="flex border-b border-border bg-card">
+        {(["cadastro", "localizar"] as const).map(t => (
+          <button key={t}
+            className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setXInnerTab(t)}
+          >
+            {t === "cadastro" ? "Produtos" : "Localizar"}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-auto p-4">
+        {XInnerTab === "cadastro" ? (
+          <div className="space-y-3">
+            {/* Header: Código + Descrição + Status */}
+            <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
+              <div className="w-full md:w-28">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
+                <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentRecord?.produto_id ?? ""} readOnly className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XBgRead} text-right`} />
+              </div>
+              <div className="flex-1">{renderField("Descrição", "nome", { required: true })}</div>
+              <div className="w-full md:w-40">
+                {renderSelect("Tipo do Item", "tp_produto", [
+                  { v: "PA", l: "Produto" }, { v: "MP", l: "Matéria Prima" }, { v: "ME", l: "Mercadoria" },
+                  { v: "SV", l: "Serviço" }, { v: "EM", l: "Embalagem" },
+                ])}
+              </div>
+              <div className="w-full md:w-28 flex items-end pb-0.5 gap-2">
+                {XIsEditing ? (
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={XF.ativo === "S"}
+                      onCheckedChange={(c) => set("ativo", c ? "S" : "N")}
+                    />
+                    ATIVO
+                  </label>
+                ) : (
+                  <span className={`text-sm font-medium ${XCurrentRecord?.ativo === "S" ? "text-success" : "text-destructive"}`}>
+                    {XCurrentRecord?.ativo === "S" ? "✓ ATIVO" : "✗ INATIVO"}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Sub-tabs */}
+            <div className="flex border-b border-border flex-wrap">
+              {XSubTabs.map(t => (
+                <button key={t}
+                  className={`px-4 py-1.5 text-xs font-medium border-b-2 ${XSubTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                  onClick={() => setXSubTab(t)}
+                >
+                  {XSubTabLabels[t]}
+                </button>
+              ))}
+            </div>
+
+            {/* ══════ ABA CADASTRO ══════ */}
+            {XSubTab === "cadastro" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {renderLookup("Grupo", "grupo_id", XGrupos, "grupo_id", "nome")}
+                  {renderLookup("Subgrupo", "subgrupo_id", XFilteredSubgrupos, "subgrupo_id", "nome")}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {renderLookup("Linha do Produto", "linha_id", XLinhas, "linha_id", "nome")}
+                  {renderLookup("Unidade (Padrão)", "unidade_id", XUnidades, "unidade_id", "descricao")}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {renderField("Nome Reduzido", "nome_reduzido")}
+                  {renderField("GTIN", "gtin")}
+                  {renderField("Referência", "referencia")}
+                </div>
+              </div>
+            )}
+
+            {/* ══════ ABA ESTOQUES ══════ */}
+            {XSubTab === "estoques" && (
+              <div className="space-y-2">
+                {/* Toolbar padrão da grade */}
+                <div className="flex items-center gap-1 mb-2">
+                  <ToolbarBtn icon={<RefreshCw size={14} />} label="Recarregar" onClick={() => XCurrentRecord && loadSubData(XCurrentRecord.produto_id)} />
+                </div>
+                <DataGrid
+                  columns={XEstoqueGridCols}
+                  data={XEstoques}
+                  selectedIdx={-1}
+                  onRowClick={() => {}}
+                  maxHeight="300px"
+                  showFilters
+                  filterValues={{}}
+                  onFilterChange={() => {}}
+                  exportTitle="Estoques"
+                />
+                {XEstoques.length === 0 && (
+                  <div className="text-sm text-muted-foreground text-center py-4">Não existem dados a serem exibidos</div>
+                )}
+              </div>
+            )}
+
+            {/* ══════ ABA TRIBUTAÇÕES ══════ */}
+            {XSubTab === "tributacoes" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  {renderSelect("Origem", "tb_a_origem", [
+                    { v: "", l: "Selecione..." }, { v: "0", l: "Nacional" }, { v: "1", l: "Estrangeira - Importação Direta" },
+                    { v: "2", l: "Estrangeira - Adq. Mercado Interno" }, { v: "3", l: "Nacional - Conteúdo >40%" },
+                    { v: "4", l: "Nacional - Processos Básicos" }, { v: "5", l: "Nacional - Conteúdo <40%" },
+                    { v: "6", l: "Estrangeira - Importação S/Similar" }, { v: "7", l: "Estrangeira - Adq. S/Similar" },
+                    { v: "8", l: "Nacional - Conteúdo >70%" },
+                  ])}
+                  {renderField("GTIN", "gtin")}
+                  {renderField("NCM", "ncm")}
+                  {renderField("CEST", "cest")}
+                  {renderField("MVA (%)", "mva", { align: "right" })}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {renderLookup("Grupo ICMS", "grupo_icms_id", XGrupoIcms, "grupo_icms_id", "descricao")}
+                  {renderLookup("Grupo IPI", "grupo_ipi_id", XGrupoIpi, "grupo_ipi_id", "descricao")}
+                  {renderLookup("Grupo PIS/COFINS", "grupo_pis_cofins_id", XGrupoPisCofins, "grupo_pis_cofins_id", "descricao")}
+                </div>
+              </div>
+            )}
+
+            {/* ══════ ABA FORMAÇÃO DO CUSTO DA COMPRA ══════ */}
+            {XSubTab === "custo" && (
+              <div className="space-y-4">
+                <fieldset className="border border-border rounded p-3">
+                  <legend className="text-xs font-medium text-muted-foreground px-2">Formação de Custo da Compra</legend>
+                  {/* Valor de Compra */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    {renderNumField("Valor de Compra (R$)", "vl_compra")}
+                  </div>
+
+                  {/* Cost pairs grid — 2 pairs per row, each pair = % + R$ */}
+                  <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-x-3 gap-y-2 items-end">
+                    {renderCostRow("IPI (%)", "pc_ipi", "vl_ipi")}
+                    {renderCostRow("Subst. Trib. (%)", "pc_st_trib", "vl_st")}
+                    {renderCostRow("Frete (%)", "pc_frete", "vl_frete")}
+                    {renderCostRow("Outras Desp. (%)", "pc_outras_desp", "vl_outras_desp")}
+                    {renderCostRow("ICMS Créd. (%)", "pc_icms_cred", "vl_icms_cred")}
+                    {renderCostRow("PIS (%)", "pc_pis", "vl_pis")}
+                    {renderCostRow("IPI Crédito (%)", "pc_ipi_cred", "vl_ipi_cred")}
+                    {renderCostRow("COFINS (%)", "pc_cofins", "vl_cofins")}
+                    {renderCostRow("Embalagem (%)", "pc_emb", "vl_emb")}
+                    {renderCostRow("FCP ST (%)", "pc_fcp_st", "vl_fcp_st")}
+                    {renderCostRow("Seguro (%)", "pc_seguro", "vl_seguro")}
+                    {renderCostRow("Difal Simples (%)", "pc_difal_sn", "vl_difal_sn")}
+                  </div>
+
+                  {/* Custo + Markup */}
+                  <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-3 mt-4 items-end">
+                    {renderNumField("Vl. Custo", "vl_custo", { readOnly: true })}
+                    {renderCostRow("Markup (%)", "pc_multiplicador", "vl_multiplicador")}
+                    {renderNumField("Vl. Sug. Venda", "preco_sugerido", { readOnly: true })}
+                  </div>
+                </fieldset>
+
+                {/* Prices */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {renderNumField("Vl. Venda", "preco_venda")}
+                  {renderNumField("Vl. Venda Fat.", "preco_venda_faturado")}
+                  {renderSelect("Promo", "st_promo", [{ v: "S", l: "Sim" }, { v: "N", l: "Não" }])}
+                  {renderNumField("Vl. Promo Av.", "preco_promocional")}
+                  {renderNumField("Vl. Promo Prz.", "preco_promocional_fat")}
+                </div>
+              </div>
+            )}
+
+            {/* ══════ ABA DADOS ADICIONAIS ══════ */}
+            {XSubTab === "adicionais" && (
+              <div className="space-y-4">
+                <fieldset className="border border-border rounded p-3">
+                  <legend className="text-xs font-medium text-muted-foreground px-2">Detalhes</legend>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {renderNumField("Altura (m)", "altura")}
+                    {renderNumField("Comprimento (m)", "comprimento")}
+                    {renderNumField("Largura (m)", "largura")}
+                    {renderNumField("Área (m²)", "area")}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    {renderNumField("Peso Bruto", "peso_bruto")}
+                    {renderNumField("Peso Líquido", "peso_liquido")}
+                  </div>
+                </fieldset>
+
+                {/* Fatores de Conversão */}
+                <fieldset className="border border-border rounded p-3">
+                  <legend className="text-xs font-medium text-muted-foreground px-2">Fatores de Conversão</legend>
+
+                  {/* Mini toolbar */}
+                  <div className="flex items-center gap-1 mb-2">
+                    <ToolbarBtn icon={<Plus size={14} />} label="Incluir" onClick={handleConvIncluir} color="success" disabled={!XCurrentRecord} />
+                    <ToolbarBtn icon={<SquarePen size={14} />} label="Editar" onClick={handleConvEditar} disabled={XConvIdx < 0} />
+                    <ToolbarBtn icon={<Trash2 size={14} />} label="Excluir" onClick={handleConvExcluir} disabled={XConvIdx < 0} color="destructive" />
+                    <ToolbarBtn icon={<RefreshCw size={14} />} label="Recarregar" onClick={() => XCurrentRecord && loadSubData(XCurrentRecord.produto_id)} />
+                  </div>
+
+                  {/* Inline edit form */}
+                  {XConvMode !== "view" && (
+                    <div className="grid grid-cols-[1fr_1fr_100px_auto] gap-2 mb-2 items-end">
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Unidade</label>
+                        <Select value={XConvForm.unidade_id || "__none__"} onValueChange={v => setXConvForm(p => ({ ...p, unidade_id: v === "__none__" ? "" : v }))}>
+                          <SelectTrigger className="h-[30px] text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">—</SelectItem>
+                            {XUnidades.filter((u: any) => u.unidade_id && u.unidade_id !== "").map((u: any) => <SelectItem key={u.unidade_id} value={u.unidade_id}>{u.descricao}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Tipo Movimento</label>
+                        <Select value={XConvForm.tp_movimento || "__none__"} onValueChange={v => setXConvForm(p => ({ ...p, tp_movimento: v === "__none__" ? "" : v }))}>
+                          <SelectTrigger className="h-[30px] text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">—</SelectItem>
+                            <SelectItem value="Saida por Venda">Saída por Venda</SelectItem>
+                            <SelectItem value="Entrada por Compra">Entrada por Compra</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Fator</label>
+                        <input type="text" value={XConvForm.fator_mult} onChange={e => setXConvForm(p => ({ ...p, fator_mult: e.target.value }))}
+                          className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${XBgEdit} focus:ring-2 focus:ring-ring outline-none`} />
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={handleConvSalvar} className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded">Salvar</button>
+                        <button onClick={() => setXConvMode("view")} className="px-2 py-1 text-xs bg-muted rounded">Cancelar</button>
+                      </div>
+                    </div>
+                  )}
+
+                  <DataGrid
+                    columns={XConvGridCols}
+                    data={XConversoes}
+                    selectedIdx={XConvIdx}
+                    onRowClick={(_, idx) => setXConvIdx(idx)}
+                    maxHeight="200px"
+                  />
+                </fieldset>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ══════ ABA LOCALIZAR ══════ */
+          <div className="space-y-2">
+            <DataGrid
+              columns={XLocalizarColumns}
+              data={XFilteredData}
+              selectedIdx={-1}
+              onRowClick={handleSelectFromSearch}
+              maxHeight="calc(100vh - 220px)"
+              showFilters
+              filterValues={XSearchFilters}
+              onFilterChange={(key, val) => setXSearchFilters(prev => ({ ...prev, [key]: val }))}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ProdutoForm;

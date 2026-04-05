@@ -1,0 +1,202 @@
+import React, { useState, useCallback, useEffect } from "react";
+import {
+  Plus, Save, Pencil, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
+  Trash2, RefreshCw, List, HelpCircle, LogOut, Search
+} from "lucide-react";
+import { useAppContext } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
+import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+import { toast } from "sonner";
+
+const db = supabase as any;
+
+const XLocalizarColumns: IGridColumn[] = [
+  { key: "deposito_id", label: "Código", width: "80px", align: "right" },
+  { key: "nome", label: "Nome", width: "1fr" },
+  { key: "endereco", label: "Endereço", width: "1fr" },
+];
+
+type TFormMode = "view" | "edit" | "insert";
+
+interface IDeposito {
+  deposito_id: number;
+  nome: string;
+  endereco: string;
+  empresa_id: number;
+  excluido_visivel: boolean;
+}
+
+const DepositoForm: React.FC = () => {
+  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
+
+  const [XFormMode, setXFormMode] = useState<TFormMode>("view");
+  const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
+  const [XData, setXData] = useState<IDeposito[]>([]);
+  const [XCurrentIdx, setXCurrentIdx] = useState(0);
+  const [XNomeEdit, setXNomeEdit] = useState("");
+  const [XEnderecoEdit, setXEnderecoEdit] = useState("");
+  const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
+
+  const XCurrentRecord = XData[XCurrentIdx] || null;
+  const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
+
+  const loadData = useCallback(async () => {
+    const { data } = await db
+      .from("deposito")
+      .select("*")
+      .eq("empresa_id", XEmpresaId)
+      .eq("excluido_visivel", false)
+      .order("deposito_id");
+    setXData(data || []);
+  }, [XEmpresaId]);
+
+  useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaId]);
+
+  useEffect(() => {
+    if (XCurrentRecord && XFormMode === "edit") {
+      setXNomeEdit(XCurrentRecord.nome);
+      setXEnderecoEdit(XCurrentRecord.endereco || "");
+    }
+  }, [XCurrentRecord, XFormMode]);
+
+  const handleIncluir = () => { setXFormMode("insert"); setXNomeEdit(""); setXEnderecoEdit(""); setXInnerTab("cadastro"); };
+  const handleEditar = () => { if (!XCurrentRecord) return; setXFormMode("edit"); setXInnerTab("cadastro"); };
+
+  const handleSalvar = async () => {
+    if (!XNomeEdit.trim()) { toast.error("O nome do depósito é obrigatório."); return; }
+    if (XFormMode === "insert") {
+      const { error } = await db.from("deposito").insert({ empresa_id: XEmpresaId, nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim() });
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success("Depósito incluído com sucesso.");
+    } else if (XCurrentRecord) {
+      const { error } = await db.from("deposito").update({ nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim(), dt_alteracao: new Date().toISOString() }).eq("deposito_id", XCurrentRecord.deposito_id);
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success("Depósito alterado com sucesso.");
+    }
+    setXFormMode("view");
+    await loadData();
+  };
+
+  const handleCancelar = () => setXFormMode("view");
+
+  const handleExcluir = async () => {
+    if (!XCurrentRecord) return;
+    if (confirm(`Deseja realmente excluir o depósito "${XCurrentRecord.nome}"?`)) {
+      const { error } = await db.from("deposito").update({ excluido_visivel: true, dt_alteracao: new Date().toISOString() }).eq("deposito_id", XCurrentRecord.deposito_id);
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success("Depósito excluído com sucesso.");
+      await loadData();
+      if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
+    }
+  };
+
+  const handleFirst = () => setXCurrentIdx(0);
+  const handlePrev = () => setXCurrentIdx(Math.max(0, XCurrentIdx - 1));
+  const handleNext = () => setXCurrentIdx(Math.min(XData.length - 1, XCurrentIdx + 1));
+  const handleLast = () => setXCurrentIdx(XData.length - 1);
+  const handleRefresh = () => { loadData(); toast.info("Dados recarregados."); };
+  const handleSair = () => { const XTab = XTabs.find(t => t.id === XActiveTabId); if (XTab) closeTab(XTab.id); };
+
+  const XFilteredData = XData.filter(r => {
+    const fc = XSearchFilters["deposito_id"] || "";
+    const fn = XSearchFilters["nome"] || "";
+    const fe = XSearchFilters["endereco"] || "";
+    if (fc && !String(r.deposito_id).includes(fc)) return false;
+    if (fn && !r.nome.toLowerCase().includes(fn.toLowerCase())) return false;
+    if (fe && !r.endereco.toLowerCase().includes(fe.toLowerCase())) return false;
+    return true;
+  });
+
+  const handleSelectFromSearch = (row: IDeposito) => {
+    const XIdx = XData.findIndex(r => r.deposito_id === row.deposito_id);
+    if (XIdx >= 0) { setXCurrentIdx(XIdx); setXInnerTab("cadastro"); setXFormMode("view"); }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-card" data-form-container>
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border bg-card flex-wrap">
+        {!XIsEditing ? (
+          <>
+            <ToolbarBtn icon={<Plus size={16} />} label="Incluir" onClick={handleIncluir} color="success" />
+            <ToolbarBtn icon={<Pencil size={16} />} label="Editar" onClick={handleEditar} disabled={!XCurrentRecord} />
+            <ToolbarSep />
+            <ToolbarBtn icon={<ChevronsLeft size={16} />} label="Primeiro" onClick={handleFirst} disabled={XCurrentIdx === 0} />
+            <ToolbarBtn icon={<ChevronLeft size={16} />} label="Anterior" onClick={handlePrev} disabled={XCurrentIdx === 0} />
+            <ToolbarBtn icon={<ChevronRight size={16} />} label="Próximo" onClick={handleNext} disabled={XCurrentIdx >= XData.length - 1} />
+            <ToolbarBtn icon={<ChevronsRight size={16} />} label="Último" onClick={handleLast} disabled={XCurrentIdx >= XData.length - 1} />
+            <ToolbarSep />
+            <ToolbarBtn icon={<Trash2 size={16} />} label="Excluir" onClick={handleExcluir} disabled={!XCurrentRecord} color="destructive" />
+            <ToolbarBtn icon={<RefreshCw size={16} />} label="Recarregar" onClick={handleRefresh} />
+            <ToolbarBtn icon={<Search size={16} />} label="Localizar" onClick={() => setXInnerTab("localizar")} />
+            <ToolbarBtn icon={<List size={16} />} label="Log" onClick={() => toast.info("Log de operações")} />
+            <ToolbarBtn icon={<HelpCircle size={16} />} label="Ajuda" onClick={() => toast.info("Ajuda do formulário")} />
+            <ToolbarBtn icon={<LogOut size={16} />} label="Sair" onClick={handleSair} />
+          </>
+        ) : (
+          <>
+            <ToolbarBtn icon={<Save size={16} />} label="Salvar" onClick={handleSalvar} color="success" />
+            <ToolbarBtn icon={<LogOut size={16} />} label="Cancelar" onClick={handleCancelar} color="destructive" />
+          </>
+        )}
+      </div>
+
+      <div className="flex border-b border-border bg-card">
+        <button className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === "cadastro" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => setXInnerTab("cadastro")}>Cadastro</button>
+        <button className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === "localizar" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => setXInnerTab("localizar")}>Localizar</button>
+      </div>
+
+      <div className="flex-1 overflow-auto p-4">
+        {XInnerTab === "cadastro" ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
+              <div className="w-full md:w-32">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
+                <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentRecord?.deposito_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Nome <span className="text-destructive">*</span></label>
+                {XIsEditing ? (
+                  <input type="text" value={XNomeEdit} onChange={(e) => setXNomeEdit(e.target.value)} className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none" autoFocus />
+                ) : (
+                  <input type="text" value={XCurrentRecord?.nome ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Endereço</label>
+              {XIsEditing ? (
+                <input type="text" value={XEnderecoEdit} onChange={(e) => setXEnderecoEdit(e.target.value)} className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none" />
+              ) : (
+                <input type="text" value={XCurrentRecord?.endereco ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+              )}
+            </div>
+          </div>
+        ) : (
+          <DataGrid
+            columns={XLocalizarColumns}
+            data={XFilteredData}
+            showFilters
+            filterValues={XSearchFilters}
+            onFilterChange={(key, value) => setXSearchFilters(prev => ({ ...prev, [key]: value }))}
+            onRowDoubleClick={(row) => handleSelectFromSearch(row as IDeposito)}
+            maxHeight="400px"
+            exportTitle="Depósitos"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ToolbarBtn: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; color?: "success" | "destructive" | "default"; }> = ({ icon, label, onClick, disabled, color = "default" }) => {
+  const XColorClass = color === "success" ? "text-success hover:bg-success/10" : color === "destructive" ? "text-destructive hover:bg-destructive/10" : "text-foreground hover:bg-accent";
+  return (
+    <button onClick={onClick} disabled={disabled} title={label} className={`p-1.5 rounded transition-colors ${XColorClass} ${disabled ? "opacity-30 cursor-not-allowed" : ""}`}>
+      {icon}
+    </button>
+  );
+};
+
+const ToolbarSep = () => <div className="w-px h-5 bg-border mx-0.5" />;
+
+export default DepositoForm;
