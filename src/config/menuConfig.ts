@@ -198,6 +198,7 @@ export const MENU_CONFIG: MenuItem[] = [
       { id: "rel-contas-pagar", title: "Relatórios - Contas a Pagar", icon: FileDown },
       { id: "relatorios", title: "Relatórios - Vendas", icon: ShoppingCart },
       { id: "rel-produtos", title: "Relatórios - Produtos", icon: Package2 },
+      { id: "rbuilder", title: "RBuilder", icon: FileBarChart },
     ],
   },
   {
@@ -212,6 +213,9 @@ export const MENU_CONFIG: MenuItem[] = [
       { id: "filtros-relatorio", title: "Filtros do Relatório", icon: Filter },
       { id: "parametros", title: "Parâmetros", icon: Settings2 },
       { id: "licencas", title: "Ativar Licenças", icon: Key },
+      { id: "rb-conexoes", title: "RB - Conexões", icon: Warehouse },
+      { id: "rb-templates", title: "RB - Variáveis", icon: Filter },
+      { id: "rb-relatorios", title: "RB - Relatórios", icon: FileBarChart },
     ],
   },
 ];
