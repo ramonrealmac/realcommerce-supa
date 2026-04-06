@@ -43,7 +43,7 @@ const UnidadeForm: React.FC = () => {
       .from("unidade")
       .select("*")
       .eq("empresa_id", XEmpresaMatrizId)
-      .eq("excluido", false)
+      .or("excluido.is.null,excluido.eq.false")
       .order("unidade_id");
     setXData(data || []);
   }, [XEmpresaMatrizId]);
@@ -64,7 +64,7 @@ const UnidadeForm: React.FC = () => {
     if (!XSiglaEdit.trim()) { toast.error("A sigla da unidade é obrigatória."); return; }
     if (!XDescricaoEdit.trim()) { toast.error("A descrição é obrigatória."); return; }
     if (XFormMode === "insert") {
-      const { error } = await db.from("unidade").insert({ empresa_id: XEmpresaMatrizId, unidade_id: XSiglaEdit.trim().toUpperCase(), descricao: XDescricaoEdit.trim() });
+      const { error } = await db.from("unidade").insert({ empresa_id: XEmpresaMatrizId, unidade_id: XSiglaEdit.trim().toUpperCase(), descricao: XDescricaoEdit.trim(), excluido: false });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Unidade incluída com sucesso.");
     } else if (XCurrentRecord) {
