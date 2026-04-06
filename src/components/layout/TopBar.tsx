@@ -4,7 +4,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 
 const TopBar = () => {
-  const { XEmpresaId, setXEmpresaId, XEmpresas, toggleSidebar, openTab } = useAppContext();
+  const { XEmpresaId, setXEmpresaId, setXEmpresaMatrizId, XEmpresas, toggleSidebar, openTab } = useAppContext();
 
   const [XMenuOpen, setXMenuOpen] = useState(false);
   const [XUserEmail, setXUserEmail] = useState("");
@@ -63,7 +63,12 @@ const TopBar = () => {
         <span className="text-xs opacity-70 hidden md:inline">Emp.</span>
         <select
           value={XEmpresaId}
-          onChange={(e) => setXEmpresaId(Number(e.target.value))}
+          onChange={(e) => {
+            const id = Number(e.target.value);
+            setXEmpresaId(id);
+            const emp = XEmpresas.find(x => x.empresa_id === id);
+            setXEmpresaMatrizId(emp?.empresa_matriz_id ?? id);
+          }}
           className="bg-card text-foreground border border-border rounded px-2 py-0.5 text-sm min-w-0 w-full md:min-w-[160px] md:w-auto truncate"
         >
           {XEmpresas.map(e => (

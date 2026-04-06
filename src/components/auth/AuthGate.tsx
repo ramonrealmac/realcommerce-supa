@@ -16,6 +16,7 @@ interface IEmpresaVinculada {
   empresa_id: number;
   razao_social: string;
   nome_fantasia: string;
+  empresa_matriz_id: number | null;
 }
 
 interface AuthGateProps {
@@ -89,7 +90,7 @@ const AuthGate = ({ children, onEmpresaSelected }: AuthGateProps) => {
 
         const { data: XEmpresas } = await (supabase as any)
           .from("empresa")
-          .select("empresa_id, razao_social, nome_fantasia")
+          .select("empresa_id, razao_social, nome_fantasia, empresa_matriz_id")
           .in("empresa_id", XEmpresaIds)
           .eq("excluido", false)
           .order("razao_social");
