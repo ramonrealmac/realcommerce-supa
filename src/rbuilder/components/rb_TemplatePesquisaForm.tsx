@@ -19,7 +19,7 @@ const XColumns: IGridColumn[] = [
 ];
 
 interface IEditState {
-  nome: string; label: string; tipo: string; obrigatorio: boolean;
+  nome: string; label: string; tipo: IRbTemplatePesquisa["tipo"]; obrigatorio: boolean;
   valor_padrao: string; opcoes_fixas: string; query: string; rb_conexao_id: number | null;
 }
 
