@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  RotateCcw, Copy, Eye, Palette, Clock, Link2, Upload,
+  RotateCcw, Copy, Eye, Palette, Clock, Link2, Upload, Plus,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -55,14 +55,14 @@ const XLocalizarColumns: IGridColumn[] = [
 
 interface Horario {
   id: number;
-  xdia_semana: number;
-  xhr_inicio_matutino: string | null;
-  xhr_fim_matutino: string | null;
-  xhr_inicio_vespertino: string | null;
-  xhr_fim_vespertino: string | null;
-  xhr_inicio_noturno: string | null;
-  xhr_fim_noturno: string | null;
-  xlg_dia_ativo: boolean;
+  dia_semana: number;
+  hr_inicio_matutino: string | null;
+  hr_fim_matutino: string | null;
+  hr_inicio_vespertino: string | null;
+  hr_fim_vespertino: string | null;
+  hr_inicio_noturno: string | null;
+  hr_fim_noturno: string | null;
+  lg_dia_ativo: boolean;
 }
 
 const emptyEmpresa = () => ({
@@ -152,10 +152,30 @@ const EmpresaForm: React.FC = () => {
   }, []);
 
   const loadHorarios = useCallback(async (empresaId: number) => {
-    const { data: h } = await db.from("empresa_hs_lojavirtual").select("*").eq("empresa_id", empresaId).order("xdia_semana");
+    const { data: h } = await db.from("empresa_hs_lojavirtual").select("*").eq("empresa_id", empresaId).order("dia_semana");
     if (h) setXHorarios(h);
     else setXHorarios([]);
   }, []);
+
+  const handleGerarHorarios = async () => {
+    const empresaId = XFormMode === "insert" ? null : XCurrent?.empresa_id;
+    if (!empresaId) { toast.error("Salve a empresa antes de gerar horários."); return; }
+    const rows = Array.from({ length: 7 }, (_, i) => ({
+      empresa_id: empresaId,
+      dia_semana: i,
+      hr_inicio_matutino: "00:00",
+      hr_fim_matutino: "00:00",
+      hr_inicio_vespertino: "00:00",
+      hr_fim_vespertino: "00:00",
+      hr_inicio_noturno: "00:00",
+      hr_fim_noturno: "00:00",
+      lg_dia_ativo: false,
+    }));
+    const { error } = await db.from("empresa_hs_lojavirtual").insert(rows);
+    if (error) { toast.error("Erro ao gerar horários: " + error.message); return; }
+    toast.success("Horários gerados com sucesso!");
+    await loadHorarios(empresaId);
+  };
 
   useEffect(() => {
     loadData();
