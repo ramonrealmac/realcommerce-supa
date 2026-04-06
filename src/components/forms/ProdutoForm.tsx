@@ -56,7 +56,7 @@ const XEstoqueGridCols: IGridColumn[] = [
 ];
 
 const ProdutoForm: React.FC = () => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<string>("cadastro");

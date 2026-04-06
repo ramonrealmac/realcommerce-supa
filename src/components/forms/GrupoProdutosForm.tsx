@@ -17,9 +17,7 @@ const XLocalizarColumns: IGridColumn[] = [
 type TFormMode = "view" | "edit" | "insert";
 
 const GrupoProdutosForm: React.FC = () => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
-  const XEmpresas = dataStore.getEmpresas();
-  const XEmpresaNome = XEmpresas.find(e => e.EMPRESA_ID === XEmpresaId)?.NM_RAZAO_SOCIAL || "";
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
