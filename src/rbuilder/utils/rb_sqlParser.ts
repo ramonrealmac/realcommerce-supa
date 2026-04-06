@@ -19,7 +19,7 @@ export function rbSubstituirVariaveis(
     } else {
       XValorFormatado = `'${String(XValor).replace(/'/g, "''")}'`;
     }
-    XResult = XResult.replaceAll(XPlaceholder, XValorFormatado);
+    XResult = XResult.split(XPlaceholder).join(XValorFormatado);
   }
   return XResult;
 }
