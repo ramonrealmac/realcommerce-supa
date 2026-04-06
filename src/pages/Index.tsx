@@ -123,11 +123,10 @@ const AppContent = () => {
   );
 };
 
-const Index = () => {
-  return (
-    <AppProvider>
-      <AuthGateWrapper />
-    </AppProvider>
+const Index = () => (
+  <AppProvider>
+    <AuthGateWrapper />
+  </AppProvider>
   );
 };
 
