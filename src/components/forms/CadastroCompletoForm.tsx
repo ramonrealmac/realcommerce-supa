@@ -115,7 +115,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
   extraValidation,
   showVeiculoTab = false,
 }) => {
-  const { XEmpresaId, XEmpresaMatrizId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
