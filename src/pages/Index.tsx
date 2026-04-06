@@ -130,12 +130,13 @@ const Index = () => (
 );
 
 const AuthGateWrapper = () => {
-  const { setXEmpresaId, setXEmpresas } = useAppContext();
+  const { setXEmpresaId, setXEmpresaMatrizId, setXEmpresas } = useAppContext();
 
   return (
     <AuthGate
       onEmpresaSelected={(empresa, allEmpresas) => {
         setXEmpresaId(empresa.empresa_id);
+        setXEmpresaMatrizId(empresa.empresa_matriz_id ?? empresa.empresa_id);
         setXEmpresas(allEmpresas);
       }}
     >

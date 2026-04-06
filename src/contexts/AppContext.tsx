@@ -10,11 +10,14 @@ export interface IEmpresaOption {
   empresa_id: number;
   razao_social: string;
   nome_fantasia: string;
+  empresa_matriz_id: number | null;
 }
 
 interface AppContextType {
   XEmpresaId: number;
   setXEmpresaId: (id: number) => void;
+  XEmpresaMatrizId: number;
+  setXEmpresaMatrizId: (id: number) => void;
   XEmpresas: IEmpresaOption[];
   setXEmpresas: (list: IEmpresaOption[]) => void;
   XTabs: AppTab[];
@@ -35,6 +38,7 @@ let XTabCounter = 0;
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [XEmpresaId, setXEmpresaId] = useState(0);
+  const [XEmpresaMatrizId, setXEmpresaMatrizId] = useState(0);
   const [XEmpresas, setXEmpresas] = useState<IEmpresaOption[]>([]);
   const [XTabs, setXTabs] = useState<AppTab[]>([]);
   const [XActiveTabId, setXActiveTabId] = useState<string | null>(null);
@@ -71,6 +75,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider value={{
       XEmpresaId, setXEmpresaId,
+      XEmpresaMatrizId, setXEmpresaMatrizId,
       XEmpresas, setXEmpresas,
       XTabs, XActiveTabId, openTab, closeTab, setActiveTab: setXActiveTabId,
       XSidebarOpen, toggleSidebar, closeSidebar,

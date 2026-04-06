@@ -822,13 +822,6 @@ export type Database = {
             referencedRelation: "empresa"
             referencedColumns: ["empresa_id"]
           },
-          {
-            foreignKeyName: "parametro_horario_xparametro_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "parametro"
-            referencedColumns: ["id"]
-          },
         ]
       }
       empresa_usuario: {
