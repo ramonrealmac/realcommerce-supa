@@ -11,6 +11,7 @@ export interface IEmpresaOption {
   razao_social: string;
   nome_fantasia: string;
   empresa_matriz_id: number | null;
+  identificacao: string;
 }
 
 interface AppContextType {

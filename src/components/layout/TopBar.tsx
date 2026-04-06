@@ -67,12 +67,12 @@ const TopBar = () => {
             const id = Number(e.target.value);
             setXEmpresaId(id);
             const emp = XEmpresas.find(x => x.empresa_id === id);
-            setXEmpresaMatrizId(emp?.empresa_matriz_id ?? id);
+            setXEmpresaMatrizId((emp as any)?.empresamatriz_id ?? id);
           }}
-          className="bg-card text-foreground border border-border rounded px-2 py-0.5 text-sm min-w-0 w-full md:min-w-[160px] md:w-auto truncate"
+          className="bg-card text-foreground border border-border rounded px-2 py-0.5 text-sm min-w-0 w-full md:min-w-[192px] md:w-auto truncate"
         >
           {XEmpresas.map(e => (
-            <option key={e.empresa_id} value={e.empresa_id}>{e.razao_social}</option>
+            <option key={e.empresa_id} value={e.empresa_id}>{e.empresa_id} - {e.identificacao || e.razao_social}</option>
           ))}
         </select>
       </div>
