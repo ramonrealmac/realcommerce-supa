@@ -776,43 +776,43 @@ export type Database = {
       }
       empresa_hs_lojavirtual: {
         Row: {
+          dia_semana: number
           empresa_id: number | null
           excluido: boolean | null
+          hr_fim_matutino: string | null
+          hr_fim_noturno: string | null
+          hr_fim_vespertino: string | null
+          hr_inicio_matutino: string | null
+          hr_inicio_noturno: string | null
+          hr_inicio_vespertino: string | null
           id: number
-          xdia_semana: number
-          xhr_fim_matutino: string | null
-          xhr_fim_noturno: string | null
-          xhr_fim_vespertino: string | null
-          xhr_inicio_matutino: string | null
-          xhr_inicio_noturno: string | null
-          xhr_inicio_vespertino: string | null
-          xlg_dia_ativo: boolean | null
+          lg_dia_ativo: boolean | null
         }
         Insert: {
+          dia_semana: number
           empresa_id?: number | null
           excluido?: boolean | null
+          hr_fim_matutino?: string | null
+          hr_fim_noturno?: string | null
+          hr_fim_vespertino?: string | null
+          hr_inicio_matutino?: string | null
+          hr_inicio_noturno?: string | null
+          hr_inicio_vespertino?: string | null
           id?: number
-          xdia_semana: number
-          xhr_fim_matutino?: string | null
-          xhr_fim_noturno?: string | null
-          xhr_fim_vespertino?: string | null
-          xhr_inicio_matutino?: string | null
-          xhr_inicio_noturno?: string | null
-          xhr_inicio_vespertino?: string | null
-          xlg_dia_ativo?: boolean | null
+          lg_dia_ativo?: boolean | null
         }
         Update: {
+          dia_semana?: number
           empresa_id?: number | null
           excluido?: boolean | null
+          hr_fim_matutino?: string | null
+          hr_fim_noturno?: string | null
+          hr_fim_vespertino?: string | null
+          hr_inicio_matutino?: string | null
+          hr_inicio_noturno?: string | null
+          hr_inicio_vespertino?: string | null
           id?: number
-          xdia_semana?: number
-          xhr_fim_matutino?: string | null
-          xhr_fim_noturno?: string | null
-          xhr_fim_vespertino?: string | null
-          xhr_inicio_matutino?: string | null
-          xhr_inicio_noturno?: string | null
-          xhr_inicio_vespertino?: string | null
-          xlg_dia_ativo?: boolean | null
+          lg_dia_ativo?: boolean | null
         }
         Relationships: [
           {

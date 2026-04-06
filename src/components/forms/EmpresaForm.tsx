@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  RotateCcw, Copy, Eye, Palette, Clock, Link2, Upload,
+  RotateCcw, Copy, Eye, Palette, Clock, Link2, Upload, Plus,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -55,14 +55,14 @@ const XLocalizarColumns: IGridColumn[] = [
 
 interface Horario {
   id: number;
-  xdia_semana: number;
-  xhr_inicio_matutino: string | null;
-  xhr_fim_matutino: string | null;
-  xhr_inicio_vespertino: string | null;
-  xhr_fim_vespertino: string | null;
-  xhr_inicio_noturno: string | null;
-  xhr_fim_noturno: string | null;
-  xlg_dia_ativo: boolean;
+  dia_semana: number;
+  hr_inicio_matutino: string | null;
+  hr_fim_matutino: string | null;
+  hr_inicio_vespertino: string | null;
+  hr_fim_vespertino: string | null;
+  hr_inicio_noturno: string | null;
+  hr_fim_noturno: string | null;
+  lg_dia_ativo: boolean;
 }
 
 const emptyEmpresa = () => ({
@@ -152,10 +152,30 @@ const EmpresaForm: React.FC = () => {
   }, []);
 
   const loadHorarios = useCallback(async (empresaId: number) => {
-    const { data: h } = await db.from("empresa_hs_lojavirtual").select("*").eq("empresa_id", empresaId).order("xdia_semana");
+    const { data: h } = await db.from("empresa_hs_lojavirtual").select("*").eq("empresa_id", empresaId).order("dia_semana");
     if (h) setXHorarios(h);
     else setXHorarios([]);
   }, []);
+
+  const handleGerarHorarios = async () => {
+    const empresaId = XFormMode === "insert" ? null : XCurrent?.empresa_id;
+    if (!empresaId) { toast.error("Salve a empresa antes de gerar horários."); return; }
+    const rows = Array.from({ length: 7 }, (_, i) => ({
+      empresa_id: empresaId,
+      dia_semana: i,
+      hr_inicio_matutino: "00:00",
+      hr_fim_matutino: "00:00",
+      hr_inicio_vespertino: "00:00",
+      hr_fim_vespertino: "00:00",
+      hr_inicio_noturno: "00:00",
+      hr_fim_noturno: "00:00",
+      lg_dia_ativo: false,
+    }));
+    const { error } = await db.from("empresa_hs_lojavirtual").insert(rows);
+    if (error) { toast.error("Erro ao gerar horários: " + error.message); return; }
+    toast.success("Horários gerados com sucesso!");
+    await loadHorarios(empresaId);
+  };
 
   useEffect(() => {
     loadData();
@@ -509,9 +529,14 @@ const EmpresaForm: React.FC = () => {
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-5 h-5 text-primary" />
               <h3 className="text-sm font-semibold">Horários de Funcionamento — Loja Virtual</h3>
+              {XHorarios.length === 0 && (
+                <Button variant="outline" size="sm" className="ml-auto gap-1" onClick={handleGerarHorarios}>
+                  <Plus className="w-3.5 h-3.5" /> Gerar Horários
+                </Button>
+              )}
             </div>
             {XHorarios.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum horário cadastrado para esta empresa.</p>
+              <p className="text-sm text-muted-foreground">Nenhum horário cadastrado para esta empresa. Clique em "Gerar Horários" para criar.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -530,16 +555,16 @@ const EmpresaForm: React.FC = () => {
                   <tbody>
                     {XHorarios.map((h, idx) => (
                       <tr key={h.id} className="border-b">
-                        <td className="p-2 font-medium">{DIAS[h.xdia_semana]}</td>
+                        <td className="p-2 font-medium">{DIAS[h.dia_semana]}</td>
                         <td className="p-2">
-                          <Switch checked={h.xlg_dia_ativo} onCheckedChange={v => updateHorario(idx, "xlg_dia_ativo", v)} disabled={!XIsEditing} />
+                          <Switch checked={h.lg_dia_ativo} onCheckedChange={v => updateHorario(idx, "lg_dia_ativo", v)} disabled={!XIsEditing} />
                         </td>
-                        <td className="p-2"><Input type="time" value={h.xhr_inicio_matutino || ""} onChange={e => updateHorario(idx, "xhr_inicio_matutino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                        <td className="p-2"><Input type="time" value={h.xhr_fim_matutino || ""} onChange={e => updateHorario(idx, "xhr_fim_matutino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                        <td className="p-2"><Input type="time" value={h.xhr_inicio_vespertino || ""} onChange={e => updateHorario(idx, "xhr_inicio_vespertino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                        <td className="p-2"><Input type="time" value={h.xhr_fim_vespertino || ""} onChange={e => updateHorario(idx, "xhr_fim_vespertino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                        <td className="p-2"><Input type="time" value={h.xhr_inicio_noturno || ""} onChange={e => updateHorario(idx, "xhr_inicio_noturno", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                        <td className="p-2"><Input type="time" value={h.xhr_fim_noturno || ""} onChange={e => updateHorario(idx, "xhr_fim_noturno", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.hr_inicio_matutino || ""} onChange={e => updateHorario(idx, "hr_inicio_matutino", e.target.value)} className="w-28" disabled={!h.lg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.hr_fim_matutino || ""} onChange={e => updateHorario(idx, "hr_fim_matutino", e.target.value)} className="w-28" disabled={!h.lg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.hr_inicio_vespertino || ""} onChange={e => updateHorario(idx, "hr_inicio_vespertino", e.target.value)} className="w-28" disabled={!h.lg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.hr_fim_vespertino || ""} onChange={e => updateHorario(idx, "hr_fim_vespertino", e.target.value)} className="w-28" disabled={!h.lg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.hr_inicio_noturno || ""} onChange={e => updateHorario(idx, "hr_inicio_noturno", e.target.value)} className="w-28" disabled={!h.lg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.hr_fim_noturno || ""} onChange={e => updateHorario(idx, "hr_fim_noturno", e.target.value)} className="w-28" disabled={!h.lg_dia_ativo || !XIsEditing} /></td>
                       </tr>
                     ))}
                   </tbody>
