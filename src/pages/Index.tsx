@@ -22,6 +22,10 @@ import EstoqueForm from "@/components/forms/EstoqueForm";
 import ProdutoForm from "@/components/forms/ProdutoForm";
 import AuthGate from "@/components/auth/AuthGate";
 import { useThemeColors } from "@/hooks/useThemeColors";
+import RbConexaoForm from "@/rbuilder/components/rb_ConexaoForm";
+import RbTemplatePesquisaForm from "@/rbuilder/components/rb_TemplatePesquisaForm";
+import RbRelatorioForm from "@/rbuilder/components/rb_RelatorioForm";
+import RbReportExecutor from "@/rbuilder/components/rb_ReportExecutor";
 
 const AppContent = () => {
   const { XTabs, XActiveTabId, openTab, XEmpresaId, setXLogomarca, XLogomarca } = useAppContext();
@@ -73,7 +77,17 @@ const AppContent = () => {
         return <EstoqueForm />;
       case "produtos":
         return <ProdutoForm />;
+      case "rb-conexoes":
+        return <RbConexaoForm />;
+      case "rb-templates":
+        return <RbTemplatePesquisaForm />;
+      case "rb-relatorios":
+        return <RbRelatorioForm />;
       default:
+        if (component.startsWith("rb-exec-")) {
+          const XReportId = parseInt(component.replace("rb-exec-", ""));
+          if (!isNaN(XReportId)) return <RbReportExecutor XReportId={XReportId} />;
+        }
         return <div className="p-4 text-muted-foreground">Componente não encontrado.</div>;
     }
   };
