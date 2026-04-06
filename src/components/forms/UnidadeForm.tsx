@@ -42,11 +42,11 @@ const UnidadeForm: React.FC = () => {
     const { data } = await db
       .from("unidade")
       .select("*")
-      .eq("empresa_id", XEmpresaId)
+      .eq("empresa_id", XEmpresaMatrizId)
       .eq("excluido", false)
       .order("unidade_id");
     setXData(data || []);
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
   useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaId]);
 

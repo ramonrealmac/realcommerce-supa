@@ -203,13 +203,6 @@ const GrupoProdutosForm: React.FC = () => {
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
                 <input type="text" value={(() => { const em = XEmpresas.find(e => e.empresa_id === XEmpresaMatrizId); return em ? `${em.empresa_id} - ${em.identificacao}` : String(XEmpresaMatrizId); })()} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
               </div>
-                <input
-                  type="text"
-                  value={XFormMode === "insert" ? "(Novo)" : XCurrentGrupo?.GRUPO_ID ?? ""}
-                  readOnly
-                  className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right"
-                />
-              </div>
               <div className="flex-1">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Nome <span className="text-destructive">*</span>
