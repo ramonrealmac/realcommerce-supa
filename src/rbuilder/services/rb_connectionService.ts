@@ -29,7 +29,7 @@ export async function rbDeleteConexao(XId: number) {
 export async function rbTestarConexao(XUrl: string, XApiKey: string): Promise<{ ok: boolean; msg: string }> {
   try {
     const XClient = createClient(XUrl, XApiKey);
-    const { error } = await XClient.from("information_schema.tables" as any).select("table_name").limit(1);
+    const { error } = await XClient.auth.getSession();
     if (error) return { ok: false, msg: error.message };
     return { ok: true, msg: "Conexão realizada com sucesso!" };
   } catch (e: any) {
