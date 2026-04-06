@@ -17,9 +17,7 @@ const XLocalizarColumns: IGridColumn[] = [
 type TFormMode = "view" | "edit" | "insert";
 
 const GrupoProdutosForm: React.FC = () => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
-  const XEmpresas = dataStore.getEmpresas();
-  const XEmpresaNome = XEmpresas.find(e => e.EMPRESA_ID === XEmpresaId)?.NM_RAZAO_SOCIAL || "";
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
@@ -29,18 +27,18 @@ const GrupoProdutosForm: React.FC = () => {
   const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
 
   const loadData = useCallback(() => {
-    const XData = dataStore.getGrupos(XEmpresaId);
+    const XData = dataStore.getGrupos(XEmpresaMatrizId);
     setXGrupos(XData);
     if (XData.length > 0 && XCurrentIdx >= XData.length) {
       setXCurrentIdx(XData.length - 1);
     }
-  }, [XEmpresaId, XCurrentIdx]);
+  }, [XEmpresaMatrizId, XCurrentIdx]);
 
   useEffect(() => {
     loadData();
     setXCurrentIdx(0);
     setXFormMode("view");
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
   const XCurrentGrupo = XGrupos[XCurrentIdx] || null;
 
@@ -69,10 +67,10 @@ const GrupoProdutosForm: React.FC = () => {
       return;
     }
     if (XFormMode === "insert") {
-      const XNew = dataStore.addGrupo(XEmpresaId, XNmGrupoEdit.trim());
+      const XNew = dataStore.addGrupo(XEmpresaMatrizId, XNmGrupoEdit.trim());
       toast.success(`Grupo ${XNew.GRUPO_ID} incluído com sucesso.`);
     } else if (XFormMode === "edit" && XCurrentGrupo) {
-      dataStore.updateGrupo(XEmpresaId, XCurrentGrupo.GRUPO_ID, XNmGrupoEdit.trim());
+      dataStore.updateGrupo(XEmpresaMatrizId, XCurrentGrupo.GRUPO_ID, XNmGrupoEdit.trim());
       toast.success("Grupo alterado com sucesso.");
     }
     setXFormMode("view");
@@ -86,7 +84,7 @@ const GrupoProdutosForm: React.FC = () => {
   const handleExcluir = () => {
     if (!XCurrentGrupo) return;
     if (confirm(`Deseja realmente excluir o grupo "${XCurrentGrupo.NM_GRUPO}"?`)) {
-      dataStore.deleteGrupo(XEmpresaId, XCurrentGrupo.GRUPO_ID);
+      dataStore.deleteGrupo(XEmpresaMatrizId, XCurrentGrupo.GRUPO_ID);
       toast.success("Grupo excluído com sucesso.");
       loadData();
       if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
@@ -195,27 +193,15 @@ const GrupoProdutosForm: React.FC = () => {
       <div className="flex-1 overflow-auto p-4">
         {XInnerTab === "cadastro" ? (
           <div className="space-y-4">
-            {/* Empresa field */}
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Empresa</label>
-              <input
-                type="text"
-                value={XEmpresaNome}
-                readOnly
-                className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary"
-              />
-            </div>
-
-            {/* Código + Nome */}
+            {/* Código + Emp. Matriz + Nome */}
             <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
               <div className="w-full md:w-32">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
-                <input
-                  type="text"
-                  value={XFormMode === "insert" ? "(Novo)" : XCurrentGrupo?.GRUPO_ID ?? ""}
-                  readOnly
-                  className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right"
-                />
+                <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentGrupo?.GRUPO_ID ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
+              </div>
+              <div className="w-full md:w-[13.5rem]">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
+                <input type="text" value={(() => { const em = XEmpresas.find(e => e.empresa_id === XEmpresaMatrizId); return em ? `${em.empresa_id} - ${em.identificacao}` : String(XEmpresaMatrizId); })()} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
               </div>
               <div className="flex-1">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -243,7 +229,7 @@ const GrupoProdutosForm: React.FC = () => {
             {/* Subgrupo grid */}
             {XCurrentGrupo && (
               <SubgrupoGrid
-                XEmpresaId={XEmpresaId}
+                XEmpresaId={XEmpresaMatrizId}
                 XGrupoId={XCurrentGrupo.GRUPO_ID}
               />
             )}

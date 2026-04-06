@@ -25,7 +25,7 @@ interface IUnidade {
 }
 
 const UnidadeForm: React.FC = () => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
@@ -42,11 +42,11 @@ const UnidadeForm: React.FC = () => {
     const { data } = await db
       .from("unidade")
       .select("*")
-      .eq("empresa_id", XEmpresaId)
+      .eq("empresa_id", XEmpresaMatrizId)
       .eq("excluido", false)
       .order("unidade_id");
     setXData(data || []);
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
   useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaId]);
 
@@ -64,11 +64,11 @@ const UnidadeForm: React.FC = () => {
     if (!XSiglaEdit.trim()) { toast.error("A sigla da unidade é obrigatória."); return; }
     if (!XDescricaoEdit.trim()) { toast.error("A descrição é obrigatória."); return; }
     if (XFormMode === "insert") {
-      const { error } = await db.from("unidade").insert({ empresa_id: XEmpresaId, unidade_id: XSiglaEdit.trim().toUpperCase(), descricao: XDescricaoEdit.trim() });
+      const { error } = await db.from("unidade").insert({ empresa_id: XEmpresaMatrizId, unidade_id: XSiglaEdit.trim().toUpperCase(), descricao: XDescricaoEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Unidade incluída com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("unidade").update({ descricao: XDescricaoEdit.trim(), dt_alteracao: new Date().toISOString() }).eq("unidade_id", XCurrentRecord.unidade_id).eq("empresa_id", XEmpresaId);
+      const { error } = await db.from("unidade").update({ descricao: XDescricaoEdit.trim(), empresa_id: XEmpresaMatrizId, dt_alteracao: new Date().toISOString() }).eq("unidade_id", XCurrentRecord.unidade_id).eq("empresa_id", XEmpresaMatrizId);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Unidade alterada com sucesso.");
     }
@@ -81,7 +81,7 @@ const UnidadeForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (confirm(`Deseja realmente excluir a unidade "${XCurrentRecord.unidade_id}"?`)) {
-      const { error } = await db.from("unidade").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("unidade_id", XCurrentRecord.unidade_id).eq("empresa_id", XEmpresaId);
+      const { error } = await db.from("unidade").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("unidade_id", XCurrentRecord.unidade_id).eq("empresa_id", XEmpresaMatrizId);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Unidade excluída com sucesso.");
       await loadData();
@@ -145,6 +145,12 @@ const UnidadeForm: React.FC = () => {
       <div className="flex-1 overflow-auto p-4">
         {XInnerTab === "cadastro" ? (
           <div className="space-y-4">
+            <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
+              <div className="w-full md:w-[13.5rem]">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
+                <input type="text" value={(() => { const em = XEmpresas.find(e => e.empresa_id === XEmpresaMatrizId); return em ? `${em.empresa_id} - ${em.identificacao}` : String(XEmpresaMatrizId); })()} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
               <div className="w-full md:w-32">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Sigla <span className="text-destructive">*</span></label>
