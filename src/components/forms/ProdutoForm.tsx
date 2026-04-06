@@ -94,14 +94,14 @@ const ProdutoForm: React.FC = () => {
   /* ─── Load lookups ─── */
   const loadLookups = useCallback(async () => {
     const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
-      db.from("produto_grupo").select("grupo_id,nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
-      db.from("subgrupo_produto").select("subgrupo_id,nome,grupo_id").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
-      db.from("linha_produto").select("linha_id,nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
-      db.from("unidade").select("unidade_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido", false).order("descricao"),
-      db.from("grupo_icms").select("grupo_icms_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido", false).order("descricao"),
-      db.from("grupo_ipi").select("grupo_ipi_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido", false).order("descricao"),
-      db.from("grupo_pis_cofins").select("grupo_pis_cofins_id,descricao").eq("empresa_id", XEmpresaId).eq("excluido", false).order("descricao"),
-      db.from("deposito").select("deposito_id,nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
+      db.from("produto_grupo").select("grupo_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
+      db.from("subgrupo_produto").select("subgrupo_id,nome,grupo_id").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
+      db.from("linha_produto").select("linha_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
+      db.from("unidade").select("unidade_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
+      db.from("grupo_icms").select("grupo_icms_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
+      db.from("grupo_ipi").select("grupo_ipi_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
+      db.from("grupo_pis_cofins").select("grupo_pis_cofins_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
+      db.from("deposito").select("deposito_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
     ]);
     setXGrupos(r1.data || []);
     setXSubgrupos(r2.data || []);
@@ -111,7 +111,7 @@ const ProdutoForm: React.FC = () => {
     setXGrupoIpi(r6.data || []);
     setXGrupoPisCofins(r7.data || []);
     setXDepositos(r8.data || []);
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
   /* ─── Load data ─── */
   const loadData = useCallback(async () => {
@@ -119,24 +119,24 @@ const ProdutoForm: React.FC = () => {
     const { data: XRows } = await db
       .from("produto")
       .select("*")
-      .eq("empresa_id", XEmpresaId)
+      .eq("empresa_id", XEmpresaMatrizId)
       .eq("excluido", false)
       .order("produto_id");
     setXData(XRows || []);
     setXLoading(false);
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
   /* ─── Load sub-data for current product ─── */
   const loadSubData = useCallback(async (produtoId: number) => {
     const [rEst, rConv] = await Promise.all([
-      db.from("estoque").select("*").eq("empresa_id", XEmpresaId).eq("produto_id", produtoId).eq("excluido", false),
-      db.from("produto_conversao").select("*").eq("empresa_id", XEmpresaId).eq("produto_id", produtoId).eq("excluido", false).order("conversao_id"),
+      db.from("estoque").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false),
+      db.from("produto_conversao").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false).order("conversao_id"),
     ]);
     const XDepMap: Record<number, string> = {};
     XDepositos.forEach((d: any) => { XDepMap[d.deposito_id] = d.nome; });
     setXEstoques((rEst.data || []).map((e: any) => ({ ...e, deposito_nome: XDepMap[e.deposito_id] || String(e.deposito_id) })));
     setXConversoes(rConv.data || []);
-  }, [XEmpresaId, XDepositos]);
+  }, [XEmpresaMatrizId, XDepositos]);
 
   useEffect(() => {
     loadData();
@@ -261,7 +261,7 @@ const ProdutoForm: React.FC = () => {
     const toInt = (v: string) => { const n = parseInt(v); return isNaN(n) ? null : n; };
 
     const XPayload: any = {
-      empresa_id: XEmpresaId,
+      empresa_id: XEmpresaMatrizId,
       nome: XF.nome.trim(),
       nome_reduzido: XF.nome_reduzido.trim(),
       descricao: XF.descricao.trim(),
@@ -357,7 +357,7 @@ const ProdutoForm: React.FC = () => {
     if (!XCurrentRecord) return;
     const XPay = {
       produto_id: XCurrentRecord.produto_id,
-      empresa_id: XEmpresaId,
+      empresa_id: XEmpresaMatrizId,
       unidade_id: XConvForm.unidade_id,
       tp_movimento: XConvForm.tp_movimento,
       fator_mult: parseFloat(XConvForm.fator_mult) || 1,
@@ -552,6 +552,10 @@ const ProdutoForm: React.FC = () => {
               <div className="w-full md:w-28">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
                 <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentRecord?.produto_id ?? ""} readOnly className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XBgRead} text-right`} />
+              </div>
+              <div className="w-full md:w-[13.5rem]">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
+                <input type="text" value={(() => { const em = XEmpresas.find(e => e.empresa_id === XEmpresaMatrizId); return em ? `${em.empresa_id} - ${em.identificacao}` : String(XEmpresaMatrizId); })()} readOnly className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XBgRead}`} />
               </div>
               <div className="flex-1">{renderField("Descrição", "nome", { required: true })}</div>
               <div className="w-full md:w-40">
