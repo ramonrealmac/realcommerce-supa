@@ -141,7 +141,7 @@ const RbTemplatePesquisaForm: React.FC = () => {
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Tipo</label>
                 {XIsEditing ? (
-                  <select value={XEdit.tipo} onChange={e => setXEdit(p => ({ ...p, tipo: e.target.value }))} className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card">
+                  <select value={XEdit.tipo} onChange={e => setXEdit(p => ({ ...p, tipo: e.target.value as IRbTemplatePesquisa["tipo"] }))} className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card">
                     {RB_TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : (
