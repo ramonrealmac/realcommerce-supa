@@ -1,72 +1,91 @@
 
 
-# Plano: Duplicar Formulário de Cadastro — Clientes vs Fornecedores/Transportadores
+# Plano: Migrar cores/parâmetros para tabela Empresa
 
 ## Resumo
-Refatorar o `CadastroCompletoForm` em dois formulários distintos reutilizando o mesmo código-base via props, e criar o formulário de Fornecedores/Transportadores com aba extra de Veículos.
 
-## Abordagem
-Transformar `CadastroCompletoForm` em um componente parametrizável que recebe props para controlar comportamento. Criar dois wrappers finos.
+Transferir todos os campos da tabela `parametro` para a tabela `empresa` (removendo o prefixo "x"), renomear `parametro_horario` para `empresa_hs_lojavirtual`, adicionar campo `logomarca` com upload, e fazer o esquema de cores ser carregado dinamicamente por empresa selecionada.
 
-## Arquivos a criar/editar
+---
 
-| Arquivo | Ação |
+## 1. Migração SQL (banco de dados)
+
+**1.1 Adicionar colunas na tabela `empresa`** (vindas de `parametro`, sem o prefixo "x"):
+- `cor_primaria`, `cor_secundaria`, `cor_destaque`, `cor_fundo`, `cor_fundo_card`, `cor_texto_principal`, `cor_texto_secundario`, `cor_botao`, `cor_botao_negativo`, `cor_header`, `cor_link`, `cor_menu`
+- `nm_escola`, `url_logo`, `url_favicon`, `url_banner_vendas`, `url_link_vendas`
+- `msg_pos_pagamento`, `lg_valida_estoque_link`, `lg_valida_estoque_pdv`
+- `email_remetente`, `abacatepay_api_key`, `abacatepay_webhook_url`, `abacatepay_webhook_secret`
+- `css_customizado`
+- `logomarca` (TEXT, URL da imagem para fundo do formulário principal)
+
+**1.2 Renomear tabela `parametro_horario` para `empresa_hs_lojavirtual`**:
+- Renomear campo `xparametro_id` para `empresa_id`
+- Adicionar FK referenciando `empresa(empresa_id)`
+- Atualizar RLS policies
+
+**1.3 Copiar dados existentes** de `parametro` para `empresa` (via UPDATE com subselect da primeira linha de parametro)
+
+---
+
+## 2. Ajustar `EmpresaForm.tsx`
+
+- Remover dependência de `parametro` — cores, link de vendas, horários passam a ser campos diretos da empresa editada
+- Na aba "Cadastro": mover `empresamatriz_id` para entre o campo Código e Razão Social, como select mostrando `empresa_id - razao_social`
+- Na aba "Horário Loja Virtual": carregar de `empresa_hs_lojavirtual` filtrado por `empresa_id` da empresa atual
+- Na aba "Tema": ler/salvar cores diretamente nos campos da empresa
+- Adicionar campo **Logomarca** com botão de upload (usando bucket `avatars` ou novo bucket) na aba Cadastro ou Tema
+- Remover chamadas a `parametro` e `parametro_horario`
+
+---
+
+## 3. Ajustar `useThemeColors.ts`
+
+- Passar a receber `empresa_id` como parâmetro
+- Carregar cores da tabela `empresa` (campos `cor_primaria`, etc.) em vez de `parametro`
+- Re-executar quando `empresa_id` mudar (troca de empresa no TopBar ou login)
+
+---
+
+## 4. Ajustar `AppContext` e `Index.tsx`
+
+- O `useThemeColors` precisa ser chamado dentro do `AppContent` (onde `XEmpresaId` está disponível), ou receber o `empresa_id` do contexto
+- Quando `XEmpresaId` mudar (seletor no TopBar), recarregar cores e logomarca
+- Exibir `logomarca` como imagem de fundo no container principal (quando disponível)
+
+---
+
+## 5. Ajustar `AuthGate.tsx`
+
+- Ao confirmar empresa, disparar carregamento de cores da empresa selecionada
+
+---
+
+## 6. Ajustar `TopBar.tsx`
+
+- Ao trocar empresa no seletor "Emp.", disparar recarga do tema (cores + logomarca)
+
+---
+
+## Detalhes Técnicos
+
+- **COLOR_FIELDS** no form passam a usar nomes sem "x": `cor_primaria` em vez de `xcor_primaria`
+- **COLOR_MAP** no hook passa a mapear `cor_primaria -> --primary`, etc.
+- O campo `empresamatriz_id` já existe na tabela `empresa` — apenas reposicionar no form entre Código e Razão Social, mostrando como lista `{empresa_id} - {razao_social}`
+- Upload de logomarca: usar Supabase Storage (bucket existente `avatars` ou criar bucket `logos`), salvar URL no campo `logomarca`
+- A tabela `parametro` permanece no banco mas deixa de ser usada pelo sistema principal
+
+---
+
+## Arquivos Afetados
+
+| Arquivo | Alteração |
 |---|---|
-| `src/components/forms/CadastroCompletoForm.tsx` | Refatorar para aceitar props de configuração |
-| `src/components/forms/ClienteForm.tsx` | Criar: wrapper que renderiza CadastroCompletoForm no modo "cliente" |
-| `src/components/forms/FornecedorTransportadorForm.tsx` | Criar: wrapper que renderiza CadastroCompletoForm no modo "fornecedor" com aba Veículos |
-| `src/pages/Index.tsx` | Registrar os novos componentes no switch |
-| `src/config/menuConfig.ts` | Ajustar menu: "Cadastro" vira "Clientes", adicionar "Fornecedores/Transportadores" |
-
-## Detalhes técnicos
-
-### 1. Props do CadastroCompletoForm
-
-```typescript
-interface ICadastroFormConfig {
-  formTitle: string;
-  // Filtro no loadData
-  dataFilter?: { st_cliente?: string; st_fornecedor?: string; st_transportador?: string };
-  filterMode: "or" | "and"; // "or" para fornecedor/transportador
-  // Defaults ao incluir
-  defaultValues?: Partial<Record<string, string>>;
-  // Campos travados (não editáveis)
-  lockedFields?: string[];
-  // Validação extra ao salvar
-  extraValidation?: (form: Record<string, string>) => string | null;
-  // Mostrar aba Veículos
-  showVeiculoTab?: boolean;
-}
-```
-
-### 2. ClienteForm (wrapper)
-- `dataFilter`: `{ st_cliente: "S" }` — só mostra clientes
-- `defaultValues`: `{ st_cliente: "S", st_fornecedor: "N", st_transportador: "N" }`
-- `lockedFields`: `["st_cliente"]` — campo Cliente sempre "S", não editável
-- Título: "Clientes"
-
-### 3. FornecedorTransportadorForm (wrapper)
-- `dataFilter`: `{ st_fornecedor: "S", st_transportador: "S" }` com `filterMode: "or"`
-- `defaultValues`: `{ st_cliente: "N", st_fornecedor: "S", st_transportador: "N" }`
-- `extraValidation`: verifica se `st_fornecedor === "S"` ou `st_transportador === "S"`, senão erro
-- `showVeiculoTab`: `true`
-- Título: "Fornecedores/Transportadores"
-
-### 4. Aba Veículos (dentro do CadastroCompletoForm quando `showVeiculoTab=true`)
-- Nova inner tab "veiculos" ao lado de geral/endereço/complemento/geo
-- Grid de veículos vinculados ao `cadastro_id` atual (tabela `veiculo`)
-- Campos: `placa`, `descricao`, `marca`, `modelo`, `ativo` (checkbox)
-- CRUD inline na grid com botões adicionar/remover
-- Tabela `veiculo` já existe com: `veiculo_id`, `placa`, `descricao`, `marca`, `modelo`, `ativo`, `cadastro_id`, `empresa_id`
-
-### 5. Filtro no loadData
-```typescript
-// Cliente: .eq("st_cliente", "S")
-// Fornecedor/Transportador: .or("st_fornecedor.eq.S,st_transportador.eq.S")
-```
-
-### 6. Menu
-- `cadastro-completo` → título permanece "Cadastro" (id: `cadastro-completo`) — renderiza `ClienteForm`
-- Adicionar `fornecedores-transportadores` dentro de "Clientes/Fornecedores" (ou renomear submenu)
-- Mover item do submenu "Transportadores" para dentro de "Clientes/Fornecedores" como "Fornecedores/Transportadores"
+| Migration SQL | Adicionar colunas em `empresa`, renomear `parametro_horario` |
+| `src/components/forms/EmpresaForm.tsx` | Refatorar completamente para usar campos da empresa |
+| `src/hooks/useThemeColors.ts` | Carregar de `empresa` por `empresa_id` |
+| `src/App.tsx` | Mover `useThemeColors` para dentro do contexto com acesso ao `empresa_id` |
+| `src/pages/Index.tsx` | Integrar tema com empresa selecionada, exibir logomarca |
+| `src/contexts/AppContext.tsx` | Adicionar estado para logomarca da empresa |
+| `src/components/layout/TopBar.tsx` | Disparar recarga de tema ao trocar empresa |
+| `src/integrations/supabase/types.ts` | Será regenerado automaticamente |
 
