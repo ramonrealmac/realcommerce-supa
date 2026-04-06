@@ -614,9 +614,26 @@ export type Database = {
       }
       empresa: {
         Row: {
+          abacatepay_api_key: string | null
+          abacatepay_webhook_secret: string | null
+          abacatepay_webhook_url: string | null
           cnpj: string
+          cor_botao: string | null
+          cor_botao_negativo: string | null
+          cor_destaque: string | null
+          cor_fundo: string | null
+          cor_fundo_card: string | null
+          cor_header: string | null
+          cor_link: string | null
+          cor_menu: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          cor_texto_principal: string | null
+          cor_texto_secundario: string | null
+          css_customizado: string | null
           dt_alteracao: string | null
           dt_cadastro: string | null
+          email_remetente: string | null
           empresa_id: number
           empresa_matriz_id: number | null
           empresamatriz_id: number | null
@@ -632,18 +649,44 @@ export type Database = {
           fone_geral: string | null
           identificacao: string | null
           ie: string | null
+          lg_valida_estoque_link: boolean | null
+          lg_valida_estoque_pdv: boolean | null
+          logomarca: string | null
+          msg_pos_pagamento: string | null
+          nm_escola: string | null
           nome_fantasia: string
           qt_saida_qt_decimais: number | null
           qt_venda_qt_decimais: number | null
           razao_social: string
           regime_trib: string | null
+          url_banner_vendas: string | null
+          url_favicon: string | null
+          url_link_vendas: string | null
+          url_logo: string | null
           vl_saida_qt_decimais: number | null
           vl_venda_qt_decimais: number | null
         }
         Insert: {
+          abacatepay_api_key?: string | null
+          abacatepay_webhook_secret?: string | null
+          abacatepay_webhook_url?: string | null
           cnpj?: string
+          cor_botao?: string | null
+          cor_botao_negativo?: string | null
+          cor_destaque?: string | null
+          cor_fundo?: string | null
+          cor_fundo_card?: string | null
+          cor_header?: string | null
+          cor_link?: string | null
+          cor_menu?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          cor_texto_principal?: string | null
+          cor_texto_secundario?: string | null
+          css_customizado?: string | null
           dt_alteracao?: string | null
           dt_cadastro?: string | null
+          email_remetente?: string | null
           empresa_id?: number
           empresa_matriz_id?: number | null
           empresamatriz_id?: number | null
@@ -659,18 +702,44 @@ export type Database = {
           fone_geral?: string | null
           identificacao?: string | null
           ie?: string | null
+          lg_valida_estoque_link?: boolean | null
+          lg_valida_estoque_pdv?: boolean | null
+          logomarca?: string | null
+          msg_pos_pagamento?: string | null
+          nm_escola?: string | null
           nome_fantasia?: string
           qt_saida_qt_decimais?: number | null
           qt_venda_qt_decimais?: number | null
           razao_social?: string
           regime_trib?: string | null
+          url_banner_vendas?: string | null
+          url_favicon?: string | null
+          url_link_vendas?: string | null
+          url_logo?: string | null
           vl_saida_qt_decimais?: number | null
           vl_venda_qt_decimais?: number | null
         }
         Update: {
+          abacatepay_api_key?: string | null
+          abacatepay_webhook_secret?: string | null
+          abacatepay_webhook_url?: string | null
           cnpj?: string
+          cor_botao?: string | null
+          cor_botao_negativo?: string | null
+          cor_destaque?: string | null
+          cor_fundo?: string | null
+          cor_fundo_card?: string | null
+          cor_header?: string | null
+          cor_link?: string | null
+          cor_menu?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          cor_texto_principal?: string | null
+          cor_texto_secundario?: string | null
+          css_customizado?: string | null
           dt_alteracao?: string | null
           dt_cadastro?: string | null
+          email_remetente?: string | null
           empresa_id?: number
           empresa_matriz_id?: number | null
           empresamatriz_id?: number | null
@@ -686,15 +755,81 @@ export type Database = {
           fone_geral?: string | null
           identificacao?: string | null
           ie?: string | null
+          lg_valida_estoque_link?: boolean | null
+          lg_valida_estoque_pdv?: boolean | null
+          logomarca?: string | null
+          msg_pos_pagamento?: string | null
+          nm_escola?: string | null
           nome_fantasia?: string
           qt_saida_qt_decimais?: number | null
           qt_venda_qt_decimais?: number | null
           razao_social?: string
           regime_trib?: string | null
+          url_banner_vendas?: string | null
+          url_favicon?: string | null
+          url_link_vendas?: string | null
+          url_logo?: string | null
           vl_saida_qt_decimais?: number | null
           vl_venda_qt_decimais?: number | null
         }
         Relationships: []
+      }
+      empresa_hs_lojavirtual: {
+        Row: {
+          empresa_id: number | null
+          excluido: boolean | null
+          id: number
+          xdia_semana: number
+          xhr_fim_matutino: string | null
+          xhr_fim_noturno: string | null
+          xhr_fim_vespertino: string | null
+          xhr_inicio_matutino: string | null
+          xhr_inicio_noturno: string | null
+          xhr_inicio_vespertino: string | null
+          xlg_dia_ativo: boolean | null
+        }
+        Insert: {
+          empresa_id?: number | null
+          excluido?: boolean | null
+          id?: number
+          xdia_semana: number
+          xhr_fim_matutino?: string | null
+          xhr_fim_noturno?: string | null
+          xhr_fim_vespertino?: string | null
+          xhr_inicio_matutino?: string | null
+          xhr_inicio_noturno?: string | null
+          xhr_inicio_vespertino?: string | null
+          xlg_dia_ativo?: boolean | null
+        }
+        Update: {
+          empresa_id?: number | null
+          excluido?: boolean | null
+          id?: number
+          xdia_semana?: number
+          xhr_fim_matutino?: string | null
+          xhr_fim_noturno?: string | null
+          xhr_fim_vespertino?: string | null
+          xhr_inicio_matutino?: string | null
+          xhr_inicio_noturno?: string | null
+          xhr_inicio_vespertino?: string | null
+          xlg_dia_ativo?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_empresa_hs_lojavirtual_empresa"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["empresa_id"]
+          },
+          {
+            foreignKeyName: "parametro_horario_xparametro_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "parametro"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       empresa_usuario: {
         Row: {
@@ -1400,56 +1535,6 @@ export type Database = {
           xurl_logo?: string
         }
         Relationships: []
-      }
-      parametro_horario: {
-        Row: {
-          excluido: boolean | null
-          id: number
-          xdia_semana: number
-          xhr_fim_matutino: string | null
-          xhr_fim_noturno: string | null
-          xhr_fim_vespertino: string | null
-          xhr_inicio_matutino: string | null
-          xhr_inicio_noturno: string | null
-          xhr_inicio_vespertino: string | null
-          xlg_dia_ativo: boolean | null
-          xparametro_id: number | null
-        }
-        Insert: {
-          excluido?: boolean | null
-          id?: number
-          xdia_semana: number
-          xhr_fim_matutino?: string | null
-          xhr_fim_noturno?: string | null
-          xhr_fim_vespertino?: string | null
-          xhr_inicio_matutino?: string | null
-          xhr_inicio_noturno?: string | null
-          xhr_inicio_vespertino?: string | null
-          xlg_dia_ativo?: boolean | null
-          xparametro_id?: number | null
-        }
-        Update: {
-          excluido?: boolean | null
-          id?: number
-          xdia_semana?: number
-          xhr_fim_matutino?: string | null
-          xhr_fim_noturno?: string | null
-          xhr_fim_vespertino?: string | null
-          xhr_inicio_matutino?: string | null
-          xhr_inicio_noturno?: string | null
-          xhr_inicio_vespertino?: string | null
-          xlg_dia_ativo?: boolean | null
-          xparametro_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "parametro_horario_xparametro_id_fkey"
-            columns: ["xparametro_id"]
-            isOneToOne: false
-            referencedRelation: "parametro"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       perfil: {
         Row: {

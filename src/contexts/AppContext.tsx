@@ -25,6 +25,8 @@ interface AppContextType {
   XSidebarOpen: boolean;
   toggleSidebar: () => void;
   closeSidebar: () => void;
+  XLogomarca: string;
+  setXLogomarca: (url: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -37,6 +39,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [XTabs, setXTabs] = useState<AppTab[]>([]);
   const [XActiveTabId, setXActiveTabId] = useState<string | null>(null);
   const [XSidebarOpen, setXSidebarOpen] = useState(false);
+  const [XLogomarca, setXLogomarca] = useState("");
 
   const openTab = useCallback((tab: Omit<AppTab, "id">) => {
     const XExisting = XTabs.find(t => t.component === tab.component);
@@ -71,6 +74,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       XEmpresas, setXEmpresas,
       XTabs, XActiveTabId, openTab, closeTab, setActiveTab: setXActiveTabId,
       XSidebarOpen, toggleSidebar, closeSidebar,
+      XLogomarca, setXLogomarca,
     }}>
       {children}
     </AppContext.Provider>
