@@ -134,6 +134,10 @@ const CadastroGrupoForm: React.FC = () => {
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
                 <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentRecord?.cadastro_grupo_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
               </div>
+              <div className="w-full md:w-28">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
+                <input type="text" value={XEmpresaMatrizId} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
+              </div>
               <div className="flex-1">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Nome <span className="text-destructive">*</span></label>
                 {XIsEditing ? (
