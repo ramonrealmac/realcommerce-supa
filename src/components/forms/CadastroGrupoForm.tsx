@@ -24,7 +24,7 @@ const XLocalizarColumns: IGridColumn[] = [
 ];
 
 const CadastroGrupoForm: React.FC = () => {
-  const { XEmpresaId, XEmpresaMatrizId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
@@ -68,7 +68,7 @@ const CadastroGrupoForm: React.FC = () => {
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Grupo incluído com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("cadastro_grupo").update({ nome: XNomeEdit.trim(), dt_alteracao: new Date().toISOString() }).eq("cadastro_grupo_id", XCurrentRecord.cadastro_grupo_id);
+      const { error } = await db.from("cadastro_grupo").update({ nome: XNomeEdit.trim(), empresa_id: XEmpresaMatrizId, dt_alteracao: new Date().toISOString() }).eq("cadastro_grupo_id", XCurrentRecord.cadastro_grupo_id);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Grupo alterado com sucesso.");
     }
@@ -134,9 +134,9 @@ const CadastroGrupoForm: React.FC = () => {
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
                 <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentRecord?.cadastro_grupo_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
               </div>
-              <div className="w-full md:w-28">
+              <div className="w-full md:w-[13.5rem]">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
-                <input type="text" value={XEmpresaMatrizId} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
+                <input type="text" value={(() => { const em = XEmpresas.find(e => e.empresa_id === XEmpresaMatrizId); return em ? `${em.empresa_id} - ${em.identificacao}` : String(XEmpresaMatrizId); })()} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
               </div>
               <div className="flex-1">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Nome <span className="text-destructive">*</span></label>

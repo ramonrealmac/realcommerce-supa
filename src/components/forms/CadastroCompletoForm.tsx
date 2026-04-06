@@ -115,7 +115,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
   extraValidation,
   showVeiculoTab = false,
 }) => {
-  const { XEmpresaId, XEmpresaMatrizId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
@@ -717,13 +717,13 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
                   className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XFieldBgRead} text-right`}
                 />
               </div>
-              <div className="w-full md:w-28">
+              <div className="w-full md:w-[13.5rem]">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
                 <input
                   type="text"
-                  value={XEmpresaMatrizId}
+                  value={(() => { const em = XEmpresas.find(e => e.empresa_id === XEmpresaMatrizId); return em ? `${em.empresa_id} - ${em.identificacao}` : String(XEmpresaMatrizId); })()}
                   readOnly
-                  className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XFieldBgRead} text-right`}
+                  className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XFieldBgRead}`}
                 />
               </div>
               <div className="w-full md:w-52">
