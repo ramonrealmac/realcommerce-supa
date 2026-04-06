@@ -127,8 +127,7 @@ const Index = () => (
   <AppProvider>
     <AuthGateWrapper />
   </AppProvider>
-  );
-};
+);
 
 const AuthGateWrapper = () => {
   const { setXEmpresaId, setXEmpresas } = useAppContext();
