@@ -48,7 +48,7 @@ const UnidadeForm: React.FC = () => {
     setXData(data || []);
   }, [XEmpresaMatrizId]);
 
-  useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaId]);
+  useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaMatrizId]);
 
   useEffect(() => {
     if (XCurrentRecord && XFormMode === "edit") {
