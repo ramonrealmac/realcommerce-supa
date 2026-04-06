@@ -37,17 +37,20 @@ const LinhaProdutoForm: React.FC = () => {
   const XCurrentRecord = XData[XCurrentIdx] || null;
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
 
+  const XEmpMatriz = XEmpresas.find(e => e.empresa_id === XEmpresaMatrizId);
+  const XEmpMatrizLabel = XEmpMatriz ? `${XEmpMatriz.empresa_id} - ${XEmpMatriz.identificacao}` : String(XEmpresaMatrizId);
+
   const loadData = useCallback(async () => {
     const { data } = await db
       .from("linha_produto")
       .select("*")
-      .eq("empresa_id", XEmpresaId)
+      .eq("empresa_id", XEmpresaMatrizId)
       .eq("excluido", false)
       .order("linha_id");
     setXData(data || []);
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
-  useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaId]);
+  useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaMatrizId]);
 
   useEffect(() => {
     if (XCurrentRecord && XFormMode === "edit") {
@@ -61,11 +64,11 @@ const LinhaProdutoForm: React.FC = () => {
   const handleSalvar = async () => {
     if (!XNomeEdit.trim()) { toast.error("O nome da linha é obrigatório."); return; }
     if (XFormMode === "insert") {
-      const { error } = await db.from("linha_produto").insert({ empresa_id: XEmpresaId, nome: XNomeEdit.trim() });
+      const { error } = await db.from("linha_produto").insert({ empresa_id: XEmpresaMatrizId, nome: XNomeEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Linha incluída com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("linha_produto").update({ nome: XNomeEdit.trim(), dt_alteracao: new Date().toISOString() }).eq("linha_id", XCurrentRecord.linha_id);
+      const { error } = await db.from("linha_produto").update({ nome: XNomeEdit.trim(), empresa_id: XEmpresaMatrizId, dt_alteracao: new Date().toISOString() }).eq("linha_id", XCurrentRecord.linha_id);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Linha alterada com sucesso.");
     }
@@ -143,6 +146,10 @@ const LinhaProdutoForm: React.FC = () => {
         {XInnerTab === "cadastro" ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
+              <div className="w-full md:w-[13.5rem]">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
+                <input type="text" value={XEmpMatrizLabel} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+              </div>
               <div className="w-full md:w-32">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
                 <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentRecord?.linha_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
