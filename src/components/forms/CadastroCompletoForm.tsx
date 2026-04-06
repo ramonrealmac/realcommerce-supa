@@ -174,7 +174,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
     let XQuery = db
       .from("cadastro")
       .select("cadastro_id, razao_social")
-      .eq("empresa_id", XEmpresaId)
+      .eq("empresa_id", XEmpresaMatrizId)
       .eq("cnpj", XDigits)
       .eq("excluido", false);
 
@@ -411,7 +411,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
       let XDupQuery = db
         .from("cadastro")
         .select("cadastro_id, razao_social")
-        .eq("empresa_id", XEmpresaId)
+        .eq("empresa_id", XEmpresaMatrizId)
         .eq("cnpj", XCpfCnpj)
         .eq("excluido", false);
       if (XFormMode === "edit" && XCurrentRecord) {

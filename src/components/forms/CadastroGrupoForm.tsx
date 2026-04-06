@@ -24,7 +24,7 @@ const XLocalizarColumns: IGridColumn[] = [
 ];
 
 const CadastroGrupoForm: React.FC = () => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
@@ -40,17 +40,17 @@ const CadastroGrupoForm: React.FC = () => {
     const { data } = await db
       .from("cadastro_grupo")
       .select("*")
-      .eq("empresa_id", XEmpresaId)
+      .eq("empresa_id", XEmpresaMatrizId)
       .eq("excluido", false)
       .order("cadastro_grupo_id");
     setXData(data || []);
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
   useEffect(() => {
     loadData();
     setXCurrentIdx(0);
     setXFormMode("view");
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
   useEffect(() => {
     if (XCurrentRecord && XFormMode === "edit") {
@@ -64,7 +64,7 @@ const CadastroGrupoForm: React.FC = () => {
   const handleSalvar = async () => {
     if (!XNomeEdit.trim()) { toast.error("O nome é obrigatório."); return; }
     if (XFormMode === "insert") {
-      const { error } = await db.from("cadastro_grupo").insert({ empresa_id: XEmpresaId, nome: XNomeEdit.trim() });
+      const { error } = await db.from("cadastro_grupo").insert({ empresa_id: XEmpresaMatrizId, nome: XNomeEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Grupo incluído com sucesso.");
     } else if (XCurrentRecord) {
