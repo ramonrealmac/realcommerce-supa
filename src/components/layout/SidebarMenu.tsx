@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { X, ChevronRight, ChevronDown } from "lucide-react";
+import { X, ChevronRight, ChevronDown, FileBarChart } from "lucide-react";
 import { MENU_CONFIG, MenuItem } from "@/config/menuConfig";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { rbFetchRelatorios } from "@/rbuilder/services/rb_reportService";
+import type { IRbRelatorio } from "@/rbuilder/models/rb_types";
 
 const MenuItemNode = ({
   item,
@@ -64,7 +66,81 @@ const MenuItemNode = ({
 };
 
 const SidebarMenu = () => {
-  const { XSidebarOpen, closeSidebar, openTab } = useAppContext();
+  const { XSidebarOpen, closeSidebar, openTab, XEmpresaMatrizId } = useAppContext();
+  const [XRbRelatorios, setXRbRelatorios] = useState<IRbRelatorio[]>([]);
+
+  useEffect(() => {
+    if (XSidebarOpen && XEmpresaMatrizId > 0) {
+      rbFetchRelatorios(XEmpresaMatrizId).then(setXRbRelatorios);
+    }
+  }, [XSidebarOpen, XEmpresaMatrizId]);
+
+  // Build dynamic menu for rbuilder reports grouped by menu/submenu
+  const XRbMenuItems = (() => {
+    const XGrouped: Record<string, Record<string, IRbRelatorio[]>> = {};
+    for (const r of XRbRelatorios) {
+      const XMenu = r.menu || "Geral";
+      const XSubmenu = r.submenu || "";
+      if (!XGrouped[XMenu]) XGrouped[XMenu] = {};
+      if (!XGrouped[XMenu][XSubmenu]) XGrouped[XMenu][XSubmenu] = [];
+      XGrouped[XMenu][XSubmenu].push(r);
+    }
+
+    const XItems: MenuItem[] = [];
+    for (const [XMenu, XSubmenus] of Object.entries(XGrouped)) {
+      const XChildren: MenuItem[] = [];
+      for (const [XSubmenu, XRels] of Object.entries(XSubmenus)) {
+        if (XSubmenu) {
+          XChildren.push({
+            id: `rb-sub-${XMenu}-${XSubmenu}`,
+            title: XSubmenu,
+            icon: FileBarChart,
+            children: XRels.sort((a, b) => a.ordem - b.ordem).map(r => ({
+              id: `rb-exec-${r.rb_relatorio_id}`,
+              title: r.nome,
+              icon: FileBarChart,
+            })),
+          });
+        } else {
+          for (const r of XRels.sort((a, b) => a.ordem - b.ordem)) {
+            XChildren.push({
+              id: `rb-exec-${r.rb_relatorio_id}`,
+              title: r.nome,
+              icon: FileBarChart,
+            });
+          }
+        }
+      }
+      XItems.push({
+        id: `rb-menu-${XMenu}`,
+        title: XMenu,
+        icon: FileBarChart,
+        children: XChildren,
+      });
+    }
+    return XItems;
+  })();
+
+  // Inject dynamic reports into the menu config
+  const XMenuConfig = MENU_CONFIG.map(item => {
+    if (item.id === "relatorios-menu" && XRbMenuItems.length > 0) {
+      // Find the "rbuilder" static entry and replace with dynamic children
+      const XStaticChildren = (item.children || []).filter(c => c.id !== "rbuilder");
+      return {
+        ...item,
+        children: [
+          ...XStaticChildren,
+          {
+            id: "rbuilder",
+            title: "RBuilder",
+            icon: FileBarChart,
+            children: XRbMenuItems,
+          },
+        ],
+      };
+    }
+    return item;
+  });
 
   if (!XSidebarOpen) return null;
 
@@ -80,7 +156,7 @@ const SidebarMenu = () => {
         </div>
         <ScrollArea className="flex-1">
           <div className="p-2">
-            {MENU_CONFIG.map((item) => (
+            {XMenuConfig.map((item) => (
               <MenuItemNode
                 key={item.id}
                 item={item}
