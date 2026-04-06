@@ -115,7 +115,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
   extraValidation,
   showVeiculoTab = false,
 }) => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
@@ -174,7 +174,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
     let XQuery = db
       .from("cadastro")
       .select("cadastro_id, razao_social")
-      .eq("empresa_id", XEmpresaId)
+      .eq("empresa_id", XEmpresaMatrizId)
       .eq("cnpj", XDigits)
       .eq("excluido", false);
 
@@ -332,7 +332,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
     let XQuery = db
       .from("cadastro")
       .select("*")
-      .eq("empresa_id", XEmpresaId)
+      .eq("empresa_id", XEmpresaMatrizId)
       .eq("excluido", false);
 
     // Apply data filters
@@ -353,14 +353,14 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
     const { data: XRows } = await XQuery.order("cadastro_id");
     setXData(XRows || []);
     setXLoading(false);
-  }, [XEmpresaId, dataFilter, filterMode]);
+  }, [XEmpresaMatrizId, dataFilter, filterMode]);
 
   useEffect(() => {
     loadData();
     loadLookups();
     setXCurrentIdx(0);
     setXFormMode("view");
-  }, [XEmpresaId]);
+  }, [XEmpresaMatrizId]);
 
   // Populate form when editing
   useEffect(() => {
@@ -411,7 +411,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
       let XDupQuery = db
         .from("cadastro")
         .select("cadastro_id, razao_social")
-        .eq("empresa_id", XEmpresaId)
+        .eq("empresa_id", XEmpresaMatrizId)
         .eq("cnpj", XCpfCnpj)
         .eq("excluido", false);
       if (XFormMode === "edit" && XCurrentRecord) {
@@ -443,7 +443,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
     };
 
     const XPayload: any = {
-      empresa_id: XEmpresaId,
+      empresa_id: XEmpresaMatrizId,
       cnpj: XCpfCnpj || "",
       inscricao_estadual: toNull(XF.inscricao_estadual) || "",
       razao_social: XF.razao_social.trim(),
@@ -713,6 +713,15 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
                 <input
                   type="text"
                   value={XFormMode === "insert" ? "(Novo)" : XCurrentRecord?.cadastro_id ?? ""}
+                  readOnly
+                  className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XFieldBgRead} text-right`}
+                />
+              </div>
+              <div className="w-full md:w-28">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
+                <input
+                  type="text"
+                  value={XEmpresaMatrizId}
                   readOnly
                   className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XFieldBgRead} text-right`}
                 />
