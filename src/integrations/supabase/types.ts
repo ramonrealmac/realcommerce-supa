@@ -619,6 +619,7 @@ export type Database = {
           dt_cadastro: string | null
           empresa_id: number
           empresa_matriz_id: number | null
+          empresamatriz_id: number | null
           endereco_bairro: string | null
           endereco_cep: string | null
           endereco_cidade_id: number | null
@@ -645,6 +646,7 @@ export type Database = {
           dt_cadastro?: string | null
           empresa_id?: number
           empresa_matriz_id?: number | null
+          empresamatriz_id?: number | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
           endereco_cidade_id?: number | null
@@ -671,6 +673,7 @@ export type Database = {
           dt_cadastro?: string | null
           empresa_id?: number
           empresa_matriz_id?: number | null
+          empresamatriz_id?: number | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
           endereco_cidade_id?: number | null
