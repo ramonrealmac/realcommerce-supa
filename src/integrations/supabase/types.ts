@@ -1962,6 +1962,190 @@ export type Database = {
         }
         Relationships: []
       }
+      rb_conexao: {
+        Row: {
+          api_key: string
+          descricao: string
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          nome: string
+          rb_conexao_id: number
+          url: string
+        }
+        Insert: {
+          api_key?: string
+          descricao?: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          nome: string
+          rb_conexao_id?: number
+          url?: string
+        }
+        Update: {
+          api_key?: string
+          descricao?: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          nome?: string
+          rb_conexao_id?: number
+          url?: string
+        }
+        Relationships: []
+      }
+      rb_relatorio: {
+        Row: {
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          menu: string
+          nome: string
+          ordem: number | null
+          query_sql: string
+          rb_conexao_id: number | null
+          rb_relatorio_id: number
+          report_json: Json | null
+          submenu: string
+        }
+        Insert: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          menu?: string
+          nome: string
+          ordem?: number | null
+          query_sql?: string
+          rb_conexao_id?: number | null
+          rb_relatorio_id?: number
+          report_json?: Json | null
+          submenu?: string
+        }
+        Update: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          menu?: string
+          nome?: string
+          ordem?: number | null
+          query_sql?: string
+          rb_conexao_id?: number | null
+          rb_relatorio_id?: number
+          report_json?: Json | null
+          submenu?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_relatorio_rb_conexao_id_fkey"
+            columns: ["rb_conexao_id"]
+            isOneToOne: false
+            referencedRelation: "rb_conexao"
+            referencedColumns: ["rb_conexao_id"]
+          },
+        ]
+      }
+      rb_relatorio_variavel: {
+        Row: {
+          excluido: boolean | null
+          operador: string
+          rb_relatorio_id: number
+          rb_relatorio_variavel_id: number
+          rb_templatepesquisa_id: number
+        }
+        Insert: {
+          excluido?: boolean | null
+          operador?: string
+          rb_relatorio_id: number
+          rb_relatorio_variavel_id?: number
+          rb_templatepesquisa_id: number
+        }
+        Update: {
+          excluido?: boolean | null
+          operador?: string
+          rb_relatorio_id?: number
+          rb_relatorio_variavel_id?: number
+          rb_templatepesquisa_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_relatorio_variavel_rb_relatorio_id_fkey"
+            columns: ["rb_relatorio_id"]
+            isOneToOne: false
+            referencedRelation: "rb_relatorio"
+            referencedColumns: ["rb_relatorio_id"]
+          },
+          {
+            foreignKeyName: "rb_relatorio_variavel_rb_templatepesquisa_id_fkey"
+            columns: ["rb_templatepesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "rb_templatepesquisa"
+            referencedColumns: ["rb_templatepesquisa_id"]
+          },
+        ]
+      }
+      rb_templatepesquisa: {
+        Row: {
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          label: string
+          nome: string
+          obrigatorio: boolean | null
+          opcoes_fixas: string | null
+          query: string | null
+          rb_conexao_id: number | null
+          rb_templatepesquisa_id: number
+          tipo: string
+          valor_padrao: string | null
+        }
+        Insert: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          label?: string
+          nome: string
+          obrigatorio?: boolean | null
+          opcoes_fixas?: string | null
+          query?: string | null
+          rb_conexao_id?: number | null
+          rb_templatepesquisa_id?: number
+          tipo?: string
+          valor_padrao?: string | null
+        }
+        Update: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          label?: string
+          nome?: string
+          obrigatorio?: boolean | null
+          opcoes_fixas?: string | null
+          query?: string | null
+          rb_conexao_id?: number | null
+          rb_templatepesquisa_id?: number
+          tipo?: string
+          valor_padrao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_templatepesquisa_rb_conexao_id_fkey"
+            columns: ["rb_conexao_id"]
+            isOneToOne: false
+            referencedRelation: "rb_conexao"
+            referencedColumns: ["rb_conexao_id"]
+          },
+        ]
+      }
       unidade: {
         Row: {
           descricao: string | null
