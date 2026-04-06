@@ -21,10 +21,20 @@ import DepositoForm from "@/components/forms/DepositoForm";
 import EstoqueForm from "@/components/forms/EstoqueForm";
 import ProdutoForm from "@/components/forms/ProdutoForm";
 import AuthGate from "@/components/auth/AuthGate";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 const AppContent = () => {
-  const { XTabs, XActiveTabId, openTab } = useAppContext();
+  const { XTabs, XActiveTabId, openTab, XEmpresaId, setXLogomarca, XLogomarca } = useAppContext();
   const XInitRef = useRef(false);
+
+  // Load theme colors based on selected empresa
+  const { XLogomarca: XThemeLogomarca } = useThemeColors(XEmpresaId);
+
+  useEffect(() => {
+    if (XThemeLogomarca !== undefined) {
+      setXLogomarca(XThemeLogomarca);
+    }
+  }, [XThemeLogomarca, setXLogomarca]);
 
   const renderTabContent = (component: string) => {
     switch (component) {
@@ -80,20 +90,34 @@ const AppContent = () => {
       <TopBar />
       <TabBar />
       <SidebarMenu />
-      <div className="flex-1 overflow-hidden">
-        {XTabs.map(tab => (
-          <div
-            key={tab.id}
-            className={`h-full ${tab.id === XActiveTabId ? "block" : "hidden"}`}
-          >
-            {renderTabContent(tab.component)}
-          </div>
-        ))}
-        {XTabs.length === 0 && (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-            Use o menu para abrir um formulário.
-          </div>
+      <div
+        className="flex-1 overflow-hidden relative"
+        style={XLogomarca ? {
+          backgroundImage: `url(${XLogomarca})`,
+          backgroundSize: "contain",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        } : undefined}
+      >
+        {/* Semi-transparent overlay when logomarca is present */}
+        {XLogomarca && (
+          <div className="absolute inset-0 bg-background/85 pointer-events-none z-0" />
         )}
+        <div className="relative z-10 h-full">
+          {XTabs.map(tab => (
+            <div
+              key={tab.id}
+              className={`h-full ${tab.id === XActiveTabId ? "block" : "hidden"}`}
+            >
+              {renderTabContent(tab.component)}
+            </div>
+          ))}
+          {XTabs.length === 0 && (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+              Use o menu para abrir um formulário.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

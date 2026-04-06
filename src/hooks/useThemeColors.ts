@@ -30,30 +30,33 @@ function hexToHsl(hex: string): string {
 }
 
 const COLOR_MAP: Record<string, string> = {
-  xcor_primaria: "--primary",
-  xcor_header: "--topbar",
-  xcor_fundo: "--background",
-  xcor_fundo_card: "--card",
-  xcor_texto_principal: "--foreground",
-  xcor_texto_secundario: "--muted-foreground",
-  xcor_botao: "--ring",
-  xcor_botao_negativo: "--destructive",
-  xcor_destaque: "--warning",
-  xcor_menu: "--sidebar-primary",
-  xcor_link: "--accent",
+  cor_primaria: "--primary",
+  cor_header: "--topbar",
+  cor_fundo: "--background",
+  cor_fundo_card: "--card",
+  cor_texto_principal: "--foreground",
+  cor_texto_secundario: "--muted-foreground",
+  cor_botao: "--ring",
+  cor_botao_negativo: "--destructive",
+  cor_destaque: "--warning",
+  cor_menu: "--sidebar-primary",
+  cor_link: "--accent",
 };
 
-export function useThemeColors() {
+export function useThemeColors(empresaId: number) {
   const [XLoaded, setXLoaded] = useState(false);
+  const [XLogomarca, setXLogomarca] = useState<string>("");
 
   useEffect(() => {
+    if (!empresaId) return;
+
     const load = async () => {
       const db = supabase as any;
       const { data } = await db
-        .from("parametro")
+        .from("empresa")
         .select("*")
+        .eq("empresa_id", empresaId)
         .eq("excluido", false)
-        .limit(1)
         .single();
 
       if (!data) { setXLoaded(true); return; }
@@ -68,37 +71,39 @@ export function useThemeColors() {
       }
 
       // Primary foreground stays white for contrast
-      // Also set derived vars
-      if (data.xcor_primaria) {
-        const hsl = hexToHsl(data.xcor_primaria);
+      if (data.cor_primaria) {
+        const hsl = hexToHsl(data.cor_primaria);
         if (hsl) {
           root.style.setProperty("--primary", hsl);
-          root.style.setProperty("--sidebar-primary", hexToHsl(data.xcor_menu || data.xcor_primaria));
+          root.style.setProperty("--sidebar-primary", hexToHsl(data.cor_menu || data.cor_primaria));
           root.style.setProperty("--grid-header", hsl);
           root.style.setProperty("--grid-selected", hsl);
         }
       }
 
-      if (data.xcor_header) {
-        root.style.setProperty("--topbar", hexToHsl(data.xcor_header));
+      if (data.cor_header) {
+        root.style.setProperty("--topbar", hexToHsl(data.cor_header));
       }
 
       // Custom CSS
-      if (data.xcss_customizado) {
+      if (data.css_customizado) {
         let style = document.getElementById("custom-theme-css");
         if (!style) {
           style = document.createElement("style");
           style.id = "custom-theme-css";
           document.head.appendChild(style);
         }
-        style.textContent = data.xcss_customizado;
+        style.textContent = data.css_customizado;
       }
+
+      // Logomarca
+      setXLogomarca(data.logomarca || "");
 
       setXLoaded(true);
     };
 
     load();
-  }, []);
+  }, [empresaId]);
 
-  return XLoaded;
+  return { XLoaded, XLogomarca };
 }

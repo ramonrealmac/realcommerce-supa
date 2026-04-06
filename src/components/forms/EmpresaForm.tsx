@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/contexts/AppContext";
 import FormToolbar, { TFormMode } from "@/components/shared/FormToolbar";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  RotateCcw, Copy, Eye, Palette, Clock, Link2,
+  RotateCcw, Copy, Eye, Palette, Clock, Link2, Upload,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -25,25 +25,25 @@ const REGIME_OPTIONS = [
 ];
 
 const COLOR_FIELDS = [
-  { key: "xcor_primaria", label: "Cor Primária" },
-  { key: "xcor_secundaria", label: "Cor Secundária" },
-  { key: "xcor_destaque", label: "Cor Destaque" },
-  { key: "xcor_fundo", label: "Cor de Fundo" },
-  { key: "xcor_fundo_card", label: "Fundo dos Cards" },
-  { key: "xcor_texto_principal", label: "Texto Principal" },
-  { key: "xcor_texto_secundario", label: "Texto Secundário" },
-  { key: "xcor_botao", label: "Botões" },
-  { key: "xcor_botao_negativo", label: "Botão Negativo" },
-  { key: "xcor_header", label: "Header" },
-  { key: "xcor_menu", label: "Menu" },
-  { key: "xcor_link", label: "Links" },
+  { key: "cor_primaria", label: "Cor Primária" },
+  { key: "cor_secundaria", label: "Cor Secundária" },
+  { key: "cor_destaque", label: "Cor Destaque" },
+  { key: "cor_fundo", label: "Cor de Fundo" },
+  { key: "cor_fundo_card", label: "Fundo dos Cards" },
+  { key: "cor_texto_principal", label: "Texto Principal" },
+  { key: "cor_texto_secundario", label: "Texto Secundário" },
+  { key: "cor_botao", label: "Botões" },
+  { key: "cor_botao_negativo", label: "Botão Negativo" },
+  { key: "cor_header", label: "Header" },
+  { key: "cor_menu", label: "Menu" },
+  { key: "cor_link", label: "Links" },
 ];
 
 const DEFAULT_COLORS: Record<string, string> = {
-  xcor_primaria: "#8B5CF6", xcor_secundaria: "#6D28D9", xcor_destaque: "#F59E0B",
-  xcor_fundo: "#FFFFFF", xcor_fundo_card: "#F8FAFC", xcor_texto_principal: "#1E293B",
-  xcor_texto_secundario: "#64748B", xcor_botao: "#8B5CF6", xcor_botao_negativo: "#EF4444",
-  xcor_header: "#7C3AED", xcor_menu: "#4C1D95", xcor_link: "#8B5CF6",
+  cor_primaria: "#8B5CF6", cor_secundaria: "#6D28D9", cor_destaque: "#F59E0B",
+  cor_fundo: "#FFFFFF", cor_fundo_card: "#F8FAFC", cor_texto_principal: "#1E293B",
+  cor_texto_secundario: "#64748B", cor_botao: "#8B5CF6", cor_botao_negativo: "#EF4444",
+  cor_header: "#7C3AED", cor_menu: "#4C1D95", cor_link: "#8B5CF6",
 };
 
 const XLocalizarColumns: IGridColumn[] = [
@@ -78,6 +78,7 @@ const emptyEmpresa = () => ({
   endereco_cep: "",
   endereco_cidade_id: 0,
   empresa_matriz_id: null as number | null,
+  empresamatriz_id: null as number | null,
   fone_geral: "",
   fone_comercial: "",
   fone_financeiro: "",
@@ -88,6 +89,30 @@ const emptyEmpresa = () => ({
   vl_saida_qt_decimais: 2,
   qt_saida_qt_decimais: 2,
   excluido: false,
+  // Color / theme fields
+  cor_primaria: "#8B5CF6",
+  cor_secundaria: "#6D28D9",
+  cor_destaque: "#F59E0B",
+  cor_fundo: "#FFFFFF",
+  cor_fundo_card: "#F8FAFC",
+  cor_texto_principal: "#1E293B",
+  cor_texto_secundario: "#64748B",
+  cor_botao: "#8B5CF6",
+  cor_botao_negativo: "#EF4444",
+  cor_header: "#7C3AED",
+  cor_link: "#8B5CF6",
+  cor_menu: "#4C1D95",
+  nm_escola: "Escola",
+  url_logo: "",
+  url_favicon: "",
+  url_banner_vendas: "",
+  url_link_vendas: "",
+  msg_pos_pagamento: "",
+  lg_valida_estoque_link: true,
+  lg_valida_estoque_pdv: false,
+  email_remetente: "",
+  css_customizado: "",
+  logomarca: "",
 });
 
 type TEmpresa = ReturnType<typeof emptyEmpresa>;
@@ -108,9 +133,6 @@ const EmpresaForm: React.FC = () => {
   // Cidades lookup
   const [XCidades, setXCidades] = useState<{ cidade_id: number; descricao: string }[]>([]);
 
-  // Parametro (for Tema and Link)
-  const [XParams, setXParams] = useState<any>(null);
-
   // Horários
   const [XHorarios, setXHorarios] = useState<Horario[]>([]);
 
@@ -129,26 +151,44 @@ const EmpresaForm: React.FC = () => {
     if (cidRes.data) setXCidades(cidRes.data);
   }, []);
 
-  const loadParams = useCallback(async () => {
-    const { data: p } = await db.from("parametro").select("*").eq("excluido", false).limit(1).single();
-    if (p) setXParams(p);
-    const { data: h } = await db.from("parametro_horario").select("*").order("xdia_semana");
+  const loadHorarios = useCallback(async (empresaId: number) => {
+    const { data: h } = await db.from("empresa_hs_lojavirtual").select("*").eq("empresa_id", empresaId).order("xdia_semana");
     if (h) setXHorarios(h);
+    else setXHorarios([]);
   }, []);
 
   useEffect(() => {
     loadData();
     loadLookups();
-    loadParams();
-  }, [loadData, loadLookups, loadParams]);
+  }, [loadData, loadLookups]);
 
   const XCurrent = XData[XCurrentIdx] || null;
+
+  // Load horarios when current record changes
+  useEffect(() => {
+    if (XCurrent) {
+      loadHorarios(XCurrent.empresa_id);
+    }
+  }, [XCurrent?.empresa_id, loadHorarios]);
 
   useEffect(() => {
     if (XCurrent && XFormMode === "edit") {
       setXEdit({ ...emptyEmpresa(), ...XCurrent });
     }
   }, [XCurrent, XFormMode]);
+
+  /* ── hexToHsl helper ── */
+  const hexToHsl = (hex: string) => {
+    const r2 = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!r2) return "";
+    let r = parseInt(r2[1], 16) / 255, g = parseInt(r2[2], 16) / 255, b = parseInt(r2[3], 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0; const l = (max + min) / 2;
+    if (max !== min) { const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) { case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break; case g: h = ((b - r) / d + 2) / 6; break; case b: h = ((r - g) / d + 4) / 6; break; }
+    }
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  };
 
   /* ── CRUD ── */
   const handleIncluir = () => {
@@ -186,46 +226,20 @@ const EmpresaForm: React.FC = () => {
         toast.success("Empresa alterada com sucesso.");
       }
 
-      // Save parametro + horarios
-      if (XParams) {
-        const { id: paramId, xdt_cadastro: _dc, xdt_alteracao: _da, excluido: _ev, ...paramRest } = XParams;
-        if (paramId) {
-          const { error: paramErr } = await db.from("parametro").update({ ...paramRest, xdt_alteracao: new Date().toISOString() }).eq("id", paramId);
-          if (paramErr) {
-            console.error("Erro ao salvar parâmetro:", paramErr);
-            toast.error("Erro ao salvar esquema de cores: " + paramErr.message);
-          } else {
-            toast.success("Esquema de cores salvo.");
-          }
-        }
-
-        for (const h of XHorarios) {
-          const { id: hid, ...hrest } = h;
-          if (hid) {
-            const { error: hErr } = await db.from("parametro_horario").update(hrest).eq("id", hid);
-            if (hErr) console.error("Erro ao salvar horário:", hErr);
-          }
+      // Save horarios
+      for (const h of XHorarios) {
+        const { id: hid, ...hrest } = h;
+        if (hid) {
+          const { error: hErr } = await db.from("empresa_hs_lojavirtual").update(hrest).eq("id", hid);
+          if (hErr) console.error("Erro ao salvar horário:", hErr);
         }
       }
 
       // Re-apply theme colors after save
-      if (XParams) {
-        const root = document.documentElement;
-        const hexToHsl = (hex: string) => {
-          const r2 = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-          if (!r2) return "";
-          let r = parseInt(r2[1], 16) / 255, g = parseInt(r2[2], 16) / 255, b = parseInt(r2[3], 16) / 255;
-          const max = Math.max(r, g, b), min = Math.min(r, g, b);
-          let h = 0, s = 0; const l = (max + min) / 2;
-          if (max !== min) { const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) { case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break; case g: h = ((b - r) / d + 2) / 6; break; case b: h = ((r - g) / d + 4) / 6; break; }
-          }
-          return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-        };
-        const map: Record<string, string> = { xcor_primaria: "--primary", xcor_header: "--topbar", xcor_fundo: "--background", xcor_fundo_card: "--card", xcor_texto_principal: "--foreground", xcor_texto_secundario: "--muted-foreground", xcor_botao_negativo: "--destructive", xcor_destaque: "--warning", xcor_menu: "--sidebar-primary" };
-        for (const [k, v] of Object.entries(map)) { const hex = XParams[k]; if (hex) { const hsl = hexToHsl(hex); if (hsl) root.style.setProperty(v, hsl); } }
-        if (XParams.xcor_primaria) { const hsl = hexToHsl(XParams.xcor_primaria); if (hsl) { root.style.setProperty("--grid-header", hsl); root.style.setProperty("--grid-selected", hsl); } }
-      }
+      const root = document.documentElement;
+      const map: Record<string, string> = { cor_primaria: "--primary", cor_header: "--topbar", cor_fundo: "--background", cor_fundo_card: "--card", cor_texto_principal: "--foreground", cor_texto_secundario: "--muted-foreground", cor_botao_negativo: "--destructive", cor_destaque: "--warning", cor_menu: "--sidebar-primary" };
+      for (const [k, v] of Object.entries(map)) { const hex = (XEdit as any)[k]; if (hex) { const hsl = hexToHsl(hex); if (hsl) root.style.setProperty(v, hsl); } }
+      if (XEdit.cor_primaria) { const hsl = hexToHsl(XEdit.cor_primaria); if (hsl) { root.style.setProperty("--grid-header", hsl); root.style.setProperty("--grid-selected", hsl); } }
 
       setXFormMode("view");
       await loadData();
@@ -261,20 +275,31 @@ const EmpresaForm: React.FC = () => {
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
 
   const updateEdit = (key: string, value: any) => setXEdit(prev => ({ ...prev, [key]: value }));
-  const updateParam = (key: string, value: any) => setXParams((prev: any) => ({ ...prev, [key]: value }));
   const updateHorario = (idx: number, key: string, value: any) => {
     setXHorarios(prev => prev.map((h, i) => i === idx ? { ...h, [key]: value } : h));
   };
 
   const resetColors = () => {
-    Object.entries(DEFAULT_COLORS).forEach(([k, v]) => updateParam(k, v));
-    updateParam("xcss_customizado", "");
+    Object.entries(DEFAULT_COLORS).forEach(([k, v]) => updateEdit(k, v));
+    updateEdit("css_customizado", "");
   };
 
   const copyLink = () => {
-    const url = XParams?.xurl_link_vendas || `${window.location.origin}/loja`;
+    const url = XEdit?.url_link_vendas || XCurrent?.url_link_vendas || `${window.location.origin}/loja`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado!");
+  };
+
+  /* ── Upload logomarca ── */
+  const handleUploadLogomarca = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const XFileName = `logomarca_${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage.from("logos").upload(XFileName, file, { upsert: true });
+    if (error) { toast.error("Erro ao fazer upload: " + error.message); return; }
+    const { data: urlData } = supabase.storage.from("logos").getPublicUrl(data.path);
+    updateEdit("logomarca", urlData.publicUrl);
+    toast.success("Logomarca enviada com sucesso!");
   };
 
   /* ── field helper ── */
@@ -364,9 +389,23 @@ const EmpresaForm: React.FC = () => {
         {XInnerTab === "cadastro" && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
-              <div className="w-full md:w-32">
+              <div className="w-full md:w-24">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
                 <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrent?.empresa_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
+              </div>
+              <div className="w-full md:w-64">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Empresa Matriz</label>
+                <select
+                  value={XDisplayVal("empresamatriz_id") || ""}
+                  disabled={!XIsEditing}
+                  onChange={e => updateEdit("empresamatriz_id", e.target.value ? Number(e.target.value) : null)}
+                  className={`w-full border border-border rounded px-3 py-1.5 text-sm ${!XIsEditing ? "bg-secondary" : "bg-card"}`}
+                >
+                  <option value="">(Nenhuma)</option>
+                  {XEmpresasLookup.map(e => (
+                    <option key={e.empresa_id} value={e.empresa_id}>{e.empresa_id} - {e.razao_social}</option>
+                  ))}
+                </select>
               </div>
               {field("razao_social", "Razão Social", { className: "flex-1", required: true })}
             </div>
@@ -392,20 +431,7 @@ const EmpresaForm: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Empresa Matriz</label>
-                <select
-                  value={XDisplayVal("empresa_matriz_id") || ""}
-                  disabled={!XIsEditing}
-                  onChange={e => updateEdit("empresa_matriz_id", e.target.value ? Number(e.target.value) : null)}
-                  className={`w-full border border-border rounded px-3 py-1.5 text-sm ${!XIsEditing ? "bg-secondary" : "bg-card"}`}
-                >
-                  <option value="">(Nenhuma)</option>
-                  {XEmpresasLookup.map(e => (
-                    <option key={e.empresa_id} value={e.empresa_id}>{e.razao_social}</option>
-                  ))}
-                </select>
-              </div>
+              {field("nm_escola", "Nome Escola/Estabelecimento")}
             </div>
 
             {/* Endereço */}
@@ -450,6 +476,30 @@ const EmpresaForm: React.FC = () => {
               {field("vl_saida_qt_decimais", "Valor Saída", { type: "number" })}
               {field("qt_saida_qt_decimais", "Qtde Saída", { type: "number" })}
             </div>
+
+            {/* Logomarca */}
+            <h3 className="text-sm font-semibold text-foreground pt-2">Logomarca</h3>
+            <div className="flex items-center gap-4">
+              {XDisplayVal("logomarca") && (
+                <img
+                  src={XDisplayVal("logomarca") as string}
+                  alt="Logomarca"
+                  className="w-24 h-24 object-contain border rounded"
+                />
+              )}
+              {XIsEditing && (
+                <div>
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm hover:opacity-90">
+                    <Upload className="w-4 h-4" />
+                    Upload Logomarca
+                    <input type="file" accept="image/*" className="hidden" onChange={handleUploadLogomarca} />
+                  </label>
+                  {XEdit.logomarca && (
+                    <Button variant="ghost" size="sm" className="ml-2" onClick={() => updateEdit("logomarca", "")}>Remover</Button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -460,38 +510,42 @@ const EmpresaForm: React.FC = () => {
               <Clock className="w-5 h-5 text-primary" />
               <h3 className="text-sm font-semibold">Horários de Funcionamento — Loja Virtual</h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="p-2">Dia</th>
-                    <th className="p-2">Ativo</th>
-                    <th className="p-2">Mat. Início</th>
-                    <th className="p-2">Mat. Fim</th>
-                    <th className="p-2">Vesp. Início</th>
-                    <th className="p-2">Vesp. Fim</th>
-                    <th className="p-2">Not. Início</th>
-                    <th className="p-2">Not. Fim</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {XHorarios.map((h, idx) => (
-                    <tr key={h.id} className="border-b">
-                      <td className="p-2 font-medium">{DIAS[h.xdia_semana]}</td>
-                      <td className="p-2">
-                        <Switch checked={h.xlg_dia_ativo} onCheckedChange={v => updateHorario(idx, "xlg_dia_ativo", v)} disabled={!XIsEditing} />
-                      </td>
-                      <td className="p-2"><Input type="time" value={h.xhr_inicio_matutino || ""} onChange={e => updateHorario(idx, "xhr_inicio_matutino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                      <td className="p-2"><Input type="time" value={h.xhr_fim_matutino || ""} onChange={e => updateHorario(idx, "xhr_fim_matutino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                      <td className="p-2"><Input type="time" value={h.xhr_inicio_vespertino || ""} onChange={e => updateHorario(idx, "xhr_inicio_vespertino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                      <td className="p-2"><Input type="time" value={h.xhr_fim_vespertino || ""} onChange={e => updateHorario(idx, "xhr_fim_vespertino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                      <td className="p-2"><Input type="time" value={h.xhr_inicio_noturno || ""} onChange={e => updateHorario(idx, "xhr_inicio_noturno", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
-                      <td className="p-2"><Input type="time" value={h.xhr_fim_noturno || ""} onChange={e => updateHorario(idx, "xhr_fim_noturno", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
+            {XHorarios.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum horário cadastrado para esta empresa.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="p-2">Dia</th>
+                      <th className="p-2">Ativo</th>
+                      <th className="p-2">Mat. Início</th>
+                      <th className="p-2">Mat. Fim</th>
+                      <th className="p-2">Vesp. Início</th>
+                      <th className="p-2">Vesp. Fim</th>
+                      <th className="p-2">Not. Início</th>
+                      <th className="p-2">Not. Fim</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {XHorarios.map((h, idx) => (
+                      <tr key={h.id} className="border-b">
+                        <td className="p-2 font-medium">{DIAS[h.xdia_semana]}</td>
+                        <td className="p-2">
+                          <Switch checked={h.xlg_dia_ativo} onCheckedChange={v => updateHorario(idx, "xlg_dia_ativo", v)} disabled={!XIsEditing} />
+                        </td>
+                        <td className="p-2"><Input type="time" value={h.xhr_inicio_matutino || ""} onChange={e => updateHorario(idx, "xhr_inicio_matutino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.xhr_fim_matutino || ""} onChange={e => updateHorario(idx, "xhr_fim_matutino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.xhr_inicio_vespertino || ""} onChange={e => updateHorario(idx, "xhr_inicio_vespertino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.xhr_fim_vespertino || ""} onChange={e => updateHorario(idx, "xhr_fim_vespertino", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.xhr_inicio_noturno || ""} onChange={e => updateHorario(idx, "xhr_inicio_noturno", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
+                        <td className="p-2"><Input type="time" value={h.xhr_fim_noturno || ""} onChange={e => updateHorario(idx, "xhr_fim_noturno", e.target.value)} className="w-28" disabled={!h.xlg_dia_ativo || !XIsEditing} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -505,17 +559,17 @@ const EmpresaForm: React.FC = () => {
             <div className="border rounded-lg p-4 space-y-4 bg-card">
               <p className="text-xs text-muted-foreground">URL pública para autoatendimento.</p>
               <div className="flex items-center gap-2">
-                <Input value={XParams?.xurl_link_vendas || `${window.location.origin}/loja`} readOnly className="flex-1 font-mono text-sm" />
+                <Input value={XDisplayVal("url_link_vendas") || `${window.location.origin}/loja`} readOnly className="flex-1 font-mono text-sm" />
                 <Button variant="outline" size="icon" onClick={copyLink}><Copy className="w-4 h-4" /></Button>
                 <Button variant="outline" size="icon" asChild>
-                  <a href={XParams?.xurl_link_vendas || "/loja"} target="_blank" rel="noopener noreferrer"><Eye className="w-4 h-4" /></a>
+                  <a href={XDisplayVal("url_link_vendas") as string || "/loja"} target="_blank" rel="noopener noreferrer"><Eye className="w-4 h-4" /></a>
                 </Button>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs">URL personalizada (opcional)</Label>
                 <Input
-                  value={XParams?.xurl_link_vendas || ""}
-                  onChange={e => updateParam("xurl_link_vendas", e.target.value)}
+                  value={XDisplayVal("url_link_vendas")}
+                  onChange={e => updateEdit("url_link_vendas", e.target.value)}
                   placeholder="Deixe vazio para usar /loja"
                   disabled={!XIsEditing}
                 />
@@ -538,7 +592,7 @@ const EmpresaForm: React.FC = () => {
                 </Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Personalize as cores do sistema e do link de vendas.</p>
+            <p className="text-xs text-muted-foreground">Personalize as cores do sistema para esta empresa.</p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {COLOR_FIELDS.map(cf => (
@@ -547,14 +601,14 @@ const EmpresaForm: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={XParams?.[cf.key] || DEFAULT_COLORS[cf.key]}
-                      onChange={e => updateParam(cf.key, e.target.value)}
+                      value={XDisplayVal(cf.key as keyof TEmpresa) as string || DEFAULT_COLORS[cf.key]}
+                      onChange={e => updateEdit(cf.key, e.target.value)}
                       className="w-10 h-10 rounded border cursor-pointer"
                       disabled={!XIsEditing}
                     />
                     <Input
-                      value={XParams?.[cf.key] || DEFAULT_COLORS[cf.key]}
-                      onChange={e => updateParam(cf.key, e.target.value)}
+                      value={XDisplayVal(cf.key as keyof TEmpresa) as string || DEFAULT_COLORS[cf.key]}
+                      onChange={e => updateEdit(cf.key, e.target.value)}
                       className="flex-1 font-mono text-xs"
                       placeholder="#000000"
                       disabled={!XIsEditing}
@@ -567,16 +621,16 @@ const EmpresaForm: React.FC = () => {
             {/* Preview */}
             <div className="border rounded-lg p-4 space-y-3">
               <p className="text-sm font-medium text-muted-foreground">Pré-visualização</p>
-              <div className="rounded-lg overflow-hidden border" style={{ backgroundColor: XParams?.xcor_fundo || "#fff" }}>
-                <div className="p-3" style={{ backgroundColor: XParams?.xcor_header || "#7C3AED" }}>
-                  <span className="text-sm font-bold" style={{ color: "#fff" }}>{XParams?.xnm_escola || "Loja"}</span>
+              <div className="rounded-lg overflow-hidden border" style={{ backgroundColor: (XDisplayVal("cor_fundo") as string) || "#fff" }}>
+                <div className="p-3" style={{ backgroundColor: (XDisplayVal("cor_header") as string) || "#7C3AED" }}>
+                  <span className="text-sm font-bold" style={{ color: "#fff" }}>{XDisplayVal("nm_escola") || "Loja"}</span>
                 </div>
                 <div className="p-4 space-y-2">
-                  <p className="text-sm font-semibold" style={{ color: XParams?.xcor_texto_principal || "#1E293B" }}>Produto Exemplo</p>
-                  <p className="text-xs" style={{ color: XParams?.xcor_texto_secundario || "#64748B" }}>Descrição do produto</p>
+                  <p className="text-sm font-semibold" style={{ color: (XDisplayVal("cor_texto_principal") as string) || "#1E293B" }}>Produto Exemplo</p>
+                  <p className="text-xs" style={{ color: (XDisplayVal("cor_texto_secundario") as string) || "#64748B" }}>Descrição do produto</p>
                   <div className="flex gap-2">
-                    <button className="px-3 py-1 text-xs text-white rounded" style={{ backgroundColor: XParams?.xcor_botao || "#8B5CF6" }}>Comprar</button>
-                    <button className="px-3 py-1 text-xs text-white rounded" style={{ backgroundColor: XParams?.xcor_botao_negativo || "#EF4444" }}>Cancelar</button>
+                    <button className="px-3 py-1 text-xs text-white rounded" style={{ backgroundColor: (XDisplayVal("cor_botao") as string) || "#8B5CF6" }}>Comprar</button>
+                    <button className="px-3 py-1 text-xs text-white rounded" style={{ backgroundColor: (XDisplayVal("cor_botao_negativo") as string) || "#EF4444" }}>Cancelar</button>
                   </div>
                 </div>
               </div>
@@ -585,8 +639,8 @@ const EmpresaForm: React.FC = () => {
             <div className="space-y-2">
               <Label className="text-xs">CSS Customizado</Label>
               <Textarea
-                value={XParams?.xcss_customizado || ""}
-                onChange={e => updateParam("xcss_customizado", e.target.value)}
+                value={XDisplayVal("css_customizado")}
+                onChange={e => updateEdit("css_customizado", e.target.value)}
                 rows={6}
                 placeholder="/* CSS adicional */"
                 className="font-mono text-xs"
