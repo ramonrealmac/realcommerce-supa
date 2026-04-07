@@ -48,7 +48,7 @@ const UnidadeForm: React.FC = () => {
 
   const XCurrentRecord = XData[XCurrentIdx] || null;
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
-
+  const XEmpMatriz = XEmpresas.find((e) => e.empresa_id === XEmpresaMatrizId);
   const loadData = useCallback(async () => {
     const { data } = await db
       .from("unidade")
@@ -94,14 +94,12 @@ const UnidadeForm: React.FC = () => {
       return;
     }
     if (XFormMode === "insert") {
-      const { error } = await db
-        .from("unidade")
-        .insert({
-          empresa_id: XEmpresaMatrizId,
-          unidade_id: XSiglaEdit.trim().toUpperCase(),
-          descricao: XDescricaoEdit.trim(),
-          excluido: false,
-        });
+      const { error } = await db.from("unidade").insert({
+        empresa_id: XEmpresaMatrizId,
+        unidade_id: XSiglaEdit.trim().toUpperCase(),
+        descricao: XDescricaoEdit.trim(),
+        excluido: false,
+      });
       if (error) {
         toast.error("Erro: " + error.message);
         return;
