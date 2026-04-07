@@ -1,7 +1,18 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
-  Plus, Save, Pencil, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
-  Trash2, RefreshCw, List, HelpCircle, LogOut, Search
+  Plus,
+  Save,
+  Pencil,
+  ChevronsLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRight,
+  Trash2,
+  RefreshCw,
+  List,
+  HelpCircle,
+  LogOut,
+  Search,
 } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,18 +51,22 @@ const UnidadeForm: React.FC = () => {
 
   const XCurrentRecord = XData[XCurrentIdx] || null;
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
-
+  const XEmpMatriz = XEmpresas.find((e) => e.empresa_id === XEmpresaMatrizId);
   const loadData = useCallback(async () => {
     const { data } = await db
       .from("unidade")
       .select("*")
       .eq("empresa_id", XEmpresaMatrizId)
-      .eq("excluido",false)
+      .eq("excluido", false)
       .order("unidade_id");
     setXData(data || []);
   }, [XEmpresaMatrizId]);
 
-  useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaMatrizId]);
+  useEffect(() => {
+    loadData();
+    setXCurrentIdx(0);
+    setXFormMode("view");
+  }, [XEmpresaMatrizId]);
 
   useEffect(() => {
     if (XCurrentRecord && XFormMode === "edit") {
@@ -60,19 +75,53 @@ const UnidadeForm: React.FC = () => {
     }
   }, [XCurrentRecord, XFormMode]);
 
-  const handleIncluir = () => { setXFormMode("insert"); setXSiglaEdit(""); setXDescricaoEdit(""); setXInnerTab("cadastro"); };
-  const handleEditar = () => { if (!XCurrentRecord) return; setXFormMode("edit"); setXInnerTab("cadastro"); };
+  const handleIncluir = () => {
+    setXFormMode("insert");
+    setXSiglaEdit("");
+    setXDescricaoEdit("");
+    setXInnerTab("cadastro");
+  };
+  const handleEditar = () => {
+    if (!XCurrentRecord) return;
+    setXFormMode("edit");
+    setXInnerTab("cadastro");
+  };
 
   const handleSalvar = async () => {
-    if (!XSiglaEdit.trim()) { toast.error("A sigla da unidade é obrigatória."); return; }
-    if (!XDescricaoEdit.trim()) { toast.error("A descrição é obrigatória."); return; }
+    if (!XSiglaEdit.trim()) {
+      toast.error("A sigla da unidade é obrigatória.");
+      return;
+    }
+    if (!XDescricaoEdit.trim()) {
+      toast.error("A descrição é obrigatória.");
+      return;
+    }
     if (XFormMode === "insert") {
-      const { error } = await db.from("unidade").insert({ empresa_id: XEmpresaMatrizId, unidade_id: XSiglaEdit.trim().toUpperCase(), descricao: XDescricaoEdit.trim(), excluido: false });
-      if (error) { toast.error("Erro: " + error.message); return; }
+      const { error } = await db.from("unidade").insert({
+        empresa_id: XEmpresaMatrizId,
+        unidade_id: XSiglaEdit.trim().toUpperCase(),
+        descricao: XDescricaoEdit.trim(),
+        excluido: false,
+      });
+      if (error) {
+        toast.error("Erro: " + error.message);
+        return;
+      }
       toast.success("Unidade incluída com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("unidade").update({ descricao: XDescricaoEdit.trim(), empresa_id: XEmpresaMatrizId, dt_alteracao: new Date().toISOString() }).eq("unidade_id", XCurrentRecord.unidade_id).eq("empresa_id", XEmpresaMatrizId);
-      if (error) { toast.error("Erro: " + error.message); return; }
+      const { error } = await db
+        .from("unidade")
+        .update({
+          descricao: XDescricaoEdit.trim(),
+          empresa_id: XEmpresaMatrizId,
+          dt_alteracao: new Date().toISOString(),
+        })
+        .eq("unidade_id", XCurrentRecord.unidade_id)
+        .eq("empresa_id", XEmpresaMatrizId);
+      if (error) {
+        toast.error("Erro: " + error.message);
+        return;
+      }
       toast.success("Unidade alterada com sucesso.");
     }
     setXFormMode("view");
@@ -84,8 +133,15 @@ const UnidadeForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (confirm(`Deseja realmente excluir a unidade "${XCurrentRecord.unidade_id}"?`)) {
-      const { error } = await db.from("unidade").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("unidade_id", XCurrentRecord.unidade_id).eq("empresa_id", XEmpresaMatrizId);
-      if (error) { toast.error("Erro: " + error.message); return; }
+      const { error } = await db
+        .from("unidade")
+        .update({ excluido: true, dt_alteracao: new Date().toISOString() })
+        .eq("unidade_id", XCurrentRecord.unidade_id)
+        .eq("empresa_id", XEmpresaMatrizId);
+      if (error) {
+        toast.error("Erro: " + error.message);
+        return;
+      }
       toast.success("Unidade excluída com sucesso.");
       await loadData();
       if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
@@ -96,8 +152,14 @@ const UnidadeForm: React.FC = () => {
   const handlePrev = () => setXCurrentIdx(Math.max(0, XCurrentIdx - 1));
   const handleNext = () => setXCurrentIdx(Math.min(XData.length - 1, XCurrentIdx + 1));
   const handleLast = () => setXCurrentIdx(XData.length - 1);
-  const handleRefresh = () => { loadData(); toast.info("Dados recarregados."); };
-  const handleSair = () => { const XTab = XTabs.find(t => t.id === XActiveTabId); if (XTab) closeTab(XTab.id); };
+  const handleRefresh = () => {
+    loadData();
+    toast.info("Dados recarregados.");
+  };
+  const handleSair = () => {
+    const XTab = XTabs.find((t) => t.id === XActiveTabId);
+    if (XTab) closeTab(XTab.id);
+  };
 
   // ✅ CORREÇÃO AQUI
   const XFilteredData = XData.filter(r => {
@@ -111,8 +173,12 @@ const UnidadeForm: React.FC = () => {
   });
 
   const handleSelectFromSearch = (row: IUnidade) => {
-    const XIdx = XData.findIndex(r => r.unidade_id === row.unidade_id);
-    if (XIdx >= 0) { setXCurrentIdx(XIdx); setXInnerTab("cadastro"); setXFormMode("view"); }
+    const XIdx = XData.findIndex((r) => r.unidade_id === row.unidade_id);
+    if (XIdx >= 0) {
+      setXCurrentIdx(XIdx);
+      setXInnerTab("cadastro");
+      setXFormMode("view");
+    }
   };
 
   return (
@@ -123,16 +189,46 @@ const UnidadeForm: React.FC = () => {
             <ToolbarBtn icon={<Plus size={16} />} label="Incluir" onClick={handleIncluir} color="success" />
             <ToolbarBtn icon={<Pencil size={16} />} label="Editar" onClick={handleEditar} disabled={!XCurrentRecord} />
             <ToolbarSep />
-            <ToolbarBtn icon={<ChevronsLeft size={16} />} label="Primeiro" onClick={handleFirst} disabled={XCurrentIdx === 0} />
-            <ToolbarBtn icon={<ChevronLeft size={16} />} label="Anterior" onClick={handlePrev} disabled={XCurrentIdx === 0} />
-            <ToolbarBtn icon={<ChevronRight size={16} />} label="Próximo" onClick={handleNext} disabled={XCurrentIdx >= XData.length - 1} />
-            <ToolbarBtn icon={<ChevronsRight size={16} />} label="Último" onClick={handleLast} disabled={XCurrentIdx >= XData.length - 1} />
+            <ToolbarBtn
+              icon={<ChevronsLeft size={16} />}
+              label="Primeiro"
+              onClick={handleFirst}
+              disabled={XCurrentIdx === 0}
+            />
+            <ToolbarBtn
+              icon={<ChevronLeft size={16} />}
+              label="Anterior"
+              onClick={handlePrev}
+              disabled={XCurrentIdx === 0}
+            />
+            <ToolbarBtn
+              icon={<ChevronRight size={16} />}
+              label="Próximo"
+              onClick={handleNext}
+              disabled={XCurrentIdx >= XData.length - 1}
+            />
+            <ToolbarBtn
+              icon={<ChevronsRight size={16} />}
+              label="Último"
+              onClick={handleLast}
+              disabled={XCurrentIdx >= XData.length - 1}
+            />
             <ToolbarSep />
-            <ToolbarBtn icon={<Trash2 size={16} />} label="Excluir" onClick={handleExcluir} disabled={!XCurrentRecord} color="destructive" />
+            <ToolbarBtn
+              icon={<Trash2 size={16} />}
+              label="Excluir"
+              onClick={handleExcluir}
+              disabled={!XCurrentRecord}
+              color="destructive"
+            />
             <ToolbarBtn icon={<RefreshCw size={16} />} label="Recarregar" onClick={handleRefresh} />
             <ToolbarBtn icon={<Search size={16} />} label="Localizar" onClick={() => setXInnerTab("localizar")} />
             <ToolbarBtn icon={<List size={16} />} label="Log" onClick={() => toast.info("Log de operações")} />
-            <ToolbarBtn icon={<HelpCircle size={16} />} label="Ajuda" onClick={() => toast.info("Ajuda do formulário")} />
+            <ToolbarBtn
+              icon={<HelpCircle size={16} />}
+              label="Ajuda"
+              onClick={() => toast.info("Ajuda do formulário")}
+            />
             <ToolbarBtn icon={<LogOut size={16} />} label="Sair" onClick={handleSair} />
           </>
         ) : (
@@ -144,8 +240,18 @@ const UnidadeForm: React.FC = () => {
       </div>
 
       <div className="flex border-b border-border bg-card">
-        <button className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === "cadastro" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => setXInnerTab("cadastro")}>Cadastro</button>
-        <button className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === "localizar" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => setXInnerTab("localizar")}>Localizar</button>
+        <button
+          className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === "cadastro" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setXInnerTab("cadastro")}
+        >
+          Cadastro
+        </button>
+        <button
+          className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === "localizar" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setXInnerTab("localizar")}
+        >
+          Localizar
+        </button>
       </div>
 
       <div className="flex-1 overflow-auto p-4">
@@ -154,24 +260,59 @@ const UnidadeForm: React.FC = () => {
             <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
               <div className="w-full md:w-[13.5rem]">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
-                <input type="text" value={(() => { const em = XEmpresas.find(e => e.empresa_id === XEmpresaMatrizId); return em ? `${em.empresa_id} - ${em.identificacao}` : String(XEmpresaMatrizId); })()} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+                <input
+                  type="text"
+                  value={(() => {
+                    const em = XEmpresas.find((e) => e.empresa_id === XEmpresaMatrizId);
+                    return em ? `${em.empresa_id} - ${em.identificacao}` : String(XEmpresaMatrizId);
+                  })()}
+                  readOnly
+                  className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary"
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
               <div className="w-full md:w-32">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Sigla <span className="text-destructive">*</span></label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Sigla <span className="text-destructive">*</span>
+                </label>
                 {XIsEditing && XFormMode === "insert" ? (
-                  <input type="text" value={XSiglaEdit} onChange={(e) => setXSiglaEdit(e.target.value.toUpperCase())} maxLength={10} className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none" autoFocus />
+                  <input
+                    type="text"
+                    value={XSiglaEdit}
+                    onChange={(e) => setXSiglaEdit(e.target.value.toUpperCase())}
+                    maxLength={10}
+                    className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none"
+                    autoFocus
+                  />
                 ) : (
-                  <input type="text" value={XCurrentRecord?.unidade_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+                  <input
+                    type="text"
+                    value={XCurrentRecord?.unidade_id ?? ""}
+                    readOnly
+                    className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary"
+                  />
                 )}
               </div>
               <div className="flex-1">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Descrição <span className="text-destructive">*</span></label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Descrição <span className="text-destructive">*</span>
+                </label>
                 {XIsEditing ? (
-                  <input type="text" value={XDescricaoEdit} onChange={(e) => setXDescricaoEdit(e.target.value)} className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none" autoFocus={XFormMode === "edit"} />
+                  <input
+                    type="text"
+                    value={XDescricaoEdit}
+                    onChange={(e) => setXDescricaoEdit(e.target.value)}
+                    className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none"
+                    autoFocus={XFormMode === "edit"}
+                  />
                 ) : (
-                  <input type="text" value={XCurrentRecord?.descricao ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+                  <input
+                    type="text"
+                    value={XCurrentRecord?.descricao ?? ""}
+                    readOnly
+                    className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary"
+                  />
                 )}
               </div>
             </div>
@@ -182,7 +323,7 @@ const UnidadeForm: React.FC = () => {
             data={XFilteredData}
             showFilters
             filterValues={XSearchFilters}
-            onFilterChange={(key, value) => setXSearchFilters(prev => ({ ...prev, [key]: value }))}
+            onFilterChange={(key, value) => setXSearchFilters((prev) => ({ ...prev, [key]: value }))}
             onRowDoubleClick={(row) => handleSelectFromSearch(row as IUnidade)}
             maxHeight="400px"
             exportTitle="Unidades"
@@ -193,10 +334,26 @@ const UnidadeForm: React.FC = () => {
   );
 };
 
-const ToolbarBtn: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; color?: "success" | "destructive" | "default"; }> = ({ icon, label, onClick, disabled, color = "default" }) => {
-  const XColorClass = color === "success" ? "text-success hover:bg-success/10" : color === "destructive" ? "text-destructive hover:bg-destructive/10" : "text-foreground hover:bg-accent";
+const ToolbarBtn: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  color?: "success" | "destructive" | "default";
+}> = ({ icon, label, onClick, disabled, color = "default" }) => {
+  const XColorClass =
+    color === "success"
+      ? "text-success hover:bg-success/10"
+      : color === "destructive"
+        ? "text-destructive hover:bg-destructive/10"
+        : "text-foreground hover:bg-accent";
   return (
-    <button onClick={onClick} disabled={disabled} title={label} className={`p-1.5 rounded transition-colors ${XColorClass} ${disabled ? "opacity-30 cursor-not-allowed" : ""}`}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      className={`p-1.5 rounded transition-colors ${XColorClass} ${disabled ? "opacity-30 cursor-not-allowed" : ""}`}
+    >
       {icon}
     </button>
   );
