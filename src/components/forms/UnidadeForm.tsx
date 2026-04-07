@@ -43,7 +43,7 @@ const UnidadeForm: React.FC = () => {
       .from("unidade")
       .select("*")
       .eq("empresa_id", XEmpresaMatrizId)
-      .or("excluido.is.null,excluido.eq.false")
+      .eq("excluido",false)
       .order("unidade_id");
     setXData(data || []);
   }, [XEmpresaMatrizId]);
