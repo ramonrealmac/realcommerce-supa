@@ -10,9 +10,6 @@ import { toast } from "sonner";
 
 const db = supabase as any;
 
-// ✅ FIX: função segura de normalização
-const normalize = (v: any) => String(v || "").toLowerCase().trim();
-
 const XLocalizarColumns: IGridColumn[] = [
   { key: "unidade_id", label: "Sigla", width: "100px" },
   { key: "descricao", label: "Descrição", width: "1fr" },
@@ -99,14 +96,11 @@ const UnidadeForm: React.FC = () => {
   const handleRefresh = () => { loadData(); toast.info("Dados recarregados."); };
   const handleSair = () => { const XTab = XTabs.find(t => t.id === XActiveTabId); if (XTab) closeTab(XTab.id); };
 
-  // ✅ CORREÇÃO AQUI
   const XFilteredData = XData.filter(r => {
-    const fs = normalize(XSearchFilters["unidade_id"]);
-    const fd = normalize(XSearchFilters["descricao"]);
-
-    if (fs && !normalize(r.unidade_id).includes(fs)) return false;
-    if (fd && !normalize(r.descricao).includes(fd)) return false;
-
+    const fs = XSearchFilters["unidade_id"] || "";
+    const fd = XSearchFilters["descricao"] || "";
+    if (fs && !r.unidade_id.toLowerCase().includes(fs.toLowerCase())) return false;
+    if (fd && !r.descricao.toLowerCase().includes(fd.toLowerCase())) return false;
     return true;
   });
 
