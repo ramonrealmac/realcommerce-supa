@@ -8,6 +8,7 @@ import { dataStore, IGrupo } from "@/data/store";
 import SubgrupoGrid from "./SubgrupoGrid";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import { toast } from "sonner";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 const XLocalizarColumns: IGridColumn[] = [
   { key: "GRUPO_ID", label: "Código", width: "80px", align: "right" },
@@ -107,13 +108,7 @@ const GrupoProdutosForm: React.FC = () => {
   };
 
   // Localizar tab - filtered data
-  const XFilteredGrupos = XGrupos.filter(g => {
-    const fc = XSearchFilters["GRUPO_ID"] || "";
-    const fn = XSearchFilters["NM_GRUPO"] || "";
-    if (fc && !String(g.GRUPO_ID).includes(fc)) return false;
-    if (fn && !g.NM_GRUPO.toLowerCase().includes(fn.toLowerCase())) return false;
-    return true;
-  });
+  const XFilteredGrupos = useGridFilter(XGrupos, XSearchFilters);
 
   const handleSelectFromSearch = (XGrupo: IGrupo) => {
     const XIdx = XGrupos.findIndex(g => g.GRUPO_ID === XGrupo.GRUPO_ID);
