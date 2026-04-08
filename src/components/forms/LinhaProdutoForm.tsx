@@ -4,11 +4,10 @@ import {
   Trash2, RefreshCw, List, HelpCircle, LogOut, Search
 } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
-import { supabase } from "@/integrations/supabase/client";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import { toast } from "sonner";
-
-const db = supabase as any;
+import { baseService } from "@/utils/baseService";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 const XLocalizarColumns: IGridColumn[] = [
   { key: "linha_id", label: "Código", width: "80px", align: "right" },
@@ -41,12 +40,7 @@ const LinhaProdutoForm: React.FC = () => {
   const XEmpMatrizLabel = XEmpMatriz ? `${XEmpMatriz.empresa_id} - ${XEmpMatriz.identificacao}` : String(XEmpresaMatrizId);
 
   const loadData = useCallback(async () => {
-    const { data } = await db
-      .from("linha_produto")
-      .select("*")
-      .eq("empresa_id", XEmpresaMatrizId)
-      .eq("excluido", false)
-      .order("linha_id");
+    const { data } = await baseService.listar("linha_produto", XEmpresaMatrizId, "linha_id");
     setXData(data || []);
   }, [XEmpresaMatrizId]);
 
@@ -64,11 +58,11 @@ const LinhaProdutoForm: React.FC = () => {
   const handleSalvar = async () => {
     if (!XNomeEdit.trim()) { toast.error("O nome da linha é obrigatório."); return; }
     if (XFormMode === "insert") {
-      const { error } = await db.from("linha_produto").insert({ empresa_id: XEmpresaMatrizId, nome: XNomeEdit.trim() });
+      const { error } = await baseService.inserir("linha_produto", { empresa_id: XEmpresaMatrizId, nome: XNomeEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Linha incluída com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("linha_produto").update({ nome: XNomeEdit.trim(), empresa_id: XEmpresaMatrizId, dt_alteracao: new Date().toISOString() }).eq("linha_id", XCurrentRecord.linha_id);
+      const { error } = await baseService.atualizar("linha_produto", "linha_id", XCurrentRecord.linha_id, { nome: XNomeEdit.trim(), empresa_id: XEmpresaMatrizId });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Linha alterada com sucesso.");
     }
@@ -81,7 +75,7 @@ const LinhaProdutoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (confirm(`Deseja realmente excluir a linha "${XCurrentRecord.nome}"?`)) {
-      const { error } = await db.from("linha_produto").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("linha_id", XCurrentRecord.linha_id);
+      const { error } = await baseService.excluirLogico("linha_produto", "linha_id", XCurrentRecord.linha_id);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Linha excluída com sucesso.");
       await loadData();
@@ -96,13 +90,7 @@ const LinhaProdutoForm: React.FC = () => {
   const handleRefresh = () => { loadData(); toast.info("Dados recarregados."); };
   const handleSair = () => { const XTab = XTabs.find(t => t.id === XActiveTabId); if (XTab) closeTab(XTab.id); };
 
-  const XFilteredData = XData.filter(r => {
-    const fc = XSearchFilters["linha_id"] || "";
-    const fn = XSearchFilters["nome"] || "";
-    if (fc && !String(r.linha_id).includes(fc)) return false;
-    if (fn && !r.nome.toLowerCase().includes(fn.toLowerCase())) return false;
-    return true;
-  });
+  const XFilteredData = useGridFilter(XData, XSearchFilters);
 
   const handleSelectFromSearch = (row: ILinhaProduto) => {
     const XIdx = XData.findIndex(r => r.linha_id === row.linha_id);
