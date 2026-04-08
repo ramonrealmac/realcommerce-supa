@@ -1,12 +1,10 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import FormToolbar from "@/components/shared/FormToolbar";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
-
-
-const db = supabase as any;
+import { baseService } from "@/utils/baseService";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 type TFormMode = "view" | "edit" | "insert";
 
@@ -37,12 +35,7 @@ const CadastroGrupoForm: React.FC = () => {
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
 
   const loadData = useCallback(async () => {
-    const { data } = await db
-      .from("cadastro_grupo")
-      .select("*")
-      .eq("empresa_id", XEmpresaMatrizId)
-      .eq("excluido", false)
-      .order("cadastro_grupo_id");
+    const { data } = await baseService.listar("cadastro_grupo", XEmpresaMatrizId, "cadastro_grupo_id");
     setXData(data || []);
   }, [XEmpresaMatrizId]);
 
@@ -64,11 +57,11 @@ const CadastroGrupoForm: React.FC = () => {
   const handleSalvar = async () => {
     if (!XNomeEdit.trim()) { toast.error("O nome é obrigatório."); return; }
     if (XFormMode === "insert") {
-      const { error } = await db.from("cadastro_grupo").insert({ empresa_id: XEmpresaMatrizId, nome: XNomeEdit.trim() });
+      const { error } = await baseService.inserir("cadastro_grupo", { empresa_id: XEmpresaMatrizId, nome: XNomeEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Grupo incluído com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("cadastro_grupo").update({ nome: XNomeEdit.trim(), empresa_id: XEmpresaMatrizId, dt_alteracao: new Date().toISOString() }).eq("cadastro_grupo_id", XCurrentRecord.cadastro_grupo_id);
+      const { error } = await baseService.atualizar("cadastro_grupo", "cadastro_grupo_id", XCurrentRecord.cadastro_grupo_id, { nome: XNomeEdit.trim(), empresa_id: XEmpresaMatrizId });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Grupo alterado com sucesso.");
     }
@@ -81,7 +74,7 @@ const CadastroGrupoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.nome}"?`)) return;
-    await db.from("cadastro_grupo").update({ excluido: true }).eq("cadastro_grupo_id", XCurrentRecord.cadastro_grupo_id);
+    await baseService.excluirLogico("cadastro_grupo", "cadastro_grupo_id", XCurrentRecord.cadastro_grupo_id);
     toast.success("Grupo excluído.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
@@ -89,15 +82,7 @@ const CadastroGrupoForm: React.FC = () => {
 
   const handleSair = () => { const t = XTabs.find(t => t.id === XActiveTabId); if (t) closeTab(t.id); };
 
-  const XFilteredData = useMemo(() => {
-    return XData.filter(r => {
-      const fc = XSearchFilters["cadastro_grupo_id"] || "";
-      const fn = XSearchFilters["nome"] || "";
-      if (fc && !String(r.cadastro_grupo_id).includes(fc)) return false;
-      if (fn && !r.nome.toLowerCase().includes(fn.toLowerCase())) return false;
-      return true;
-    });
-  }, [XData, XSearchFilters]);
+  const XFilteredData = useGridFilter(XData, XSearchFilters);
 
   const handleSelectFromSearch = (row: any) => {
     const idx = XData.findIndex(r => r.cadastro_grupo_id === row.cadastro_grupo_id);

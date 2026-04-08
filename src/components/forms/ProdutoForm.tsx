@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, SquarePen, Trash2, RefreshCw } from "lucide-react";
 import { ToolbarBtn } from "@/components/shared/FormToolbar";
+import { baseService } from "@/utils/baseService";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 const db = supabase as any;
 type TFormMode = "view" | "edit" | "insert";
@@ -116,12 +118,7 @@ const ProdutoForm: React.FC = () => {
   /* ─── Load data ─── */
   const loadData = useCallback(async () => {
     setXLoading(true);
-    const { data: XRows } = await db
-      .from("produto")
-      .select("*")
-      .eq("empresa_id", XEmpresaMatrizId)
-      .eq("excluido", false)
-      .order("produto_id");
+    const { data: XRows } = await baseService.listar("produto", XEmpresaMatrizId, "produto_id");
     setXData(XRows || []);
     setXLoading(false);
   }, [XEmpresaMatrizId]);
@@ -311,10 +308,10 @@ const ProdutoForm: React.FC = () => {
     };
 
     if (XFormMode === "edit" && XCurrentRecord) {
-      const { error } = await db.from("produto").update({ ...XPayload, dt_alteracao: new Date().toISOString() }).eq("produto_id", XCurrentRecord.produto_id);
+      const { error } = await baseService.atualizar("produto", "produto_id", XCurrentRecord.produto_id, XPayload);
       if (error) { toast.error("Erro ao salvar: " + error.message); return; }
     } else {
-      const { error } = await db.from("produto").insert(XPayload);
+      const { error } = await baseService.inserir("produto", XPayload);
       if (error) { toast.error("Erro ao salvar: " + error.message); return; }
     }
 
@@ -328,7 +325,7 @@ const ProdutoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.nome}"?`)) return;
-    await db.from("produto").update({ excluido: true }).eq("produto_id", XCurrentRecord.produto_id);
+    await baseService.excluirLogico("produto", "produto_id", XCurrentRecord.produto_id);
     toast.success("Produto excluído com sucesso.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
@@ -381,15 +378,7 @@ const ProdutoForm: React.FC = () => {
   };
 
   /* ─── Search filter ─── */
-  const XFilteredData = useMemo(() => {
-    return XData.filter(r => {
-      for (const col of XLocalizarColumns) {
-        const f = XSearchFilters[col.key] || "";
-        if (f && !String((r as any)[col.key] ?? "").toLowerCase().includes(f.toLowerCase())) return false;
-      }
-      return true;
-    });
-  }, [XData, XSearchFilters]);
+  const XFilteredData = useGridFilter(XData, XSearchFilters);
 
   const handleSelectFromSearch = (row: any) => {
     const idx = XData.findIndex(r => r.produto_id === row.produto_id);

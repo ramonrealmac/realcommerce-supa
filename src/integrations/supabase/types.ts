@@ -355,31 +355,37 @@ export type Database = {
       }
       cfop: {
         Row: {
+          cd_cfop: string
           cfop_id: number
-          codigo: string
           descricao: string
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
           excluido: boolean | null
+          obs_produto: string | null
+          obs_rodape: string | null
         }
         Insert: {
+          cd_cfop: string
           cfop_id?: number
-          codigo: string
           descricao: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
           excluido?: boolean | null
+          obs_produto?: string | null
+          obs_rodape?: string | null
         }
         Update: {
+          cd_cfop?: string
           cfop_id?: number
-          codigo?: string
           descricao?: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
           excluido?: boolean | null
+          obs_produto?: string | null
+          obs_rodape?: string | null
         }
         Relationships: [
           {
@@ -1056,8 +1062,44 @@ export type Database = {
           },
         ]
       }
+      grupo_ibscbs: {
+        Row: {
+          descricao: string
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          grupo_ibscbs_id: number
+        }
+        Insert: {
+          descricao: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          grupo_ibscbs_id?: number
+        }
+        Update: {
+          descricao?: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          grupo_ibscbs_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grupo_ibscbs_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["empresa_id"]
+          },
+        ]
+      }
       grupo_icms: {
         Row: {
+          crt: string | null
           descricao: string
           dt_alteracao: string | null
           dt_cadastro: string | null
@@ -1066,6 +1108,7 @@ export type Database = {
           grupo_icms_id: number
         }
         Insert: {
+          crt?: string | null
           descricao: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
@@ -1074,6 +1117,7 @@ export type Database = {
           grupo_icms_id?: number
         }
         Update: {
+          crt?: string | null
           descricao?: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null

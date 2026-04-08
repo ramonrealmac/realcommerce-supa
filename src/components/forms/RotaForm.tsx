@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import FormToolbar from "@/components/shared/FormToolbar";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
-
-const db = supabase as any;
+import { baseService } from "@/utils/baseService";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 type TFormMode = "view" | "edit" | "insert";
 
@@ -37,12 +36,7 @@ const RotaForm: React.FC = () => {
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
 
   const loadData = useCallback(async () => {
-    const { data } = await db
-      .from("rota")
-      .select("*")
-      .eq("empresa_id", XEmpresaId)
-      .eq("excluido", false)
-      .order("rota_id");
+    const { data } = await baseService.listar("rota", XEmpresaId, "rota_id");
     setXData(data || []);
   }, [XEmpresaId]);
 
@@ -61,11 +55,11 @@ const RotaForm: React.FC = () => {
     if (!XNomeEdit.trim()) { toast.error("O nome é obrigatório."); return; }
 
     if (XFormMode === "insert") {
-      const { error } = await db.from("rota").insert({ empresa_id: XEmpresaId, nome: XNomeEdit.trim() });
+      const { error } = await baseService.inserir("rota", { empresa_id: XEmpresaId, nome: XNomeEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Rota incluída com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("rota").update({ nome: XNomeEdit.trim(), dt_alteracao: new Date().toISOString() }).eq("rota_id", XCurrentRecord.rota_id);
+      const { error } = await baseService.atualizar("rota", "rota_id", XCurrentRecord.rota_id, { nome: XNomeEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Rota alterada com sucesso.");
     }
@@ -78,7 +72,7 @@ const RotaForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.nome}"?`)) return;
-    await db.from("rota").update({ excluido: true }).eq("rota_id", XCurrentRecord.rota_id);
+    await baseService.excluirLogico("rota", "rota_id", XCurrentRecord.rota_id);
     toast.success("Rota excluída.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
@@ -86,15 +80,7 @@ const RotaForm: React.FC = () => {
 
   const handleSair = () => { const t = XTabs.find(t => t.id === XActiveTabId); if (t) closeTab(t.id); };
 
-  const XFilteredData = useMemo(() => {
-    return XData.filter(r => {
-      for (const col of XLocalizarColumns) {
-        const f = XSearchFilters[col.key] || "";
-        if (f && !String((r as any)[col.key] ?? "").toLowerCase().includes(f.toLowerCase())) return false;
-      }
-      return true;
-    });
-  }, [XData, XSearchFilters]);
+  const XFilteredData = useGridFilter(XData, XSearchFilters);
 
   const handleSelectFromSearch = (row: any) => {
     const idx = XData.findIndex(r => r.rota_id === row.rota_id);
