@@ -15,14 +15,10 @@ import {
   Search,
 } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
-import { supabase } from "@/integrations/supabase/client";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import { toast } from "sonner";
-
-const db = supabase as any;
-
-// ✅ FIX: função segura de normalização
-const normalize = (v: any) => String(v || "").toLowerCase().trim();
+import { baseService } from "@/utils/baseService";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 const XLocalizarColumns: IGridColumn[] = [
   { key: "unidade_id", label: "Sigla", width: "100px" },
@@ -53,12 +49,7 @@ const UnidadeForm: React.FC = () => {
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
   const XEmpMatriz = XEmpresas.find((e) => e.empresa_id === XEmpresaMatrizId);
   const loadData = useCallback(async () => {
-    const { data } = await db
-      .from("unidade")
-      .select("*")
-      .eq("empresa_id", XEmpresaMatrizId)
-      .eq("excluido", false)
-      .order("unidade_id");
+    const { data } = await baseService.listar("unidade", XEmpresaMatrizId, "unidade_id");
     setXData(data || []);
   }, [XEmpresaMatrizId]);
 
@@ -97,7 +88,7 @@ const UnidadeForm: React.FC = () => {
       return;
     }
     if (XFormMode === "insert") {
-      const { error } = await db.from("unidade").insert({
+      const { error } = await baseService.inserir("unidade", {
         empresa_id: XEmpresaMatrizId,
         unidade_id: XSiglaEdit.trim().toUpperCase(),
         descricao: XDescricaoEdit.trim(),
@@ -109,15 +100,10 @@ const UnidadeForm: React.FC = () => {
       }
       toast.success("Unidade incluída com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db
-        .from("unidade")
-        .update({
-          descricao: XDescricaoEdit.trim(),
-          empresa_id: XEmpresaMatrizId,
-          dt_alteracao: new Date().toISOString(),
-        })
-        .eq("unidade_id", XCurrentRecord.unidade_id)
-        .eq("empresa_id", XEmpresaMatrizId);
+      const { error } = await baseService.atualizar("unidade", "unidade_id", XCurrentRecord.unidade_id, {
+        descricao: XDescricaoEdit.trim(),
+        empresa_id: XEmpresaMatrizId,
+      });
       if (error) {
         toast.error("Erro: " + error.message);
         return;
@@ -133,11 +119,9 @@ const UnidadeForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (confirm(`Deseja realmente excluir a unidade "${XCurrentRecord.unidade_id}"?`)) {
-      const { error } = await db
-        .from("unidade")
-        .update({ excluido: true, dt_alteracao: new Date().toISOString() })
-        .eq("unidade_id", XCurrentRecord.unidade_id)
-        .eq("empresa_id", XEmpresaMatrizId);
+      const { error } = await baseService.excluirLogico("unidade", "unidade_id", XCurrentRecord.unidade_id, {
+        empresa_id: XEmpresaMatrizId,
+      });
       if (error) {
         toast.error("Erro: " + error.message);
         return;
@@ -161,16 +145,7 @@ const UnidadeForm: React.FC = () => {
     if (XTab) closeTab(XTab.id);
   };
 
-  // ✅ CORREÇÃO AQUI
-  const XFilteredData = XData.filter(r => {
-    const fs = normalize(XSearchFilters["unidade_id"]);
-    const fd = normalize(XSearchFilters["descricao"]);
-
-    if (fs && !normalize(r.unidade_id).includes(fs)) return false;
-    if (fd && !normalize(r.descricao).includes(fd)) return false;
-
-    return true;
-  });
+  const XFilteredData = useGridFilter(XData, XSearchFilters);
 
   const handleSelectFromSearch = (row: IUnidade) => {
     const XIdx = XData.findIndex((r) => r.unidade_id === row.unidade_id);
