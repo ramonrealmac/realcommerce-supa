@@ -124,8 +124,8 @@ const ControleAcessoForm: React.FC = () => {
   }, [XSelectedPerfilId, XEmpresaId, XForms, reloadForms]);
 
   const handleToggleFormPerm = useCallback(async (XForm: IAcessoFormulario, XField: string, XValue: boolean) => {
-    const { error } = await supabase.from("perfil_acesso_formulario")
-      .update({ [XField]: XValue })
+    const { error } = await (supabase as any).from("perfil_acesso_formulario")
+      .update({ [XField]: XValue } as any)
       .eq("perfil_acesso_formulario_id", XForm.perfil_acesso_formulario_id);
     if (error) { toast.error(error.message); return; }
     await reloadForms();
