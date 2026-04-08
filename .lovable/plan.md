@@ -1,91 +1,85 @@
 
 
-## Plan: RBuilder - Report Builder Module (sem ReportBro)
+## Avaliacao das Sugestoes
 
-### Abordagem
+### 1. `multiEmpresaFilter.ts` — NAO VIAVEL
 
-Usar apenas tecnologias compatíveis com Lovable: React, shadcn/ui, TanStack Table, jsPDF, xlsx, e Monaco Editor (via `@monaco-editor/react`). O designer visual será construído com componentes React nativos -- um editor de colunas/layout simples, não um designer WYSIWYG completo.
+**Problema**: As tabelas do projeto NAO possuem coluna `empresa_matriz_id`. Apenas a tabela `empresa` tem esse campo. Tabelas como `unidade`, `produto`, `cadastro`, etc. possuem apenas `empresa_id`.
+
+A logica proposta (`empresa_id IS NULL AND empresa_matriz_id = X`) nao funciona porque:
+- Nenhuma tabela de dados tem `empresa_matriz_id`
+- Dados compartilhados entre filiais ja usam `empresa_id = XEmpresaMatrizId` (o ID da matriz)
+- Adicionar `empresa_matriz_id` a todas as tabelas seria uma mudanca massiva e desnecessaria
+
+**Veredicto**: REJEITAR. O padrao atual (filtrar por `XEmpresaMatrizId` para dados compartilhados, `XEmpresaId` para dados da filial) ja esta correto.
+
+### 2. `baseService.ts` — VIAVEL (simplificado)
+
+Um service base para padronizar queries repetitivas (select + eq excluido + order) e valido, mas SEM o filtro multiempresa proposto. Apenas encapsular o padrao existente.
+
+### 3. `useGridFilter.ts` — VIAVEL
+
+Hook para filtro client-side com normalize. Elimina duplicacao de logica de filtro em cada form.
+
+### 4. `DataGridPro.tsx` — REJEITAR
+
+O `DataGrid.tsx` atual ja e SUPERIOR ao proposto:
+- Ja tem ordenacao multi-coluna
+- Ja tem exportacao (PDF, CSV, Texto)
+- Ja tem filtros por coluna
+- Ja tem ocultacao de colunas via menu de contexto
+- Ja tem render customizado e getValue
+
+O "DataGridPro" proposto e uma versao INFERIOR (tabela HTML basica sem ordenacao, sem exportacao, sem features). Nao ha upgrade aqui.
+
+### 5. Alteracoes no backend (ADD empresa_matriz_id) — REJEITAR
+
+Adicionar `empresa_matriz_id` a todas as tabelas nao traz beneficio. O modelo atual resolve multiempresa pelo campo `empresa_id` que aponta para a matriz quando os dados sao compartilhados.
 
 ---
 
-### Fase 1: Banco de Dados (1 migration)
+## Plano: Implementar apenas o que agrega valor
 
-4 tabelas com RLS (authenticated ALL):
+### Passo 1: Criar `src/utils/baseService.ts`
 
-- **RB_CONEXAO**: `rb_conexao_id` (PK serial), `empresa_id`, `nome`, `url`, `api_key`, `descricao`, `excluido`, `dt_cadastro`, `dt_alteracao`
-- **RB_TEMPLATEPESQUISA**: `rb_templatepesquisa_id` (PK serial), `empresa_id`, `nome`, `label`, `tipo` (text/integer/date/boolean/select/query_select), `obrigatorio`, `valor_padrao`, `opcoes_fixas`, `query`, `rb_conexao_id`, `excluido`, `dt_cadastro`, `dt_alteracao`
-- **RB_RELATORIO**: `rb_relatorio_id` (PK serial), `empresa_id`, `nome`, `rb_conexao_id`, `menu`, `submenu`, `ordem`, `query_sql`, `report_json` (jsonb - layout de colunas, header, footer, agrupamentos, totais), `excluido`, `dt_cadastro`, `dt_alteracao`
-- **RB_RELATORIO_VARIAVEL**: `rb_relatorio_variavel_id` (PK serial), `rb_relatorio_id`, `rb_templatepesquisa_id`, `operador` (=, <, >, <=, >=, IN, LIKE), `excluido`
+Service generico para padronizar operacoes CRUD repetitivas:
 
----
-
-### Fase 2: Módulo rbuilder (arquivos isolados em `src/rbuilder/`)
-
+```typescript
+export const baseService = {
+  async listar(table: string, empresaId: number, orderBy: string, selectCols = "*") {
+    return (supabase as any).from(table).select(selectCols)
+      .eq("empresa_id", empresaId).eq("excluido", false).order(orderBy);
+  },
+  async excluirLogico(table: string, pkField: string, pkValue: any) {
+    return (supabase as any).from(table)
+      .update({ excluido: true, dt_alteracao: new Date().toISOString() })
+      .eq(pkField, pkValue);
+  }
+};
 ```
-src/rbuilder/
-  models/rb_types.ts
-  services/rb_connectionService.ts
-  services/rb_templateService.ts
-  services/rb_reportService.ts
-  services/rb_queryService.ts
-  services/rb_exportService.ts      -- jsPDF + xlsx + CSV
-  hooks/rb_useConnections.ts
-  hooks/rb_useTemplates.ts
-  hooks/rb_useReports.ts
-  utils/rb_sqlParser.ts             -- {{variavel}} substituição
-  components/rb_ConexaoForm.tsx      -- CRUD padrão (FormToolbar + DataGrid)
-  components/rb_TemplatePesquisaForm.tsx
-  components/rb_RelatorioForm.tsx    -- Abas: Dados, Query (Monaco), Variáveis, Layout, Execução
-  components/rb_LayoutEditor.tsx     -- Editor de colunas React (largura, alinhamento, formato, header/footer, agrupamentos, totais)
-  components/rb_ReportExecutor.tsx   -- Formulário de filtros dinâmico + grid de resultados + botões exportação
-  components/rb_ReportPreview.tsx    -- Preview tabular do relatório com layout aplicado
-```
 
-### Designer Visual (rb_LayoutEditor)
+### Passo 2: Criar `src/hooks/useGridFilter.ts`
 
-Em vez de ReportBro, um editor React nativo com:
-- Lista de colunas detectadas da query (arrastar para reordenar)
-- Para cada coluna: label, largura, alinhamento, formato (texto/número/data/moeda)
-- Configuração de header (título, subtítulo)
-- Configuração de footer (totais por coluna: soma, média, contagem)
-- Agrupamento por campo (group by visual)
-- Tudo salvo como JSON em `report_json`
+Hook reutilizavel para filtro client-side com normalize, eliminando codigo duplicado nos forms.
 
-### Exportações (rb_exportService)
+### Passo 3: Corrigir build error em `ControleAcessoForm.tsx`
 
-- **PDF**: jsPDF + jspdf-autotable (tabela formatada conforme layout)
-- **Excel**: xlsx
-- **CSV**: geração nativa
-- **Impressão**: window.print() com CSS
+O erro TS2345 e causado pelo `{ [XField]: XValue }` com tipo dinamico. Corrigir com cast adequado.
+
+### Passo 4: Refatorar 2-3 forms como exemplo
+
+Aplicar `baseService` e `useGridFilter` em `UnidadeForm`, `LinhaProdutoForm` e `GrupoProdutosForm` como referencia para os demais.
 
 ---
 
-### Fase 3: Integração com menu e Index.tsx
+### Resumo
 
-**menuConfig.ts** - Adicionar:
-- Em "5. Configurações": `rb-conexoes`, `rb-templates`, `rb-relatorios`
-- Em "4. Relatórios": `rbuilder` (submenu dinâmico)
-
-**Index.tsx** - Adicionar cases no `renderTabContent`:
-- `rb-conexoes` → `<RbConexaoForm />`
-- `rb-templates` → `<RbTemplatePesquisaForm />`
-- `rb-relatorios` → `<RbRelatorioForm />`
-- `rb-exec-*` → `<RbReportExecutor reportId={...} />`
-
-**SidebarMenu.tsx** - Carregar relatórios do banco agrupados por menu/submenu e renderizar dinamicamente sob "4. Relatórios → Rbuilder"
-
----
-
-### Dependências a instalar
-
-- `@monaco-editor/react` (editor SQL)
-- `jspdf` + `jspdf-autotable` (PDF)
-- `xlsx` (Excel)
-
-### Regras de isolamento
-
-- Prefixo `rb_` em todos os arquivos
-- Zero imports de `src/components/forms/` -- só usa shadcn/ui, FormToolbar, DataGrid
-- Comunicação via AppContext (XEmpresaMatrizId, XEmpresas)
-- Pasta copiável para outro projeto
+| Sugestao | Decisao | Motivo |
+|----------|---------|--------|
+| multiEmpresaFilter | REJEITAR | Tabelas nao tem empresa_matriz_id, modelo atual funciona |
+| baseService | ACEITAR (simplificado) | Reduz duplicacao de queries |
+| useGridFilter | ACEITAR | Elimina normalize duplicado nos forms |
+| DataGridPro | REJEITAR | DataGrid atual ja e superior |
+| ALTER TABLE add empresa_matriz_id | REJEITAR | Mudanca massiva sem beneficio real |
+| Fix build error ControleAcessoForm | ACEITAR | Erro de build precisa ser corrigido |
 
