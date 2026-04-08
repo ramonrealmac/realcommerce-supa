@@ -1,14 +1,10 @@
 import React, { useState, useCallback, useEffect } from "react";
-import {
-  Plus, Save, Pencil, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
-  Trash2, RefreshCw, List, HelpCircle, LogOut, Search
-} from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
-import { supabase } from "@/integrations/supabase/client";
-import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import { toast } from "sonner";
-
-const db = supabase as any;
+import FormToolbar from "@/components/shared/FormToolbar";
+import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+import { baseService } from "@/utils/baseService";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 const XLocalizarColumns: IGridColumn[] = [
   { key: "deposito_id", label: "Código", width: "80px", align: "right" },
@@ -41,12 +37,7 @@ const DepositoForm: React.FC = () => {
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
 
   const loadData = useCallback(async () => {
-    const { data } = await db
-      .from("deposito")
-      .select("*")
-      .eq("empresa_id", XEmpresaId)
-      .eq("excluido", false)
-      .order("deposito_id");
+    const { data } = await baseService.listar("deposito", XEmpresaId, "deposito_id");
     setXData(data || []);
   }, [XEmpresaId]);
 
@@ -65,11 +56,11 @@ const DepositoForm: React.FC = () => {
   const handleSalvar = async () => {
     if (!XNomeEdit.trim()) { toast.error("O nome do depósito é obrigatório."); return; }
     if (XFormMode === "insert") {
-      const { error } = await db.from("deposito").insert({ empresa_id: XEmpresaId, nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim() });
+      const { error } = await baseService.inserir("deposito", { empresa_id: XEmpresaId, nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Depósito incluído com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("deposito").update({ nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim(), dt_alteracao: new Date().toISOString() }).eq("deposito_id", XCurrentRecord.deposito_id);
+      const { error } = await baseService.atualizar("deposito", "deposito_id", XCurrentRecord.deposito_id, { nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim() });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Depósito alterado com sucesso.");
     }
@@ -81,31 +72,17 @@ const DepositoForm: React.FC = () => {
 
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
-    if (confirm(`Deseja realmente excluir o depósito "${XCurrentRecord.nome}"?`)) {
-      const { error } = await db.from("deposito").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("deposito_id", XCurrentRecord.deposito_id);
-      if (error) { toast.error("Erro: " + error.message); return; }
-      toast.success("Depósito excluído com sucesso.");
-      await loadData();
-      if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
-    }
+    if (!confirm(`Deseja realmente excluir o depósito "${XCurrentRecord.nome}"?`)) return;
+    const { error } = await baseService.excluirLogico("deposito", "deposito_id", XCurrentRecord.deposito_id);
+    if (error) { toast.error("Erro: " + error.message); return; }
+    toast.success("Depósito excluído com sucesso.");
+    await loadData();
+    if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
   };
 
-  const handleFirst = () => setXCurrentIdx(0);
-  const handlePrev = () => setXCurrentIdx(Math.max(0, XCurrentIdx - 1));
-  const handleNext = () => setXCurrentIdx(Math.min(XData.length - 1, XCurrentIdx + 1));
-  const handleLast = () => setXCurrentIdx(XData.length - 1);
-  const handleRefresh = () => { loadData(); toast.info("Dados recarregados."); };
   const handleSair = () => { const XTab = XTabs.find(t => t.id === XActiveTabId); if (XTab) closeTab(XTab.id); };
 
-  const XFilteredData = XData.filter(r => {
-    const fc = XSearchFilters["deposito_id"] || "";
-    const fn = XSearchFilters["nome"] || "";
-    const fe = XSearchFilters["endereco"] || "";
-    if (fc && !String(r.deposito_id).includes(fc)) return false;
-    if (fn && !r.nome.toLowerCase().includes(fn.toLowerCase())) return false;
-    if (fe && !r.endereco.toLowerCase().includes(fe.toLowerCase())) return false;
-    return true;
-  });
+  const XFilteredData = useGridFilter(XData, XSearchFilters);
 
   const handleSelectFromSearch = (row: IDeposito) => {
     const XIdx = XData.findIndex(r => r.deposito_id === row.deposito_id);
@@ -114,35 +91,24 @@ const DepositoForm: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-card" data-form-container>
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border bg-card flex-wrap">
-        {!XIsEditing ? (
-          <>
-            <ToolbarBtn icon={<Plus size={16} />} label="Incluir" onClick={handleIncluir} color="success" />
-            <ToolbarBtn icon={<Pencil size={16} />} label="Editar" onClick={handleEditar} disabled={!XCurrentRecord} />
-            <ToolbarSep />
-            <ToolbarBtn icon={<ChevronsLeft size={16} />} label="Primeiro" onClick={handleFirst} disabled={XCurrentIdx === 0} />
-            <ToolbarBtn icon={<ChevronLeft size={16} />} label="Anterior" onClick={handlePrev} disabled={XCurrentIdx === 0} />
-            <ToolbarBtn icon={<ChevronRight size={16} />} label="Próximo" onClick={handleNext} disabled={XCurrentIdx >= XData.length - 1} />
-            <ToolbarBtn icon={<ChevronsRight size={16} />} label="Último" onClick={handleLast} disabled={XCurrentIdx >= XData.length - 1} />
-            <ToolbarSep />
-            <ToolbarBtn icon={<Trash2 size={16} />} label="Excluir" onClick={handleExcluir} disabled={!XCurrentRecord} color="destructive" />
-            <ToolbarBtn icon={<RefreshCw size={16} />} label="Recarregar" onClick={handleRefresh} />
-            <ToolbarBtn icon={<Search size={16} />} label="Localizar" onClick={() => setXInnerTab("localizar")} />
-            <ToolbarBtn icon={<List size={16} />} label="Log" onClick={() => toast.info("Log de operações")} />
-            <ToolbarBtn icon={<HelpCircle size={16} />} label="Ajuda" onClick={() => toast.info("Ajuda do formulário")} />
-            <ToolbarBtn icon={<LogOut size={16} />} label="Sair" onClick={handleSair} />
-          </>
-        ) : (
-          <>
-            <ToolbarBtn icon={<Save size={16} />} label="Salvar" onClick={handleSalvar} color="success" />
-            <ToolbarBtn icon={<LogOut size={16} />} label="Cancelar" onClick={handleCancelar} color="destructive" />
-          </>
-        )}
-      </div>
+      <FormToolbar
+        XIsEditing={XIsEditing} XHasRecord={!!XCurrentRecord}
+        XIsFirst={XCurrentIdx === 0} XIsLast={XCurrentIdx >= XData.length - 1}
+        onIncluir={handleIncluir} onEditar={handleEditar} onSalvar={handleSalvar}
+        onCancelar={handleCancelar} onExcluir={handleExcluir}
+        onFirst={() => setXCurrentIdx(0)} onPrev={() => setXCurrentIdx(Math.max(0, XCurrentIdx - 1))}
+        onNext={() => setXCurrentIdx(Math.min(XData.length - 1, XCurrentIdx + 1))}
+        onLast={() => setXCurrentIdx(XData.length - 1)}
+        onRefresh={async () => { await loadData(); toast.info("Dados recarregados."); }}
+        onLocalizar={() => setXInnerTab("localizar")} onSair={handleSair}
+      />
 
       <div className="flex border-b border-border bg-card">
-        <button className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === "cadastro" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => setXInnerTab("cadastro")}>Cadastro</button>
-        <button className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === "localizar" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => setXInnerTab("localizar")}>Localizar</button>
+        {(["cadastro", "localizar"] as const).map(t => (
+          <button key={t} className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => setXInnerTab(t)}>
+            {t === "cadastro" ? "Cadastro" : "Localizar"}
+          </button>
+        ))}
       </div>
 
       <div className="flex-1 overflow-auto p-4">
@@ -187,16 +153,5 @@ const DepositoForm: React.FC = () => {
     </div>
   );
 };
-
-const ToolbarBtn: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; color?: "success" | "destructive" | "default"; }> = ({ icon, label, onClick, disabled, color = "default" }) => {
-  const XColorClass = color === "success" ? "text-success hover:bg-success/10" : color === "destructive" ? "text-destructive hover:bg-destructive/10" : "text-foreground hover:bg-accent";
-  return (
-    <button onClick={onClick} disabled={disabled} title={label} className={`p-1.5 rounded transition-colors ${XColorClass} ${disabled ? "opacity-30 cursor-not-allowed" : ""}`}>
-      {icon}
-    </button>
-  );
-};
-
-const ToolbarSep = () => <div className="w-px h-5 bg-border mx-0.5" />;
 
 export default DepositoForm;

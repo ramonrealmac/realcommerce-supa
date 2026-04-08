@@ -7,6 +7,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+import { baseService } from "@/utils/baseService";
 
 const db = supabase as any;
 
@@ -45,7 +46,6 @@ const EstoqueForm: React.FC = () => {
   const [XShowFilters, setXShowFilters] = useState(true);
   const [XEditMode, setXEditMode] = useState<"none" | "insert" | "edit">("none");
 
-  // Edit fields
   const [XEditProdutoId, setXEditProdutoId] = useState<number | "">("");
   const [XEditDepositoId, setXEditDepositoId] = useState<number | "">("");
   const [XEditEndereco, setXEditEndereco] = useState("");
@@ -55,7 +55,7 @@ const EstoqueForm: React.FC = () => {
 
   const loadData = useCallback(async () => {
     const [{ data: XEstData }, { data: XProdData }, { data: XDepData }] = await Promise.all([
-      db.from("estoque").select("*").eq("empresa_id", XEmpresaId).eq("excluido", false).order("estoque_id"),
+      baseService.listar("estoque", XEmpresaId, "estoque_id"),
       db.from("produto").select("produto_id, nm_produto").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nm_produto"),
       db.from("deposito").select("deposito_id, nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
     ]);
@@ -102,6 +102,7 @@ const EstoqueForm: React.FC = () => {
     { key: "estoque_inventario", label: "Inventário", width: "90px", align: "right" as const },
   ], [XProdutoMap, XDepositoMap]);
 
+  // Keep custom filter for estoque since it uses getValue/render
   const XFiltered = XEstoques.filter(e => {
     for (const col of XColumns) {
       const fv = XFilterValues[col.key] || "";
@@ -143,7 +144,7 @@ const EstoqueForm: React.FC = () => {
     if (!XEditDepositoId) { toast.error("Selecione um depósito."); return; }
 
     if (XEditMode === "insert") {
-      const { error } = await db.from("estoque").insert({
+      const { error } = await baseService.inserir("estoque", {
         produto_id: XEditProdutoId,
         deposito_id: XEditDepositoId,
         endereco: XEditEndereco.trim(),
@@ -158,13 +159,12 @@ const EstoqueForm: React.FC = () => {
       if (error) { toast.error("Erro ao incluir estoque: " + error.message); return; }
       toast.success("Estoque incluído com sucesso.");
     } else if (XEditMode === "edit" && XSelectedEstoque) {
-      const { error } = await db.from("estoque").update({
+      const { error } = await baseService.atualizar("estoque", "estoque_id", XSelectedEstoque.estoque_id, {
         endereco: XEditEndereco.trim(),
         estoque_minimo: XEditEstoqueMinimo,
         estoque_padrao: XEditEstoquePadrao,
         estoque_inventario: XEditEstoqueInventario,
-        dt_alteracao: new Date().toISOString(),
-      }).eq("estoque_id", XSelectedEstoque.estoque_id);
+      });
       if (error) { toast.error("Erro ao alterar estoque: " + error.message); return; }
       toast.success("Estoque alterado com sucesso.");
     }
@@ -175,7 +175,7 @@ const EstoqueForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XSelectedEstoque) return;
     if (confirm("Deseja realmente excluir este registro de estoque?")) {
-      await db.from("estoque").update({ excluido: true }).eq("estoque_id", XSelectedEstoque.estoque_id);
+      await baseService.excluirLogico("estoque", "estoque_id", XSelectedEstoque.estoque_id);
       toast.success("Estoque excluído.");
       setXSelectedIdx(null);
       loadData();
@@ -219,88 +219,38 @@ const EstoqueForm: React.FC = () => {
           <span className="text-xs font-medium text-muted-foreground w-16 self-center">
             {XEditMode === "insert" ? "Novo:" : "Editar:"}
           </span>
-
           <div className="flex flex-col gap-0.5">
             <label className="text-[10px] text-muted-foreground">Produto *</label>
-            <select
-              value={XEditProdutoId}
-              onChange={(e) => setXEditProdutoId(e.target.value ? Number(e.target.value) : "")}
-              disabled={XEditMode === "edit"}
-              className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-56 disabled:opacity-50 disabled:bg-secondary"
-            >
+            <select value={XEditProdutoId} onChange={(e) => setXEditProdutoId(e.target.value ? Number(e.target.value) : "")} disabled={XEditMode === "edit"} className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-56 disabled:opacity-50 disabled:bg-secondary">
               <option value="">Selecione...</option>
-              {XProdutos.map(p => (
-                <option key={p.produto_id} value={p.produto_id}>{p.produto_id} - {p.nm_produto}</option>
-              ))}
+              {XProdutos.map(p => (<option key={p.produto_id} value={p.produto_id}>{p.produto_id} - {p.nm_produto}</option>))}
             </select>
           </div>
-
           <div className="flex flex-col gap-0.5">
             <label className="text-[10px] text-muted-foreground">Depósito *</label>
-            <select
-              value={XEditDepositoId}
-              onChange={(e) => setXEditDepositoId(e.target.value ? Number(e.target.value) : "")}
-              disabled={XEditMode === "edit"}
-              className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-44 disabled:opacity-50 disabled:bg-secondary"
-            >
+            <select value={XEditDepositoId} onChange={(e) => setXEditDepositoId(e.target.value ? Number(e.target.value) : "")} disabled={XEditMode === "edit"} className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-44 disabled:opacity-50 disabled:bg-secondary">
               <option value="">Selecione...</option>
-              {XDepositos.map(d => (
-                <option key={d.deposito_id} value={d.deposito_id}>{d.deposito_id} - {d.nome}</option>
-              ))}
+              {XDepositos.map(d => (<option key={d.deposito_id} value={d.deposito_id}>{d.deposito_id} - {d.nome}</option>))}
             </select>
           </div>
-
           <div className="flex flex-col gap-0.5">
             <label className="text-[10px] text-muted-foreground">Endereço</label>
-            <input
-              type="text"
-              value={XEditEndereco}
-              onChange={(e) => setXEditEndereco(e.target.value)}
-              maxLength={20}
-              className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-32"
-              onKeyDown={(e) => { if (e.key === "Enter") handleSalvar(); if (e.key === "Escape") setXEditMode("none"); }}
-            />
+            <input type="text" value={XEditEndereco} onChange={(e) => setXEditEndereco(e.target.value)} maxLength={20} className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-32" onKeyDown={(e) => { if (e.key === "Enter") handleSalvar(); if (e.key === "Escape") setXEditMode("none"); }} />
           </div>
-
           <div className="flex flex-col gap-0.5">
             <label className="text-[10px] text-muted-foreground">Mínimo</label>
-            <input
-              type="number"
-              value={XEditEstoqueMinimo}
-              onChange={(e) => setXEditEstoqueMinimo(Number(e.target.value))}
-              className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-20 text-right"
-              onKeyDown={(e) => { if (e.key === "Enter") handleSalvar(); if (e.key === "Escape") setXEditMode("none"); }}
-            />
+            <input type="number" value={XEditEstoqueMinimo} onChange={(e) => setXEditEstoqueMinimo(Number(e.target.value))} className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-20 text-right" onKeyDown={(e) => { if (e.key === "Enter") handleSalvar(); if (e.key === "Escape") setXEditMode("none"); }} />
           </div>
-
           <div className="flex flex-col gap-0.5">
             <label className="text-[10px] text-muted-foreground">Padrão</label>
-            <input
-              type="number"
-              value={XEditEstoquePadrao}
-              onChange={(e) => setXEditEstoquePadrao(Number(e.target.value))}
-              className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-20 text-right"
-              onKeyDown={(e) => { if (e.key === "Enter") handleSalvar(); if (e.key === "Escape") setXEditMode("none"); }}
-            />
+            <input type="number" value={XEditEstoquePadrao} onChange={(e) => setXEditEstoquePadrao(Number(e.target.value))} className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-20 text-right" onKeyDown={(e) => { if (e.key === "Enter") handleSalvar(); if (e.key === "Escape") setXEditMode("none"); }} />
           </div>
-
           <div className="flex flex-col gap-0.5">
             <label className="text-[10px] text-muted-foreground">Inventário</label>
-            <input
-              type="number"
-              value={XEditEstoqueInventario}
-              onChange={(e) => setXEditEstoqueInventario(Number(e.target.value))}
-              className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-20 text-right"
-              onKeyDown={(e) => { if (e.key === "Enter") handleSalvar(); if (e.key === "Escape") setXEditMode("none"); }}
-            />
+            <input type="number" value={XEditEstoqueInventario} onChange={(e) => setXEditEstoqueInventario(Number(e.target.value))} className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-20 text-right" onKeyDown={(e) => { if (e.key === "Enter") handleSalvar(); if (e.key === "Escape") setXEditMode("none"); }} />
           </div>
-
-          <button onClick={handleSalvar} className="px-3 py-1 text-xs bg-success text-success-foreground rounded hover:opacity-90">
-            Salvar
-          </button>
-          <button onClick={() => setXEditMode("none")} className="px-3 py-1 text-xs bg-destructive text-destructive-foreground rounded hover:opacity-90">
-            Cancelar
-          </button>
+          <button onClick={handleSalvar} className="px-3 py-1 text-xs bg-success text-success-foreground rounded hover:opacity-90">Salvar</button>
+          <button onClick={() => setXEditMode("none")} className="px-3 py-1 text-xs bg-destructive text-destructive-foreground rounded hover:opacity-90">Cancelar</button>
         </div>
       )}
 

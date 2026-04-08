@@ -1,13 +1,11 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import FormToolbar from "@/components/shared/FormToolbar";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-
-const db = supabase as any;
+import { baseService } from "@/utils/baseService";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 type TFormMode = "view" | "edit" | "insert";
 
@@ -73,12 +71,7 @@ const CondicaoPagamentoForm: React.FC = () => {
   const set = useCallback((key: string, val: string) => setXF(prev => ({ ...prev, [key]: val })), []);
 
   const loadData = useCallback(async () => {
-    const { data } = await db
-      .from("condicao_pagamento")
-      .select("*")
-      .eq("empresa_id", XEmpresaId)
-      .eq("excluido", false)
-      .order("condicao_id");
+    const { data } = await baseService.listar("condicao_pagamento", XEmpresaId, "condicao_id");
     setXData(data || []);
   }, [XEmpresaId]);
 
@@ -109,11 +102,12 @@ const CondicaoPagamentoForm: React.FC = () => {
     PRAZO_KEYS.forEach(k => (payload[k] = parseInt(XF[k]) || 0));
 
     if (XFormMode === "insert") {
-      const { error } = await db.from("condicao_pagamento").insert(payload);
+      const { error } = await baseService.inserir("condicao_pagamento", payload);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Condição incluída com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from("condicao_pagamento").update({ ...payload, dt_alteracao: new Date().toISOString() }).eq("condicao_id", XCurrentRecord.condicao_id);
+      const { empresa_id: _, ...updatePayload } = payload;
+      const { error } = await baseService.atualizar("condicao_pagamento", "condicao_id", XCurrentRecord.condicao_id, updatePayload);
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Condição alterada com sucesso.");
     }
@@ -126,7 +120,7 @@ const CondicaoPagamentoForm: React.FC = () => {
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.descricao}"?`)) return;
-    await db.from("condicao_pagamento").update({ excluido: true }).eq("condicao_id", XCurrentRecord.condicao_id);
+    await baseService.excluirLogico("condicao_pagamento", "condicao_id", XCurrentRecord.condicao_id);
     toast.success("Condição excluída.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
@@ -134,15 +128,7 @@ const CondicaoPagamentoForm: React.FC = () => {
 
   const handleSair = () => { const t = XTabs.find(t => t.id === XActiveTabId); if (t) closeTab(t.id); };
 
-  const XFilteredData = useMemo(() => {
-    return XData.filter(r => {
-      for (const col of XLocalizarColumns) {
-        const f = XSearchFilters[col.key] || "";
-        if (f && !String((r as any)[col.key] ?? "").toLowerCase().includes(f.toLowerCase())) return false;
-      }
-      return true;
-    });
-  }, [XData, XSearchFilters]);
+  const XFilteredData = useGridFilter(XData, XSearchFilters);
 
   const handleSelectFromSearch = (row: any) => {
     const idx = XData.findIndex(r => r.condicao_id === row.condicao_id);
