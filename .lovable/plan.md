@@ -1,85 +1,86 @@
 
 
-## Avaliacao das Sugestoes
+## Plano: Refatorar formularios do menu Cadastros para usar baseService e useGridFilter
 
-### 1. `multiEmpresaFilter.ts` — NAO VIAVEL
+### Formularios a refatorar
 
-**Problema**: As tabelas do projeto NAO possuem coluna `empresa_matriz_id`. Apenas a tabela `empresa` tem esse campo. Tabelas como `unidade`, `produto`, `cadastro`, etc. possuem apenas `empresa_id`.
+Baseado no menu "1. Cadastros", os seguintes forms precisam de refatoracao (excluindo os ja feitos e Cidades):
 
-A logica proposta (`empresa_id IS NULL AND empresa_matriz_id = X`) nao funciona porque:
-- Nenhuma tabela de dados tem `empresa_matriz_id`
-- Dados compartilhados entre filiais ja usam `empresa_id = XEmpresaMatrizId` (o ID da matriz)
-- Adicionar `empresa_matriz_id` a todas as tabelas seria uma mudanca massiva e desnecessaria
+| Formulario | Arquivo | Escopo empresaId |
+|---|---|---|
+| Rotas | RotaForm.tsx | XEmpresaId |
+| Depositos | DepositoForm.tsx | XEmpresaId |
+| Estoque | EstoqueForm.tsx | XEmpresaId |
+| Grupos de Parceiros | CadastroGrupoForm.tsx | XEmpresaMatrizId |
+| Condicoes de Pagamento | CondicaoPagamentoForm.tsx | XEmpresaId |
+| Clientes (CadastroCompleto) | CadastroCompletoForm.tsx | XEmpresaMatrizId |
+| Fornecedores/Transportadores | FornecedorTransportadorForm.tsx | Sem alteracao (wrapper) |
+| Produtos | ProdutoForm.tsx | XEmpresaMatrizId |
 
-**Veredicto**: REJEITAR. O padrao atual (filtrar por `XEmpresaMatrizId` para dados compartilhados, `XEmpresaId` para dados da filial) ja esta correto.
+### O que muda em cada form
 
-### 2. `baseService.ts` — VIAVEL (simplificado)
+**Padrao de refatoracao (simples - RotaForm, DepositoForm, CadastroGrupoForm, CondicaoPagamentoForm):**
+1. Remover `import { supabase }` e `const db = supabase as any`
+2. Adicionar `import { baseService } from "@/utils/baseService"` e `import { useGridFilter } from "@/hooks/useGridFilter"`
+3. `loadData`: trocar query manual por `baseService.listar(tabela, empresaId, orderBy)`
+4. `handleSalvar` insert: trocar `db.from(...).insert(...)` por `baseService.inserir(tabela, payload)`
+5. `handleSalvar` update: trocar `db.from(...).update(...)` por `baseService.atualizar(tabela, pkField, pkValue, payload)`
+6. `handleExcluir`: trocar exclusao manual por `baseService.excluirLogico(tabela, pkField, pkValue)`
+7. Filtro: trocar `useMemo` manual ou filtro inline por `useGridFilter(XData, XSearchFilters)`
+8. Forms com toolbar inline (DepositoForm): trocar por `FormToolbar` ou manter consistente com o padrao do form
 
-Um service base para padronizar queries repetitivas (select + eq excluido + order) e valido, mas SEM o filtro multiempresa proposto. Apenas encapsular o padrao existente.
+**Formularios complexos (CadastroCompletoForm, ProdutoForm, EstoqueForm):**
+- Aplicar `useGridFilter` para a aba Localizar
+- Substituir queries diretas de CRUD principal por `baseService` onde aplicavel
+- Manter queries especializadas (lookups, sub-dados) como estao, pois tem logica especifica (filtros compostos, joins)
 
-### 3. `useGridFilter.ts` — VIAVEL
+### Detalhes tecnicos
 
-Hook para filtro client-side com normalize. Elimina duplicacao de logica de filtro em cada form.
+**RotaForm.tsx:**
+- `loadData`: `baseService.listar("rota", XEmpresaId, "rota_id")`
+- Insert/Update/Delete: usar `baseService.inserir`, `baseService.atualizar`, `baseService.excluirLogico`
+- Filtro: `useGridFilter(XData, XSearchFilters)`
 
-### 4. `DataGridPro.tsx` — REJEITAR
+**DepositoForm.tsx:**
+- Mesma refatoracao + trocar toolbar inline por `FormToolbar`
+- `loadData`: `baseService.listar("deposito", XEmpresaId, "deposito_id")`
 
-O `DataGrid.tsx` atual ja e SUPERIOR ao proposto:
-- Ja tem ordenacao multi-coluna
-- Ja tem exportacao (PDF, CSV, Texto)
-- Ja tem filtros por coluna
-- Ja tem ocultacao de colunas via menu de contexto
-- Ja tem render customizado e getValue
+**CadastroGrupoForm.tsx:**
+- `loadData`: `baseService.listar("cadastro_grupo", XEmpresaMatrizId, "cadastro_grupo_id")`
+- Insert/Update/Delete: usar baseService
+- Filtro: `useGridFilter`
 
-O "DataGridPro" proposto e uma versao INFERIOR (tabela HTML basica sem ordenacao, sem exportacao, sem features). Nao ha upgrade aqui.
+**CondicaoPagamentoForm.tsx:**
+- `loadData`: `baseService.listar("condicao_pagamento", XEmpresaId, "condicao_id")`
+- Insert/Update: usar baseService (payload complexo com prazos, manter logica de montagem)
+- Delete: `baseService.excluirLogico`
+- Filtro: `useGridFilter`
 
-### 5. Alteracoes no backend (ADD empresa_matriz_id) — REJEITAR
+**EstoqueForm.tsx:**
+- Manter queries de lookup (produto, deposito) como estao
+- Substituir `db.from("estoque").select(...)` por `baseService.listar`
+- Delete: `baseService.excluirLogico`
+- Filtro: manter filtro custom pois usa `getValue`/`render` das colunas
 
-Adicionar `empresa_matriz_id` a todas as tabelas nao traz beneficio. O modelo atual resolve multiempresa pelo campo `empresa_id` que aponta para a matriz quando os dados sao compartilhados.
+**CadastroCompletoForm.tsx:**
+- Manter loadData custom (tem filtros dinamicos st_cliente/st_fornecedor/st_transportador com OR)
+- Substituir handleExcluir por `baseService.excluirLogico`
+- Substituir filtro manual por `useGridFilter`
+- Manter lookups como estao
 
----
+**ProdutoForm.tsx:**
+- `loadData`: `baseService.listar("produto", XEmpresaMatrizId, "produto_id")`
+- Delete: `baseService.excluirLogico`
+- Filtro: `useGridFilter`
+- Manter lookups e sub-dados como estao
 
-## Plano: Implementar apenas o que agrega valor
+**FornecedorTransportadorForm.tsx:** Nenhuma alteracao - e wrapper do CadastroCompletoForm.
 
-### Passo 1: Criar `src/utils/baseService.ts`
+### Ordem de execucao
 
-Service generico para padronizar operacoes CRUD repetitivas:
-
-```typescript
-export const baseService = {
-  async listar(table: string, empresaId: number, orderBy: string, selectCols = "*") {
-    return (supabase as any).from(table).select(selectCols)
-      .eq("empresa_id", empresaId).eq("excluido", false).order(orderBy);
-  },
-  async excluirLogico(table: string, pkField: string, pkValue: any) {
-    return (supabase as any).from(table)
-      .update({ excluido: true, dt_alteracao: new Date().toISOString() })
-      .eq(pkField, pkValue);
-  }
-};
-```
-
-### Passo 2: Criar `src/hooks/useGridFilter.ts`
-
-Hook reutilizavel para filtro client-side com normalize, eliminando codigo duplicado nos forms.
-
-### Passo 3: Corrigir build error em `ControleAcessoForm.tsx`
-
-O erro TS2345 e causado pelo `{ [XField]: XValue }` com tipo dinamico. Corrigir com cast adequado.
-
-### Passo 4: Refatorar 2-3 forms como exemplo
-
-Aplicar `baseService` e `useGridFilter` em `UnidadeForm`, `LinhaProdutoForm` e `GrupoProdutosForm` como referencia para os demais.
-
----
-
-### Resumo
-
-| Sugestao | Decisao | Motivo |
-|----------|---------|--------|
-| multiEmpresaFilter | REJEITAR | Tabelas nao tem empresa_matriz_id, modelo atual funciona |
-| baseService | ACEITAR (simplificado) | Reduz duplicacao de queries |
-| useGridFilter | ACEITAR | Elimina normalize duplicado nos forms |
-| DataGridPro | REJEITAR | DataGrid atual ja e superior |
-| ALTER TABLE add empresa_matriz_id | REJEITAR | Mudanca massiva sem beneficio real |
-| Fix build error ControleAcessoForm | ACEITAR | Erro de build precisa ser corrigido |
+1. RotaForm, DepositoForm, CadastroGrupoForm (simples, rapido)
+2. CondicaoPagamentoForm (medio - payload complexo)
+3. EstoqueForm (medio - filtro custom, toolbar inline)
+4. ProdutoForm (complexo - muitos lookups, sub-grids)
+5. CadastroCompletoForm (complexo - filtros dinamicos, lookups)
 
