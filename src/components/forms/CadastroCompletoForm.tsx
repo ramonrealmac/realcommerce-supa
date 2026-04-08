@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -9,6 +9,8 @@ import { validateCPF, validateCNPJ, validateCPFOrCNPJ, formatCPFCNPJ, formatPhon
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2, MapPin } from "lucide-react";
 import VeiculoGrid from "@/components/forms/VeiculoGrid";
+import { baseService } from "@/utils/baseService";
+import { useGridFilter } from "@/hooks/useGridFilter";
 
 const db = supabase as any;
 
@@ -519,7 +521,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
   const handleExcluir = async () => {
     if (!XCurrentRecord) return;
     if (!confirm(`Deseja realmente excluir "${XCurrentRecord.razao_social}"?`)) return;
-    await db.from("cadastro").update({ excluido: true }).eq("cadastro_id", XCurrentRecord.cadastro_id);
+    await baseService.excluirLogico("cadastro", "cadastro_id", XCurrentRecord.cadastro_id);
     toast.success("Cadastro excluído com sucesso.");
     await loadData();
     if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
@@ -541,18 +543,7 @@ const CadastroCompletoForm: React.FC<ICadastroFormConfig> = ({
   };
 
   // Localizar filter
-  const XFilteredData = useMemo(() => {
-    return XData.filter(r => {
-      for (const col of XLocalizarColumns) {
-        const XFilter = XSearchFilters[col.key] || "";
-        if (XFilter) {
-          const XVal = String((r as any)[col.key] ?? "").toLowerCase();
-          if (!XVal.includes(XFilter.toLowerCase())) return false;
-        }
-      }
-      return true;
-    });
-  }, [XData, XSearchFilters]);
+  const XFilteredData = useGridFilter(XData, XSearchFilters);
 
   const handleSelectFromSearch = (XRow: any) => {
     const XIdx = XData.findIndex(r => r.cadastro_id === XRow.cadastro_id);
