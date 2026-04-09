@@ -535,8 +535,9 @@ const ProdutoForm: React.FC = () => {
           <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
           <input
             type="text"
-            value={fmtBR(XF[key] || "0", dec)}
+            value={XF[key] || "0"}
             onChange={(e) => handleCostFieldChange(key, e.target.value)}
+            onFocus={(e) => e.target.select()}
             readOnly={opts?.readOnly}
             className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${opts?.readOnly ? XBgRead : XBgEdit} focus:ring-2 focus:ring-ring outline-none`}
           />
@@ -704,8 +705,8 @@ const ProdutoForm: React.FC = () => {
             {XSubTab === "cadastro" && (
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {renderLookup("Grupo", "grupo_id", XGrupos, "grupo_id", "nome")}
-                  {renderLookup("Subgrupo", "subgrupo_id", XFilteredSubgrupos, "subgrupo_id", "nome")}
+                  {renderLookup("Grupo", "produto_grupo_id", XGrupos, "produto_grupo_id", "nome")}
+                  {renderLookup("Subgrupo", "produto_subgrupo_id", XFilteredSubgrupos, "produto_subgrupo_id", "nome")}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {renderLookup("Linha do Produto", "linha_id", XLinhas, "linha_id", "nome")}
