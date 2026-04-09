@@ -2204,6 +2204,36 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_codbarra: {
+        Row: {
+          cod_barra: string | null
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          produto_codbarra_id: number
+          produto_id: number
+        }
+        Insert: {
+          cod_barra?: string | null
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          produto_codbarra_id?: number
+          produto_id: number
+        }
+        Update: {
+          cod_barra?: string | null
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          produto_codbarra_id?: number
+          produto_id?: number
+        }
+        Relationships: []
+      }
       produto_conversao: {
         Row: {
           conversao_id: number
