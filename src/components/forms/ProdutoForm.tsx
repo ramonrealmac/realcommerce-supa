@@ -271,8 +271,8 @@ const ProdutoForm: React.FC = () => {
   }, []);
 
   const handleCostFieldChange = useCallback((key: string, rawVal: string) => {
-    // Accept pt-BR input, convert to internal number
-    const val = parseBR(rawVal);
+    // Allow raw numeric input directly
+    const val = rawVal;
     setXF(prev => {
       const XNext = { ...prev, [key]: val };
       if (key.startsWith("pc_") || key === "vl_compra") {
