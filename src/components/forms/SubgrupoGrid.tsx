@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Plus, Pencil, Trash2, RefreshCw, Filter } from "lucide-react";
-import { dataStore, ISubgrupo } from "@/data/store";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+
+const db = supabase as any;
 
 interface SubgrupoGridProps {
   XEmpresaId: number;
@@ -10,27 +12,26 @@ interface SubgrupoGridProps {
 }
 
 const XSubgrupoColumns: IGridColumn[] = [
-  {
-    key: "CODIGO",
-    label: "Código",
-    width: "100px",
-    align: "right",
-    getValue: (row: ISubgrupo & { _grupoId: number }) => `${row._grupoId}.${row.SUBGRUPO_ID}`,
-  },
-  { key: "NM_SUBGRUPO", label: "Nome", width: "1fr" },
+  { key: "produto_subgrupo_id", label: "Código", width: "100px", align: "right" },
+  { key: "nome", label: "Nome", width: "1fr" },
 ];
 
 const SubgrupoGrid: React.FC<SubgrupoGridProps> = ({ XEmpresaId, XGrupoId }) => {
-  const [XSubgrupos, setXSubgrupos] = useState<(ISubgrupo & { _grupoId: number })[]>([]);
+  const [XSubgrupos, setXSubgrupos] = useState<any[]>([]);
   const [XSelectedIdx, setXSelectedIdx] = useState<number | null>(null);
   const [XFilterValues, setXFilterValues] = useState<Record<string, string>>({});
   const [XEditMode, setXEditMode] = useState<"none" | "insert" | "edit">("none");
   const [XEditNome, setXEditNome] = useState("");
   const [XShowFilters, setXShowFilters] = useState(true);
 
-  const loadData = useCallback(() => {
-    const XData = dataStore.getSubgrupos(XEmpresaId, XGrupoId).map(s => ({ ...s, _grupoId: XGrupoId }));
-    setXSubgrupos(XData);
+  const loadData = useCallback(async () => {
+    const { data } = await db.from("produto_subgrupo")
+      .select("produto_subgrupo_id,nome,produto_grupo_id,empresa_id,excluido")
+      .eq("empresa_id", XEmpresaId)
+      .eq("produto_grupo_id", XGrupoId)
+      .eq("excluido", false)
+      .order("produto_subgrupo_id");
+    setXSubgrupos(data || []);
   }, [XEmpresaId, XGrupoId]);
 
   useEffect(() => {
@@ -40,10 +41,10 @@ const SubgrupoGrid: React.FC<SubgrupoGridProps> = ({ XEmpresaId, XGrupoId }) => 
   }, [XEmpresaId, XGrupoId, loadData]);
 
   const XFiltered = XSubgrupos.filter(s => {
-    const fc = XFilterValues["CODIGO"] || "";
-    const fn = XFilterValues["NM_SUBGRUPO"] || "";
-    if (fc && !`${XGrupoId}.${s.SUBGRUPO_ID}`.includes(fc)) return false;
-    if (fn && !s.NM_SUBGRUPO.toLowerCase().includes(fn.toLowerCase())) return false;
+    const fc = XFilterValues["produto_subgrupo_id"] || "";
+    const fn = XFilterValues["nome"] || "";
+    if (fc && !String(s.produto_subgrupo_id).includes(fc)) return false;
+    if (fn && !s.nome.toLowerCase().includes(fn.toLowerCase())) return false;
     return true;
   });
 
@@ -53,29 +54,39 @@ const SubgrupoGrid: React.FC<SubgrupoGridProps> = ({ XEmpresaId, XGrupoId }) => 
   const handleEditar = () => {
     if (!XSelectedSub) return;
     setXEditMode("edit");
-    setXEditNome(XSelectedSub.NM_SUBGRUPO);
+    setXEditNome(XSelectedSub.nome);
   };
 
-  const handleSalvar = () => {
+  const handleSalvar = async () => {
     if (!XEditNome.trim()) { toast.error("O nome do subgrupo é obrigatório."); return; }
     if (XEditMode === "insert") {
-      dataStore.addSubgrupo(XEmpresaId, XGrupoId, XEditNome.trim());
+      const { error } = await db.from("produto_subgrupo").insert({
+        empresa_id: XEmpresaId,
+        produto_grupo_id: XGrupoId,
+        nome: XEditNome.trim(),
+      });
+      if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Subgrupo incluído com sucesso.");
     } else if (XEditMode === "edit" && XSelectedSub) {
-      dataStore.updateSubgrupo(XEmpresaId, XGrupoId, XSelectedSub.SUBGRUPO_ID, XEditNome.trim());
+      const { error } = await db.from("produto_subgrupo").update({
+        nome: XEditNome.trim(),
+        dt_alteracao: new Date().toISOString(),
+      }).eq("produto_subgrupo_id", XSelectedSub.produto_subgrupo_id);
+      if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Subgrupo alterado com sucesso.");
     }
     setXEditMode("none");
-    loadData();
+    await loadData();
   };
 
-  const handleExcluir = () => {
+  const handleExcluir = async () => {
     if (!XSelectedSub) return;
-    if (confirm(`Excluir subgrupo "${XSelectedSub.NM_SUBGRUPO}"?`)) {
-      dataStore.deleteSubgrupo(XEmpresaId, XGrupoId, XSelectedSub.SUBGRUPO_ID);
+    if (confirm(`Excluir subgrupo "${XSelectedSub.nome}"?`)) {
+      await db.from("produto_subgrupo").update({ excluido: true, dt_alteracao: new Date().toISOString() })
+        .eq("produto_subgrupo_id", XSelectedSub.produto_subgrupo_id);
       toast.success("Subgrupo excluído.");
       setXSelectedIdx(null);
-      loadData();
+      await loadData();
     }
   };
 
@@ -130,7 +141,7 @@ const SubgrupoGrid: React.FC<SubgrupoGridProps> = ({ XEmpresaId, XGrupoId }) => 
         onRowDoubleClick={(_row, idx) => {
           setXSelectedIdx(idx);
           const sub = XFiltered[idx];
-          if (sub) { setXEditMode("edit"); setXEditNome(sub.NM_SUBGRUPO); }
+          if (sub) { setXEditMode("edit"); setXEditNome(sub.nome); }
         }}
         showFilters={XShowFilters}
         filterValues={XFilterValues}
