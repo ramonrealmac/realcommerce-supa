@@ -1976,6 +1976,267 @@ export type Database = {
           },
         ]
       }
+      produto: {
+        Row: {
+          altura: number
+          area: number
+          ativo: string | null
+          cest: string
+          comprimento: number
+          controla_estoque: string | null
+          descricao: string
+          dias_venda_online: string | null
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          grupo_ibscbs_id: number | null
+          grupo_icms_id: number | null
+          grupo_id: number | null
+          grupo_ipi_id: number | null
+          grupo_pis_cofins_id: number | null
+          gtin: string
+          largura: number
+          linha_id: number | null
+          mva: number
+          ncm: string
+          nome: string
+          nome_reduzido: string
+          pc_cofins: number
+          pc_desconto: number
+          pc_difal_sn: number
+          pc_emb: number
+          pc_fcp_st: number
+          pc_frete: number
+          pc_icms_cred: number
+          pc_ipi: number
+          pc_ipi_cred: number
+          pc_markup: number | null
+          pc_multiplicador: number
+          pc_outras_desp: number
+          pc_pis: number
+          pc_seguro: number
+          pc_st_trib: number
+          peso_bruto: number
+          peso_liquido: number
+          preco_promocional: number | null
+          preco_promocional_fat: number
+          preco_sugerido: number | null
+          preco_venda: number | null
+          preco_venda_faturado: number
+          produto_id: number
+          referencia: string
+          st_promo: string
+          subgrupo_id: number | null
+          tb_a_origem: string
+          tp_produto: string | null
+          unidade_id: string | null
+          url_foto: string
+          venda_online: boolean | null
+          vl_cofins: number
+          vl_compra: number | null
+          vl_custo: number
+          vl_custo_medio: number
+          vl_desconto: number
+          vl_difal_sn: number
+          vl_emb: number
+          vl_fcp_st: number
+          vl_frete: number
+          vl_icms_cred: number
+          vl_ipi: number
+          vl_ipi_cred: number
+          vl_multiplicador: number
+          vl_outras_desp: number
+          vl_outro: number
+          vl_pis: number
+          vl_seguro: number
+          vl_st: number
+        }
+        Insert: {
+          altura?: number
+          area?: number
+          ativo?: string | null
+          cest?: string
+          comprimento?: number
+          controla_estoque?: string | null
+          descricao?: string
+          dias_venda_online?: string | null
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          grupo_ibscbs_id?: number | null
+          grupo_icms_id?: number | null
+          grupo_id?: number | null
+          grupo_ipi_id?: number | null
+          grupo_pis_cofins_id?: number | null
+          gtin?: string
+          largura?: number
+          linha_id?: number | null
+          mva?: number
+          ncm?: string
+          nome: string
+          nome_reduzido?: string
+          pc_cofins?: number
+          pc_desconto?: number
+          pc_difal_sn?: number
+          pc_emb?: number
+          pc_fcp_st?: number
+          pc_frete?: number
+          pc_icms_cred?: number
+          pc_ipi?: number
+          pc_ipi_cred?: number
+          pc_markup?: number | null
+          pc_multiplicador?: number
+          pc_outras_desp?: number
+          pc_pis?: number
+          pc_seguro?: number
+          pc_st_trib?: number
+          peso_bruto?: number
+          peso_liquido?: number
+          preco_promocional?: number | null
+          preco_promocional_fat?: number
+          preco_sugerido?: number | null
+          preco_venda?: number | null
+          preco_venda_faturado?: number
+          produto_id?: number
+          referencia?: string
+          st_promo?: string
+          subgrupo_id?: number | null
+          tb_a_origem?: string
+          tp_produto?: string | null
+          unidade_id?: string | null
+          url_foto?: string
+          venda_online?: boolean | null
+          vl_cofins?: number
+          vl_compra?: number | null
+          vl_custo?: number
+          vl_custo_medio?: number
+          vl_desconto?: number
+          vl_difal_sn?: number
+          vl_emb?: number
+          vl_fcp_st?: number
+          vl_frete?: number
+          vl_icms_cred?: number
+          vl_ipi?: number
+          vl_ipi_cred?: number
+          vl_multiplicador?: number
+          vl_outras_desp?: number
+          vl_outro?: number
+          vl_pis?: number
+          vl_seguro?: number
+          vl_st?: number
+        }
+        Update: {
+          altura?: number
+          area?: number
+          ativo?: string | null
+          cest?: string
+          comprimento?: number
+          controla_estoque?: string | null
+          descricao?: string
+          dias_venda_online?: string | null
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          grupo_ibscbs_id?: number | null
+          grupo_icms_id?: number | null
+          grupo_id?: number | null
+          grupo_ipi_id?: number | null
+          grupo_pis_cofins_id?: number | null
+          gtin?: string
+          largura?: number
+          linha_id?: number | null
+          mva?: number
+          ncm?: string
+          nome?: string
+          nome_reduzido?: string
+          pc_cofins?: number
+          pc_desconto?: number
+          pc_difal_sn?: number
+          pc_emb?: number
+          pc_fcp_st?: number
+          pc_frete?: number
+          pc_icms_cred?: number
+          pc_ipi?: number
+          pc_ipi_cred?: number
+          pc_markup?: number | null
+          pc_multiplicador?: number
+          pc_outras_desp?: number
+          pc_pis?: number
+          pc_seguro?: number
+          pc_st_trib?: number
+          peso_bruto?: number
+          peso_liquido?: number
+          preco_promocional?: number | null
+          preco_promocional_fat?: number
+          preco_sugerido?: number | null
+          preco_venda?: number | null
+          preco_venda_faturado?: number
+          produto_id?: number
+          referencia?: string
+          st_promo?: string
+          subgrupo_id?: number | null
+          tb_a_origem?: string
+          tp_produto?: string | null
+          unidade_id?: string | null
+          url_foto?: string
+          venda_online?: boolean | null
+          vl_cofins?: number
+          vl_compra?: number | null
+          vl_custo?: number
+          vl_custo_medio?: number
+          vl_desconto?: number
+          vl_difal_sn?: number
+          vl_emb?: number
+          vl_fcp_st?: number
+          vl_frete?: number
+          vl_icms_cred?: number
+          vl_ipi?: number
+          vl_ipi_cred?: number
+          vl_multiplicador?: number
+          vl_outras_desp?: number
+          vl_outro?: number
+          vl_pis?: number
+          vl_seguro?: number
+          vl_st?: number
+        }
+        Relationships: []
+      }
+      produto_conversao: {
+        Row: {
+          conversao_id: number
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          fator_mult: number
+          produto_id: number
+          unidade_id: string
+        }
+        Insert: {
+          conversao_id?: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          fator_mult?: number
+          produto_id: number
+          unidade_id?: string
+        }
+        Update: {
+          conversao_id?: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          fator_mult?: number
+          produto_id?: number
+          unidade_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
