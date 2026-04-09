@@ -73,7 +73,6 @@ const XEstoqueGridCols: IGridColumn[] = [
 
 /* ─── Código de Barras grid columns ─── */
 const XBarraGridCols: IGridColumn[] = [
-  { key: "produto_codbarra_id", label: "Código", width: "80px", align: "right" },
   { key: "cod_barra", label: "Código de Barras", width: "1fr" },
 ];
 
