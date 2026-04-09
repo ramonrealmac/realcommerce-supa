@@ -148,13 +148,13 @@ const ProdutoForm: React.FC = () => {
   /* ─── Grupo/Subgrupo maps for grid display ─── */
   const XGrupoMap = useMemo(() => {
     const m: Record<number, string> = {};
-    XGrupos.forEach((g: any) => { m[g.grupo_id] = g.nome; });
+    XGrupos.forEach((g: any) => { m[g.produto_grupo_id] = g.nome; });
     return m;
   }, [XGrupos]);
 
   const XSubgrupoMap = useMemo(() => {
     const m: Record<number, string> = {};
-    XSubgrupos.forEach((s: any) => { m[s.subgrupo_id] = s.nome; });
+    XSubgrupos.forEach((s: any) => { m[s.produto_subgrupo_id] = s.nome; });
     return m;
   }, [XSubgrupos]);
 
