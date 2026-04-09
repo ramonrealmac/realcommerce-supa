@@ -813,17 +813,60 @@ const ProdutoForm: React.FC = () => {
             {XSubTab === "estoques" && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1 mb-2">
-                  <ToolbarBtn icon={<Plus size={14} />} label="Incluir" onClick={() => toast.info("Use o formulário de Estoque para incluir.")} color="success" disabled={!XCurrentRecord} />
-                  <ToolbarBtn icon={<SquarePen size={14} />} label="Editar" onClick={() => toast.info("Use o formulário de Estoque para editar.")} disabled={XEstIdx < 0} />
-                  <ToolbarBtn icon={<Trash2 size={14} />} label="Excluir" onClick={() => toast.info("Use o formulário de Estoque para excluir.")} disabled={XEstIdx < 0} color="destructive" />
+                  <ToolbarBtn icon={<Plus size={14} />} label="Incluir" onClick={handleEstIncluir} color="success" disabled={!XCurrentRecord} />
+                  <ToolbarBtn icon={<SquarePen size={14} />} label="Editar" onClick={handleEstEditar} disabled={XEstIdx < 0} />
+                  <ToolbarBtn icon={<Trash2 size={14} />} label="Excluir" onClick={handleEstExcluir} disabled={XEstIdx < 0} color="destructive" />
                   <ToolbarBtn icon={<RefreshCw size={14} />} label="Recarregar" onClick={() => XCurrentRecord && loadSubData(XCurrentRecord.produto_id)} />
                   <ToolbarBtn icon={<Filter size={14} />} label="Filtrar" onClick={() => setXEstShowFilters(!XEstShowFilters)} />
                 </div>
+
+                {XEstMode !== "view" && (
+                  <div className="grid grid-cols-[1fr_120px_100px_100px_auto] gap-2 mb-2 items-end">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Depósito *</label>
+                      <Select value={XEstForm.deposito_id || "__none__"} onValueChange={v => setXEstForm(p => ({ ...p, deposito_id: v === "__none__" ? "" : v }))}>
+                        <SelectTrigger className="h-[30px] text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">—</SelectItem>
+                          {XDepositos.map((d: any) => <SelectItem key={d.deposito_id} value={String(d.deposito_id)}>{d.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Endereço</label>
+                      <input type="text" value={XEstForm.endereco} onChange={e => setXEstForm(p => ({ ...p, endereco: e.target.value }))}
+                        className={`w-full border border-border rounded px-2 py-1 text-sm ${XBgEdit} focus:ring-2 focus:ring-ring outline-none`} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Est. Mín.</label>
+                      <input type="text" value={XEstForm.estoque_minimo} onChange={e => setXEstForm(p => ({ ...p, estoque_minimo: e.target.value }))}
+                        className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${XBgEdit} focus:ring-2 focus:ring-ring outline-none`} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Est. Padrão</label>
+                      <input type="text" value={XEstForm.estoque_padrao} onChange={e => setXEstForm(p => ({ ...p, estoque_padrao: e.target.value }))}
+                        className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${XBgEdit} focus:ring-2 focus:ring-ring outline-none`} />
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={handleEstSalvar} className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded">Salvar</button>
+                      <button onClick={() => setXEstMode("view")} className="px-2 py-1 text-xs bg-muted rounded">Cancelar</button>
+                    </div>
+                  </div>
+                )}
+
                 <DataGrid
                   columns={XEstoqueGridCols}
                   data={XEstoques}
                   selectedIdx={XEstIdx}
                   onRowClick={(_, idx) => setXEstIdx(idx)}
+                  onRowDoubleClick={(_, idx) => {
+                    setXEstIdx(idx);
+                    const r = XEstoques[idx];
+                    if (r) {
+                      setXEstMode("edit");
+                      setXEstForm({ deposito_id: String(r.deposito_id), endereco: r.endereco || "", estoque_minimo: String(r.estoque_minimo || 0), estoque_padrao: String(r.estoque_padrao || 0) });
+                    }
+                  }}
                   maxHeight="300px"
                   showFilters={XEstShowFilters}
                   filterValues={XEstFilterValues}
