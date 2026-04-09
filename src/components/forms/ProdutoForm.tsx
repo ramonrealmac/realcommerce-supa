@@ -20,10 +20,6 @@ const fmtBR = (v: number | string, decimals: number): string => {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
 
-const parseBR = (s: string): string => {
-  // Remove thousand sep ".", replace decimal sep "," with "."
-  return s.replace(/\./g, "").replace(",", ".");
-};
 
 /* ─── Search columns ─── */
 const XLocalizarColumns: IGridColumn[] = [
