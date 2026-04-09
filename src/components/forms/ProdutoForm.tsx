@@ -20,10 +20,6 @@ const fmtBR = (v: number | string, decimals: number): string => {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
 
-const parseBR = (s: string): string => {
-  // Remove thousand sep ".", replace decimal sep "," with "."
-  return s.replace(/\./g, "").replace(",", ".");
-};
 
 /* ─── Search columns ─── */
 const XLocalizarColumns: IGridColumn[] = [
@@ -42,7 +38,7 @@ const emptyForm = (): Record<string, string> => ({
   tp_produto: "PA", ativo: "S", preco_venda: "0", preco_promocional: "0", vl_compra: "0",
   pc_markup: "0", preco_sugerido: "0", url_foto: "", venda_online: "true",
   dias_venda_online: "0,1,2,3,4", controla_estoque: "S",
-  grupo_id: "", subgrupo_id: "", linha_id: "",
+  produto_grupo_id: "", produto_subgrupo_id: "", linha_id: "",
   nm_ecommerce: "", ds_ecommerce: "",
   ncm: "", cest: "", mva: "0", tb_a_origem: "", grupo_icms_id: "", grupo_ipi_id: "", grupo_pis_cofins_id: "",
   pc_ipi: "0", pc_frete: "0", pc_icms_cred: "0", pc_ipi_cred: "0", pc_emb: "0", pc_seguro: "0",
@@ -73,7 +69,6 @@ const XEstoqueGridCols: IGridColumn[] = [
 
 /* ─── Código de Barras grid columns ─── */
 const XBarraGridCols: IGridColumn[] = [
-  { key: "produto_codbarra_id", label: "Código", width: "80px", align: "right" },
   { key: "cod_barra", label: "Código de Barras", width: "1fr" },
 ];
 
@@ -104,6 +99,8 @@ const ProdutoForm: React.FC = () => {
   const [XEstIdx, setXEstIdx] = useState(-1);
   const [XEstShowFilters, setXEstShowFilters] = useState(false);
   const [XEstFilterValues, setXEstFilterValues] = useState<Record<string, string>>({});
+  const [XEstMode, setXEstMode] = useState<"view" | "edit" | "insert">("view");
+  const [XEstForm, setXEstForm] = useState({ deposito_id: "", endereco: "", estoque_minimo: "0", estoque_padrao: "0" });
   const [XConversoes, setXConversoes] = useState<any[]>([]);
   const [XConvMode, setXConvMode] = useState<"view" | "edit" | "insert">("view");
   const [XConvIdx, setXConvIdx] = useState(-1);
@@ -127,8 +124,8 @@ const ProdutoForm: React.FC = () => {
   /* ─── Load lookups ─── */
   const loadLookups = useCallback(async () => {
     const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
-      db.from("produto_grupo").select("grupo_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
-      db.from("subgrupo_produto").select("subgrupo_id,nome,grupo_id").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
+      db.from("produto_grupo").select("produto_grupo_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
+      db.from("produto_subgrupo").select("produto_subgrupo_id,nome,produto_grupo_id").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
       db.from("linha_produto").select("linha_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
       db.from("unidade").select("unidade_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
       db.from("grupo_icms").select("grupo_icms_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
@@ -149,13 +146,13 @@ const ProdutoForm: React.FC = () => {
   /* ─── Grupo/Subgrupo maps for grid display ─── */
   const XGrupoMap = useMemo(() => {
     const m: Record<number, string> = {};
-    XGrupos.forEach((g: any) => { m[g.grupo_id] = g.nome; });
+    XGrupos.forEach((g: any) => { m[g.produto_grupo_id] = g.nome; });
     return m;
   }, [XGrupos]);
 
   const XSubgrupoMap = useMemo(() => {
     const m: Record<number, string> = {};
-    XSubgrupos.forEach((s: any) => { m[s.subgrupo_id] = s.nome; });
+    XSubgrupos.forEach((s: any) => { m[s.produto_subgrupo_id] = s.nome; });
     return m;
   }, [XSubgrupos]);
 
@@ -171,8 +168,8 @@ const ProdutoForm: React.FC = () => {
   const XEnrichedData = useMemo(() => {
     return XData.map(r => ({
       ...r,
-      grupo_nome: XGrupoMap[r.grupo_id] || "",
-      subgrupo_nome: XSubgrupoMap[r.subgrupo_id] || "",
+      grupo_nome: XGrupoMap[r.produto_grupo_id] || "",
+      subgrupo_nome: XSubgrupoMap[r.produto_subgrupo_id] || "",
     }));
   }, [XData, XGrupoMap, XSubgrupoMap]);
 
@@ -218,10 +215,10 @@ const ProdutoForm: React.FC = () => {
   // Filtered subgrupos based on selected grupo
   const XFilteredSubgrupos = useMemo(() => {
     if (!XIsEditing) return XSubgrupos;
-    const XGrupoId = parseInt(XF.grupo_id);
+    const XGrupoId = parseInt(XF.produto_grupo_id);
     if (!XGrupoId) return [];
-    return XSubgrupos.filter((s: any) => s.grupo_id === XGrupoId);
-  }, [XSubgrupos, XF.grupo_id, XIsEditing]);
+    return XSubgrupos.filter((s: any) => s.produto_grupo_id === XGrupoId);
+  }, [XSubgrupos, XF.produto_grupo_id, XIsEditing]);
 
   /* ─── Cost pairs mapping ─── */
   const XCostPairs: [string, string][] = [
@@ -272,8 +269,8 @@ const ProdutoForm: React.FC = () => {
   }, []);
 
   const handleCostFieldChange = useCallback((key: string, rawVal: string) => {
-    // Accept pt-BR input, convert to internal number
-    const val = parseBR(rawVal);
+    // Allow raw numeric input directly
+    const val = rawVal;
     setXF(prev => {
       const XNext = { ...prev, [key]: val };
       if (key.startsWith("pc_") || key === "vl_compra") {
@@ -322,8 +319,8 @@ const ProdutoForm: React.FC = () => {
       referencia: XF.referencia.trim(),
       tp_produto: XF.tp_produto || "PA",
       ativo: XF.ativo || "S",
-      grupo_id: toInt(XF.grupo_id),
-      subgrupo_id: toInt(XF.subgrupo_id),
+      produto_grupo_id: toInt(XF.produto_grupo_id),
+      produto_subgrupo_id: toInt(XF.produto_subgrupo_id),
       linha_id: toInt(XF.linha_id),
       nm_ecommerce: XF.nm_ecommerce.trim(),
       ds_ecommerce: XF.ds_ecommerce.trim(),
@@ -395,6 +392,55 @@ const ProdutoForm: React.FC = () => {
   const handleLast = () => setXCurrentIdx(XData.length - 1);
   const handleRefresh = async () => { await loadData(); await loadLookups(); toast.info("Dados recarregados."); };
   const handleSair = () => { const t = XTabs.find(t => t.id === XActiveTabId); if (t) closeTab(t.id); };
+
+
+  /* ─── Estoque CRUD ─── */
+  const handleEstIncluir = () => {
+    setXEstMode("insert");
+    setXEstIdx(-1);
+    setXEstForm({ deposito_id: "", endereco: "", estoque_minimo: "0", estoque_padrao: "0" });
+  };
+  const handleEstEditar = () => {
+    if (XEstIdx < 0) return;
+    const r = XEstoques[XEstIdx];
+    setXEstMode("edit");
+    setXEstForm({ deposito_id: String(r.deposito_id), endereco: r.endereco || "", estoque_minimo: String(r.estoque_minimo || 0), estoque_padrao: String(r.estoque_padrao || 0) });
+  };
+  const handleEstSalvar = async () => {
+    if (!XCurrentRecord) return;
+    if (!XEstForm.deposito_id) { toast.error("Selecione o depósito."); return; }
+    const XPay = {
+      produto_id: XCurrentRecord.produto_id,
+      empresa_id: XEmpresaMatrizId,
+      deposito_id: parseInt(XEstForm.deposito_id),
+      endereco: XEstForm.endereco.trim(),
+      estoque_minimo: parseFloat(XEstForm.estoque_minimo) || 0,
+      estoque_padrao: parseFloat(XEstForm.estoque_padrao) || 0,
+    };
+    if (XEstMode === "edit" && XEstIdx >= 0) {
+      const { error } = await db.from("estoque").update({ ...XPay, dt_alteracao: new Date().toISOString() }).eq("estoque_id", XEstoques[XEstIdx].estoque_id);
+      if (error) { toast.error("Erro: " + error.message); return; }
+    } else {
+      const { error } = await db.from("estoque").insert(XPay);
+      if (error) { toast.error("Erro: " + error.message); return; }
+    }
+    toast.success("Estoque salvo.");
+    setXEstMode("view");
+    loadSubData(XCurrentRecord.produto_id);
+  };
+  const handleEstExcluir = async () => {
+    if (XEstIdx < 0 || !XCurrentRecord) return;
+    const r = XEstoques[XEstIdx];
+    if ((r.estoque_fisico || 0) !== 0 || (r.estoque_reservado || 0) !== 0) {
+      toast.error("Não é possível excluir estoque com quantidade física ou reservada diferente de zero.");
+      return;
+    }
+    if (!confirm("Excluir este registro de estoque?")) return;
+    await db.from("estoque").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("estoque_id", r.estoque_id);
+    toast.success("Estoque excluído.");
+    setXEstIdx(-1);
+    loadSubData(XCurrentRecord.produto_id);
+  };
 
   /* ─── Conversão CRUD ─── */
   const handleConvIncluir = () => {
@@ -534,8 +580,9 @@ const ProdutoForm: React.FC = () => {
           <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
           <input
             type="text"
-            value={fmtBR(XF[key] || "0", dec)}
+            value={XF[key] || "0"}
             onChange={(e) => handleCostFieldChange(key, e.target.value)}
+            onFocus={(e) => e.target.select()}
             readOnly={opts?.readOnly}
             className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${opts?.readOnly ? XBgRead : XBgEdit} focus:ring-2 focus:ring-ring outline-none`}
           />
@@ -584,15 +631,16 @@ const ProdutoForm: React.FC = () => {
     );
   };
 
-  /* ─── Cost row pair (percentage + R$) — both editable, pt-BR format ─── */
+  /* ─── Cost row pair (percentage + R$) — both editable, raw value during edit ─── */
   const renderCostRow = (labelPc: string, pcKey: string, vlKey: string) => (
     <>
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">{labelPc}</label>
         <input
           type="text"
-          value={XIsEditing ? fmtBR(XF[pcKey] || "0", 4) : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[pcKey] || 0) : 0, 4)}
+          value={XIsEditing ? (XF[pcKey] || "0") : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[pcKey] || 0) : 0, 4)}
           onChange={(e) => handleCostFieldChange(pcKey, e.target.value)}
+          onFocus={(e) => e.target.select()}
           readOnly={!XIsEditing}
           className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
         />
@@ -601,8 +649,9 @@ const ProdutoForm: React.FC = () => {
         <label className="block text-xs font-medium text-muted-foreground mb-1">R$</label>
         <input
           type="text"
-          value={XIsEditing ? fmtBR(XF[vlKey] || "0", 2) : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[vlKey] || 0) : 0, 2)}
+          value={XIsEditing ? (XF[vlKey] || "0") : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[vlKey] || 0) : 0, 2)}
           onChange={(e) => handleCostFieldChange(vlKey, e.target.value)}
+          onFocus={(e) => e.target.select()}
           readOnly={!XIsEditing}
           className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
         />
@@ -703,8 +752,8 @@ const ProdutoForm: React.FC = () => {
             {XSubTab === "cadastro" && (
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {renderLookup("Grupo", "grupo_id", XGrupos, "grupo_id", "nome")}
-                  {renderLookup("Subgrupo", "subgrupo_id", XFilteredSubgrupos, "subgrupo_id", "nome")}
+                  {renderLookup("Grupo", "produto_grupo_id", XGrupos, "produto_grupo_id", "nome")}
+                  {renderLookup("Subgrupo", "produto_subgrupo_id", XFilteredSubgrupos, "produto_subgrupo_id", "nome")}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {renderLookup("Linha do Produto", "linha_id", XLinhas, "linha_id", "nome")}
@@ -758,17 +807,60 @@ const ProdutoForm: React.FC = () => {
             {XSubTab === "estoques" && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1 mb-2">
-                  <ToolbarBtn icon={<Plus size={14} />} label="Incluir" onClick={() => toast.info("Use o formulário de Estoque para incluir.")} color="success" disabled={!XCurrentRecord} />
-                  <ToolbarBtn icon={<SquarePen size={14} />} label="Editar" onClick={() => toast.info("Use o formulário de Estoque para editar.")} disabled={XEstIdx < 0} />
-                  <ToolbarBtn icon={<Trash2 size={14} />} label="Excluir" onClick={() => toast.info("Use o formulário de Estoque para excluir.")} disabled={XEstIdx < 0} color="destructive" />
+                  <ToolbarBtn icon={<Plus size={14} />} label="Incluir" onClick={handleEstIncluir} color="success" disabled={!XCurrentRecord} />
+                  <ToolbarBtn icon={<SquarePen size={14} />} label="Editar" onClick={handleEstEditar} disabled={XEstIdx < 0} />
+                  <ToolbarBtn icon={<Trash2 size={14} />} label="Excluir" onClick={handleEstExcluir} disabled={XEstIdx < 0} color="destructive" />
                   <ToolbarBtn icon={<RefreshCw size={14} />} label="Recarregar" onClick={() => XCurrentRecord && loadSubData(XCurrentRecord.produto_id)} />
                   <ToolbarBtn icon={<Filter size={14} />} label="Filtrar" onClick={() => setXEstShowFilters(!XEstShowFilters)} />
                 </div>
+
+                {XEstMode !== "view" && (
+                  <div className="grid grid-cols-[1fr_120px_100px_100px_auto] gap-2 mb-2 items-end">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Depósito *</label>
+                      <Select value={XEstForm.deposito_id || "__none__"} onValueChange={v => setXEstForm(p => ({ ...p, deposito_id: v === "__none__" ? "" : v }))}>
+                        <SelectTrigger className="h-[30px] text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">—</SelectItem>
+                          {XDepositos.map((d: any) => <SelectItem key={d.deposito_id} value={String(d.deposito_id)}>{d.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Endereço</label>
+                      <input type="text" value={XEstForm.endereco} onChange={e => setXEstForm(p => ({ ...p, endereco: e.target.value }))}
+                        className={`w-full border border-border rounded px-2 py-1 text-sm ${XBgEdit} focus:ring-2 focus:ring-ring outline-none`} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Est. Mín.</label>
+                      <input type="text" value={XEstForm.estoque_minimo} onChange={e => setXEstForm(p => ({ ...p, estoque_minimo: e.target.value }))}
+                        className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${XBgEdit} focus:ring-2 focus:ring-ring outline-none`} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Est. Padrão</label>
+                      <input type="text" value={XEstForm.estoque_padrao} onChange={e => setXEstForm(p => ({ ...p, estoque_padrao: e.target.value }))}
+                        className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${XBgEdit} focus:ring-2 focus:ring-ring outline-none`} />
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={handleEstSalvar} className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded">Salvar</button>
+                      <button onClick={() => setXEstMode("view")} className="px-2 py-1 text-xs bg-muted rounded">Cancelar</button>
+                    </div>
+                  </div>
+                )}
+
                 <DataGrid
                   columns={XEstoqueGridCols}
                   data={XEstoques}
                   selectedIdx={XEstIdx}
                   onRowClick={(_, idx) => setXEstIdx(idx)}
+                  onRowDoubleClick={(_, idx) => {
+                    setXEstIdx(idx);
+                    const r = XEstoques[idx];
+                    if (r) {
+                      setXEstMode("edit");
+                      setXEstForm({ deposito_id: String(r.deposito_id), endereco: r.endereco || "", estoque_minimo: String(r.estoque_minimo || 0), estoque_padrao: String(r.estoque_padrao || 0) });
+                    }
+                  }}
                   maxHeight="300px"
                   showFilters={XEstShowFilters}
                   filterValues={XEstFilterValues}

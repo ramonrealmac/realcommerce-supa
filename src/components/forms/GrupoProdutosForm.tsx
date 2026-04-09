@@ -4,15 +4,17 @@ import {
   Trash2, RefreshCw, List, HelpCircle, LogOut, Search
 } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
-import { dataStore, IGrupo } from "@/data/store";
+import { supabase } from "@/integrations/supabase/client";
 import SubgrupoGrid from "./SubgrupoGrid";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import { toast } from "sonner";
 import { useGridFilter } from "@/hooks/useGridFilter";
 
+const db = supabase as any;
+
 const XLocalizarColumns: IGridColumn[] = [
-  { key: "GRUPO_ID", label: "Código", width: "80px", align: "right" },
-  { key: "NM_GRUPO", label: "Nome", width: "1fr" },
+  { key: "produto_grupo_id", label: "Código", width: "80px", align: "right" },
+  { key: "nome", label: "Nome", width: "1fr" },
 ];
 
 type TFormMode = "view" | "edit" | "insert";
@@ -22,18 +24,19 @@ const GrupoProdutosForm: React.FC = () => {
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
-  const [XGrupos, setXGrupos] = useState<IGrupo[]>([]);
+  const [XGrupos, setXGrupos] = useState<any[]>([]);
   const [XCurrentIdx, setXCurrentIdx] = useState(0);
   const [XNmGrupoEdit, setXNmGrupoEdit] = useState("");
   const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
 
-  const loadData = useCallback(() => {
-    const XData = dataStore.getGrupos(XEmpresaMatrizId);
-    setXGrupos(XData);
-    if (XData.length > 0 && XCurrentIdx >= XData.length) {
-      setXCurrentIdx(XData.length - 1);
-    }
-  }, [XEmpresaMatrizId, XCurrentIdx]);
+  const loadData = useCallback(async () => {
+    const { data } = await db.from("produto_grupo")
+      .select("produto_grupo_id,nome,empresa_id,excluido")
+      .eq("empresa_id", XEmpresaMatrizId)
+      .eq("excluido", false)
+      .order("produto_grupo_id");
+    setXGrupos(data || []);
+  }, [XEmpresaMatrizId]);
 
   useEffect(() => {
     loadData();
@@ -45,7 +48,7 @@ const GrupoProdutosForm: React.FC = () => {
 
   useEffect(() => {
     if (XCurrentGrupo && XFormMode === "edit") {
-      setXNmGrupoEdit(XCurrentGrupo.NM_GRUPO);
+      setXNmGrupoEdit(XCurrentGrupo.nome);
     }
   }, [XCurrentGrupo, XFormMode]);
 
@@ -58,36 +61,45 @@ const GrupoProdutosForm: React.FC = () => {
   const handleEditar = () => {
     if (!XCurrentGrupo) return;
     setXFormMode("edit");
-    setXNmGrupoEdit(XCurrentGrupo.NM_GRUPO);
+    setXNmGrupoEdit(XCurrentGrupo.nome);
     setXInnerTab("cadastro");
   };
 
-  const handleSalvar = () => {
+  const handleSalvar = async () => {
     if (!XNmGrupoEdit.trim()) {
       toast.error("O nome do grupo é obrigatório.");
       return;
     }
     if (XFormMode === "insert") {
-      const XNew = dataStore.addGrupo(XEmpresaMatrizId, XNmGrupoEdit.trim());
-      toast.success(`Grupo ${XNew.GRUPO_ID} incluído com sucesso.`);
+      const { error } = await db.from("produto_grupo").insert({
+        empresa_id: XEmpresaMatrizId,
+        nome: XNmGrupoEdit.trim(),
+      });
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success("Grupo incluído com sucesso.");
     } else if (XFormMode === "edit" && XCurrentGrupo) {
-      dataStore.updateGrupo(XEmpresaMatrizId, XCurrentGrupo.GRUPO_ID, XNmGrupoEdit.trim());
+      const { error } = await db.from("produto_grupo").update({
+        nome: XNmGrupoEdit.trim(),
+        dt_alteracao: new Date().toISOString(),
+      }).eq("produto_grupo_id", XCurrentGrupo.produto_grupo_id);
+      if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Grupo alterado com sucesso.");
     }
     setXFormMode("view");
-    loadData();
+    await loadData();
   };
 
   const handleCancelar = () => {
     setXFormMode("view");
   };
 
-  const handleExcluir = () => {
+  const handleExcluir = async () => {
     if (!XCurrentGrupo) return;
-    if (confirm(`Deseja realmente excluir o grupo "${XCurrentGrupo.NM_GRUPO}"?`)) {
-      dataStore.deleteGrupo(XEmpresaMatrizId, XCurrentGrupo.GRUPO_ID);
+    if (confirm(`Deseja realmente excluir o grupo "${XCurrentGrupo.nome}"?`)) {
+      await db.from("produto_grupo").update({ excluido: true, dt_alteracao: new Date().toISOString() })
+        .eq("produto_grupo_id", XCurrentGrupo.produto_grupo_id);
       toast.success("Grupo excluído com sucesso.");
-      loadData();
+      await loadData();
       if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
     }
   };
@@ -97,8 +109,8 @@ const GrupoProdutosForm: React.FC = () => {
   const handleNext = () => setXCurrentIdx(Math.min(XGrupos.length - 1, XCurrentIdx + 1));
   const handleLast = () => setXCurrentIdx(XGrupos.length - 1);
 
-  const handleRefresh = () => {
-    loadData();
+  const handleRefresh = async () => {
+    await loadData();
     toast.info("Dados recarregados.");
   };
 
@@ -110,8 +122,8 @@ const GrupoProdutosForm: React.FC = () => {
   // Localizar tab - filtered data
   const XFilteredGrupos = useGridFilter(XGrupos, XSearchFilters);
 
-  const handleSelectFromSearch = (XGrupo: IGrupo) => {
-    const XIdx = XGrupos.findIndex(g => g.GRUPO_ID === XGrupo.GRUPO_ID);
+  const handleSelectFromSearch = (XGrupo: any) => {
+    const XIdx = XGrupos.findIndex((g: any) => g.produto_grupo_id === XGrupo.produto_grupo_id);
     if (XIdx >= 0) {
       setXCurrentIdx(XIdx);
       setXInnerTab("cadastro");
@@ -144,18 +156,8 @@ const GrupoProdutosForm: React.FC = () => {
           </>
         ) : (
           <>
-            <ToolbarBtn
-              icon={<Save size={16} />}
-              label="Salvar"
-              onClick={handleSalvar}
-              color="success"
-            />
-            <ToolbarBtn
-              icon={<LogOut size={16} />}
-              label="Cancelar"
-              onClick={handleCancelar}
-              color="destructive"
-            />
+            <ToolbarBtn icon={<Save size={16} />} label="Salvar" onClick={handleSalvar} color="success" />
+            <ToolbarBtn icon={<LogOut size={16} />} label="Cancelar" onClick={handleCancelar} color="destructive" />
           </>
         )}
       </div>
@@ -192,7 +194,7 @@ const GrupoProdutosForm: React.FC = () => {
             <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
               <div className="w-full md:w-32">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
-                <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentGrupo?.GRUPO_ID ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
+                <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentGrupo?.produto_grupo_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
               </div>
               <div className="w-full md:w-[13.5rem]">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Emp. Matriz</label>
@@ -213,7 +215,7 @@ const GrupoProdutosForm: React.FC = () => {
                 ) : (
                   <input
                     type="text"
-                    value={XCurrentGrupo?.NM_GRUPO ?? ""}
+                    value={XCurrentGrupo?.nome ?? ""}
                     readOnly
                     className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary"
                   />
@@ -225,7 +227,7 @@ const GrupoProdutosForm: React.FC = () => {
             {XCurrentGrupo && (
               <SubgrupoGrid
                 XEmpresaId={XEmpresaMatrizId}
-                XGrupoId={XCurrentGrupo.GRUPO_ID}
+                XGrupoId={XCurrentGrupo.produto_grupo_id}
               />
             )}
           </div>
@@ -237,7 +239,7 @@ const GrupoProdutosForm: React.FC = () => {
             showFilters
             filterValues={XSearchFilters}
             onFilterChange={(key, value) => setXSearchFilters(prev => ({ ...prev, [key]: value }))}
-            onRowDoubleClick={(row) => handleSelectFromSearch(row as IGrupo)}
+            onRowDoubleClick={(row) => handleSelectFromSearch(row)}
             maxHeight="400px"
             exportTitle="Grupos de Produtos"
           />
