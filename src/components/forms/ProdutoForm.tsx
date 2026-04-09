@@ -103,6 +103,8 @@ const ProdutoForm: React.FC = () => {
   const [XEstIdx, setXEstIdx] = useState(-1);
   const [XEstShowFilters, setXEstShowFilters] = useState(false);
   const [XEstFilterValues, setXEstFilterValues] = useState<Record<string, string>>({});
+  const [XEstMode, setXEstMode] = useState<"view" | "edit" | "insert">("view");
+  const [XEstForm, setXEstForm] = useState({ deposito_id: "", endereco: "", estoque_minimo: "0", estoque_padrao: "0" });
   const [XConversoes, setXConversoes] = useState<any[]>([]);
   const [XConvMode, setXConvMode] = useState<"view" | "edit" | "insert">("view");
   const [XConvIdx, setXConvIdx] = useState(-1);
