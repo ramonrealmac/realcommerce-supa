@@ -42,7 +42,7 @@ const emptyForm = (): Record<string, string> => ({
   tp_produto: "PA", ativo: "S", preco_venda: "0", preco_promocional: "0", vl_compra: "0",
   pc_markup: "0", preco_sugerido: "0", url_foto: "", venda_online: "true",
   dias_venda_online: "0,1,2,3,4", controla_estoque: "S",
-  grupo_id: "", subgrupo_id: "", linha_id: "",
+  produto_grupo_id: "", produto_subgrupo_id: "", linha_id: "",
   nm_ecommerce: "", ds_ecommerce: "",
   ncm: "", cest: "", mva: "0", tb_a_origem: "", grupo_icms_id: "", grupo_ipi_id: "", grupo_pis_cofins_id: "",
   pc_ipi: "0", pc_frete: "0", pc_icms_cred: "0", pc_ipi_cred: "0", pc_emb: "0", pc_seguro: "0",
