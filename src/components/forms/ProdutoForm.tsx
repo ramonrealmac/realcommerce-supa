@@ -170,8 +170,8 @@ const ProdutoForm: React.FC = () => {
   const XEnrichedData = useMemo(() => {
     return XData.map(r => ({
       ...r,
-      grupo_nome: XGrupoMap[r.grupo_id] || "",
-      subgrupo_nome: XSubgrupoMap[r.subgrupo_id] || "",
+      grupo_nome: XGrupoMap[r.produto_grupo_id] || "",
+      subgrupo_nome: XSubgrupoMap[r.produto_subgrupo_id] || "",
     }));
   }, [XData, XGrupoMap, XSubgrupoMap]);
 
