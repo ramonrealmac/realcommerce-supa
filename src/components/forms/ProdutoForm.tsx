@@ -6,7 +6,7 @@ import FormToolbar from "@/components/shared/FormToolbar";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, SquarePen, Trash2, RefreshCw } from "lucide-react";
+import { Plus, SquarePen, Trash2, RefreshCw, Upload, Filter } from "lucide-react";
 import { ToolbarBtn } from "@/components/shared/FormToolbar";
 import { baseService } from "@/utils/baseService";
 import { useGridFilter } from "@/hooks/useGridFilter";
@@ -14,10 +14,23 @@ import { useGridFilter } from "@/hooks/useGridFilter";
 const db = supabase as any;
 type TFormMode = "view" | "edit" | "insert";
 
+/* ─── Helpers pt-BR formatting ─── */
+const fmtBR = (v: number | string, decimals: number): string => {
+  const n = typeof v === "string" ? parseFloat(v) || 0 : v;
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+};
+
+const parseBR = (s: string): string => {
+  // Remove thousand sep ".", replace decimal sep "," with "."
+  return s.replace(/\./g, "").replace(",", ".");
+};
+
 /* ─── Search columns ─── */
 const XLocalizarColumns: IGridColumn[] = [
   { key: "produto_id", label: "Código", width: "80px", align: "right" },
   { key: "nome", label: "Descrição", width: "2fr" },
+  { key: "grupo_nome", label: "Grupo", width: "1fr" },
+  { key: "subgrupo_nome", label: "Subgrupo", width: "1fr" },
   { key: "nome_reduzido", label: "Nome Reduzido", width: "1fr" },
   { key: "gtin", label: "GTIN", width: "140px" },
   { key: "preco_venda", label: "Preço Venda", width: "110px", align: "right" },
@@ -30,6 +43,7 @@ const emptyForm = (): Record<string, string> => ({
   pc_markup: "0", preco_sugerido: "0", url_foto: "", venda_online: "true",
   dias_venda_online: "0,1,2,3,4", controla_estoque: "S",
   grupo_id: "", subgrupo_id: "", linha_id: "",
+  nm_ecommerce: "", ds_ecommerce: "",
   ncm: "", cest: "", mva: "0", tb_a_origem: "", grupo_icms_id: "", grupo_ipi_id: "", grupo_pis_cofins_id: "",
   pc_ipi: "0", pc_frete: "0", pc_icms_cred: "0", pc_ipi_cred: "0", pc_emb: "0", pc_seguro: "0",
   pc_st_trib: "0", pc_outras_desp: "0", pc_pis: "0", pc_cofins: "0", pc_fcp_st: "0", pc_difal_sn: "0",
@@ -57,6 +71,12 @@ const XEstoqueGridCols: IGridColumn[] = [
   { key: "estoque_disponivel", label: "Qt. Disponível", width: "120px", align: "right" },
 ];
 
+/* ─── Código de Barras grid columns ─── */
+const XBarraGridCols: IGridColumn[] = [
+  { key: "produto_codbarra_id", label: "Código", width: "80px", align: "right" },
+  { key: "cod_barra", label: "Código de Barras", width: "1fr" },
+];
+
 const ProdutoForm: React.FC = () => {
   const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
@@ -81,10 +101,21 @@ const ProdutoForm: React.FC = () => {
 
   // Sub-grids
   const [XEstoques, setXEstoques] = useState<any[]>([]);
+  const [XEstIdx, setXEstIdx] = useState(-1);
+  const [XEstShowFilters, setXEstShowFilters] = useState(false);
+  const [XEstFilterValues, setXEstFilterValues] = useState<Record<string, string>>({});
   const [XConversoes, setXConversoes] = useState<any[]>([]);
   const [XConvMode, setXConvMode] = useState<"view" | "edit" | "insert">("view");
   const [XConvIdx, setXConvIdx] = useState(-1);
   const [XConvForm, setXConvForm] = useState({ unidade_id: "", tp_movimento: "", fator_mult: "1" });
+
+  // Código de Barras sub-grid
+  const [XBarras, setXBarras] = useState<any[]>([]);
+  const [XBarraIdx, setXBarraIdx] = useState(-1);
+  const [XBarraMode, setXBarraMode] = useState<"view" | "edit" | "insert">("view");
+  const [XBarraForm, setXBarraForm] = useState({ cod_barra: "" });
+  const [XBarraShowFilters, setXBarraShowFilters] = useState(false);
+  const [XBarraFilterValues, setXBarraFilterValues] = useState<Record<string, string>>({});
 
   const XCurrentRecord = XData[XCurrentIdx] || null;
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
@@ -115,7 +146,20 @@ const ProdutoForm: React.FC = () => {
     setXDepositos(r8.data || []);
   }, [XEmpresaMatrizId]);
 
-  /* ─── Load data ─── */
+  /* ─── Grupo/Subgrupo maps for grid display ─── */
+  const XGrupoMap = useMemo(() => {
+    const m: Record<number, string> = {};
+    XGrupos.forEach((g: any) => { m[g.grupo_id] = g.nome; });
+    return m;
+  }, [XGrupos]);
+
+  const XSubgrupoMap = useMemo(() => {
+    const m: Record<number, string> = {};
+    XSubgrupos.forEach((s: any) => { m[s.subgrupo_id] = s.nome; });
+    return m;
+  }, [XSubgrupos]);
+
+  /* ─── Load data with grupo/subgrupo names ─── */
   const loadData = useCallback(async () => {
     setXLoading(true);
     const { data: XRows } = await baseService.listar("produto", XEmpresaMatrizId, "produto_id");
@@ -123,16 +167,29 @@ const ProdutoForm: React.FC = () => {
     setXLoading(false);
   }, [XEmpresaMatrizId]);
 
+  /* ─── Enriched data with grupo/subgrupo names ─── */
+  const XEnrichedData = useMemo(() => {
+    return XData.map(r => ({
+      ...r,
+      grupo_nome: XGrupoMap[r.grupo_id] || "",
+      subgrupo_nome: XSubgrupoMap[r.subgrupo_id] || "",
+    }));
+  }, [XData, XGrupoMap, XSubgrupoMap]);
+
   /* ─── Load sub-data for current product ─── */
   const loadSubData = useCallback(async (produtoId: number) => {
-    const [rEst, rConv] = await Promise.all([
+    const [rEst, rConv, rBarra] = await Promise.all([
       db.from("estoque").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false),
       db.from("produto_conversao").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false).order("conversao_id"),
+      db.from("produto_codbarra").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false).order("produto_codbarra_id"),
     ]);
     const XDepMap: Record<number, string> = {};
     XDepositos.forEach((d: any) => { XDepMap[d.deposito_id] = d.nome; });
     setXEstoques((rEst.data || []).map((e: any) => ({ ...e, deposito_nome: XDepMap[e.deposito_id] || String(e.deposito_id) })));
     setXConversoes(rConv.data || []);
+    setXBarras(rBarra.data || []);
+    setXEstIdx(-1);
+    setXBarraIdx(-1);
   }, [XEmpresaMatrizId, XDepositos]);
 
   useEffect(() => {
@@ -214,23 +271,21 @@ const ProdutoForm: React.FC = () => {
     };
   }, []);
 
-  const handleCostFieldChange = useCallback((key: string, val: string) => {
+  const handleCostFieldChange = useCallback((key: string, rawVal: string) => {
+    // Accept pt-BR input, convert to internal number
+    const val = parseBR(rawVal);
     setXF(prev => {
       const XNext = { ...prev, [key]: val };
-      // If a percentage changed, recalc the corresponding value
       if (key.startsWith("pc_") || key === "vl_compra") {
         if (key === "vl_compra") {
-          // Recalc ALL values from percentages
           Object.assign(XNext, recalcFromPercentages(XNext));
         } else {
           Object.assign(XNext, recalcFromPercentages(XNext, key));
         }
       }
-      // If a vl_ cost field changed, recalc the corresponding percentage
       if (key.startsWith("vl_") && XCostPairs.some(([, vlK]) => vlK === key)) {
         Object.assign(XNext, recalcFromValue(XNext, key));
       }
-      // Always recalc totals
       Object.assign(XNext, recalcTotals(XNext));
       return XNext;
     });
@@ -270,6 +325,9 @@ const ProdutoForm: React.FC = () => {
       grupo_id: toInt(XF.grupo_id),
       subgrupo_id: toInt(XF.subgrupo_id),
       linha_id: toInt(XF.linha_id),
+      nm_ecommerce: XF.nm_ecommerce.trim(),
+      ds_ecommerce: XF.ds_ecommerce.trim(),
+      url_foto: XF.url_foto.trim(),
       ncm: XF.ncm.trim(),
       cest: XF.cest.trim(),
       mva: toNum(XF.mva),
@@ -335,7 +393,7 @@ const ProdutoForm: React.FC = () => {
   const handlePrev = () => setXCurrentIdx(Math.max(0, XCurrentIdx - 1));
   const handleNext = () => setXCurrentIdx(Math.min(XData.length - 1, XCurrentIdx + 1));
   const handleLast = () => setXCurrentIdx(XData.length - 1);
-  const handleRefresh = async () => { await loadData(); toast.info("Dados recarregados."); };
+  const handleRefresh = async () => { await loadData(); await loadLookups(); toast.info("Dados recarregados."); };
   const handleSair = () => { const t = XTabs.find(t => t.id === XActiveTabId); if (t) closeTab(t.id); };
 
   /* ─── Conversão CRUD ─── */
@@ -377,8 +435,59 @@ const ProdutoForm: React.FC = () => {
     loadSubData(XCurrentRecord.produto_id);
   };
 
+  /* ─── Código de Barras CRUD ─── */
+  const handleBarraIncluir = () => {
+    setXBarraMode("insert");
+    setXBarraIdx(-1);
+    setXBarraForm({ cod_barra: "" });
+  };
+  const handleBarraEditar = () => {
+    if (XBarraIdx < 0) return;
+    const r = XBarras[XBarraIdx];
+    setXBarraMode("edit");
+    setXBarraForm({ cod_barra: r.cod_barra || "" });
+  };
+  const handleBarraSalvar = async () => {
+    if (!XCurrentRecord) return;
+    if (!XBarraForm.cod_barra.trim()) { toast.error("Informe o código de barras."); return; }
+    const XPay = {
+      produto_id: XCurrentRecord.produto_id,
+      empresa_id: XEmpresaMatrizId,
+      cod_barra: XBarraForm.cod_barra.trim(),
+    };
+    if (XBarraMode === "edit" && XBarraIdx >= 0) {
+      await db.from("produto_codbarra").update({ ...XPay, dt_alteracao: new Date().toISOString() }).eq("produto_codbarra_id", XBarras[XBarraIdx].produto_codbarra_id);
+    } else {
+      await db.from("produto_codbarra").insert(XPay);
+    }
+    toast.success("Código de barras salvo.");
+    setXBarraMode("view");
+    loadSubData(XCurrentRecord.produto_id);
+  };
+  const handleBarraExcluir = async () => {
+    if (XBarraIdx < 0 || !XCurrentRecord) return;
+    if (!confirm("Excluir este código de barras?")) return;
+    await db.from("produto_codbarra").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("produto_codbarra_id", XBarras[XBarraIdx].produto_codbarra_id);
+    toast.success("Código de barras excluído.");
+    setXBarraIdx(-1);
+    loadSubData(XCurrentRecord.produto_id);
+  };
+
+  /* ─── Upload foto ─── */
+  const handleUploadFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `produtos/${XEmpresaMatrizId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("logos").upload(path, file, { upsert: true });
+    if (error) { toast.error("Erro no upload: " + error.message); return; }
+    const { data: urlData } = supabase.storage.from("logos").getPublicUrl(path);
+    set("url_foto", urlData.publicUrl);
+    toast.success("Imagem enviada.");
+  };
+
   /* ─── Search filter ─── */
-  const XFilteredData = useGridFilter(XData, XSearchFilters);
+  const XFilteredData = useGridFilter(XEnrichedData, XSearchFilters);
 
   const handleSelectFromSearch = (row: any) => {
     const idx = XData.findIndex(r => r.produto_id === row.produto_id);
@@ -417,16 +526,24 @@ const ProdutoForm: React.FC = () => {
     return renderReadField(label, val, opts?.className);
   };
 
-  const renderNumField = (label: string, key: string, opts?: { readOnly?: boolean; className?: string }) => {
+  const renderNumField = (label: string, key: string, opts?: { readOnly?: boolean; className?: string; decimals?: number }) => {
+    const dec = opts?.decimals ?? 2;
     if (XIsEditing) {
-      return renderEditField(label, key, {
-        ...opts,
-        align: "right",
-        onChange: (k: string, v: string) => handleCostFieldChange(k, v.replace(/[^0-9.,-]/g, "")),
-      });
+      return (
+        <div className={opts?.className}>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
+          <input
+            type="text"
+            value={fmtBR(XF[key] || "0", dec)}
+            onChange={(e) => handleCostFieldChange(key, e.target.value)}
+            readOnly={opts?.readOnly}
+            className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${opts?.readOnly ? XBgRead : XBgEdit} focus:ring-2 focus:ring-ring outline-none`}
+          />
+        </div>
+      );
     }
-    const val = XCurrentRecord ? (XCurrentRecord as any)[key] : 0;
-    return renderReadField(label, val != null ? Number(val).toFixed(2) : "0.00", opts?.className);
+    const val = XCurrentRecord ? Number((XCurrentRecord as any)[key] || 0) : 0;
+    return renderReadField(label, fmtBR(val, dec), opts?.className);
   };
 
   const renderSelect = (label: string, key: string, items: { v: string; l: string }[]) => {
@@ -467,14 +584,14 @@ const ProdutoForm: React.FC = () => {
     );
   };
 
-  /* ─── Cost row pair (percentage + R$) — both editable ─── */
+  /* ─── Cost row pair (percentage + R$) — both editable, pt-BR format ─── */
   const renderCostRow = (labelPc: string, pcKey: string, vlKey: string) => (
     <>
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">{labelPc}</label>
         <input
           type="text"
-          value={XIsEditing ? (XF[pcKey] || "0") : (XCurrentRecord ? Number((XCurrentRecord as any)[pcKey] || 0).toFixed(4) : "0")}
+          value={XIsEditing ? fmtBR(XF[pcKey] || "0", 4) : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[pcKey] || 0) : 0, 4)}
           onChange={(e) => handleCostFieldChange(pcKey, e.target.value)}
           readOnly={!XIsEditing}
           className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
@@ -484,7 +601,7 @@ const ProdutoForm: React.FC = () => {
         <label className="block text-xs font-medium text-muted-foreground mb-1">R$</label>
         <input
           type="text"
-          value={XIsEditing ? (XF[vlKey] || "0") : (XCurrentRecord ? Number((XCurrentRecord as any)[vlKey] || 0).toFixed(2) : "0")}
+          value={XIsEditing ? fmtBR(XF[vlKey] || "0", 2) : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[vlKey] || 0) : 0, 2)}
           onChange={(e) => handleCostFieldChange(vlKey, e.target.value)}
           readOnly={!XIsEditing}
           className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
@@ -494,10 +611,10 @@ const ProdutoForm: React.FC = () => {
   );
 
   /* ─── Sub-tabs configuration ─── */
-  const XSubTabs = ["cadastro", "estoques", "tributacoes", "custo", "adicionais"];
+  const XSubTabs = ["cadastro", "estoques", "codbarras", "tributacoes", "custo", "adicionais"];
   const XSubTabLabels: Record<string, string> = {
-    cadastro: "Cadastro", estoques: "Estoques", tributacoes: "Tributações",
-    custo: "Formação do Custo da Compra", adicionais: "Dados Adicionais",
+    cadastro: "Cadastro", estoques: "Estoques", codbarras: "Código de Barras",
+    tributacoes: "Tributações", custo: "Formação do Custo da Compra", adicionais: "Dados Adicionais",
   };
 
   return (
@@ -598,28 +715,120 @@ const ProdutoForm: React.FC = () => {
                   {renderField("GTIN", "gtin")}
                   {renderField("Referência", "referencia")}
                 </div>
+                {/* E-commerce fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {renderField("Nome E-commerce", "nm_ecommerce")}
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">URL Foto</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={XIsEditing ? (XF.url_foto || "") : (XCurrentRecord?.url_foto || "")}
+                        onChange={(e) => set("url_foto", e.target.value)}
+                        readOnly={!XIsEditing}
+                        className={`flex-1 border border-border rounded px-3 py-1.5 text-sm ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
+                      />
+                      {XIsEditing && (
+                        <label className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-sm cursor-pointer hover:opacity-90 flex items-center gap-1">
+                          <Upload size={14} />
+                          Upload
+                          <input type="file" accept="image/*" className="hidden" onChange={handleUploadFoto} />
+                        </label>
+                      )}
+                    </div>
+                    {(XIsEditing ? XF.url_foto : XCurrentRecord?.url_foto) && (
+                      <img src={XIsEditing ? XF.url_foto : XCurrentRecord?.url_foto} alt="Foto" className="mt-2 max-h-24 rounded border border-border" />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Descrição E-commerce</label>
+                  <textarea
+                    value={XIsEditing ? (XF.ds_ecommerce || "") : (XCurrentRecord?.ds_ecommerce || "")}
+                    onChange={(e) => set("ds_ecommerce", e.target.value)}
+                    readOnly={!XIsEditing}
+                    rows={3}
+                    className={`w-full border border-border rounded px-3 py-1.5 text-sm ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
+                  />
+                </div>
               </div>
             )}
 
             {/* ══════ ABA ESTOQUES ══════ */}
             {XSubTab === "estoques" && (
               <div className="space-y-2">
-                {/* Toolbar padrão da grade */}
                 <div className="flex items-center gap-1 mb-2">
+                  <ToolbarBtn icon={<Plus size={14} />} label="Incluir" onClick={() => toast.info("Use o formulário de Estoque para incluir.")} color="success" disabled={!XCurrentRecord} />
+                  <ToolbarBtn icon={<SquarePen size={14} />} label="Editar" onClick={() => toast.info("Use o formulário de Estoque para editar.")} disabled={XEstIdx < 0} />
+                  <ToolbarBtn icon={<Trash2 size={14} />} label="Excluir" onClick={() => toast.info("Use o formulário de Estoque para excluir.")} disabled={XEstIdx < 0} color="destructive" />
                   <ToolbarBtn icon={<RefreshCw size={14} />} label="Recarregar" onClick={() => XCurrentRecord && loadSubData(XCurrentRecord.produto_id)} />
+                  <ToolbarBtn icon={<Filter size={14} />} label="Filtrar" onClick={() => setXEstShowFilters(!XEstShowFilters)} />
                 </div>
                 <DataGrid
                   columns={XEstoqueGridCols}
                   data={XEstoques}
-                  selectedIdx={-1}
-                  onRowClick={() => {}}
+                  selectedIdx={XEstIdx}
+                  onRowClick={(_, idx) => setXEstIdx(idx)}
                   maxHeight="300px"
-                  showFilters
-                  filterValues={{}}
-                  onFilterChange={() => {}}
+                  showFilters={XEstShowFilters}
+                  filterValues={XEstFilterValues}
+                  onFilterChange={(key, val) => setXEstFilterValues(prev => ({ ...prev, [key]: val }))}
                   exportTitle="Estoques"
                 />
                 {XEstoques.length === 0 && (
+                  <div className="text-sm text-muted-foreground text-center py-4">Não existem dados a serem exibidos</div>
+                )}
+              </div>
+            )}
+
+            {/* ══════ ABA CÓDIGO DE BARRAS ══════ */}
+            {XSubTab === "codbarras" && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1 mb-2">
+                  <ToolbarBtn icon={<Plus size={14} />} label="Incluir" onClick={handleBarraIncluir} color="success" disabled={!XCurrentRecord} />
+                  <ToolbarBtn icon={<SquarePen size={14} />} label="Editar" onClick={handleBarraEditar} disabled={XBarraIdx < 0} />
+                  <ToolbarBtn icon={<Trash2 size={14} />} label="Excluir" onClick={handleBarraExcluir} disabled={XBarraIdx < 0} color="destructive" />
+                  <ToolbarBtn icon={<RefreshCw size={14} />} label="Recarregar" onClick={() => XCurrentRecord && loadSubData(XCurrentRecord.produto_id)} />
+                  <ToolbarBtn icon={<Filter size={14} />} label="Filtrar" onClick={() => setXBarraShowFilters(!XBarraShowFilters)} />
+                </div>
+
+                {XBarraMode !== "view" && (
+                  <div className="grid grid-cols-[1fr_auto] gap-2 mb-2 items-end">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Código de Barras *</label>
+                      <input
+                        type="text"
+                        value={XBarraForm.cod_barra}
+                        onChange={e => setXBarraForm(p => ({ ...p, cod_barra: e.target.value }))}
+                        className={`w-full border border-border rounded px-2 py-1 text-sm ${XBgEdit} focus:ring-2 focus:ring-ring outline-none`}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleBarraSalvar(); if (e.key === "Escape") setXBarraMode("view"); }}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={handleBarraSalvar} className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded">Salvar</button>
+                      <button onClick={() => setXBarraMode("view")} className="px-2 py-1 text-xs bg-muted rounded">Cancelar</button>
+                    </div>
+                  </div>
+                )}
+
+                <DataGrid
+                  columns={XBarraGridCols}
+                  data={XBarras}
+                  selectedIdx={XBarraIdx}
+                  onRowClick={(_, idx) => setXBarraIdx(idx)}
+                  onRowDoubleClick={(_, idx) => {
+                    setXBarraIdx(idx);
+                    const r = XBarras[idx];
+                    if (r) { setXBarraMode("edit"); setXBarraForm({ cod_barra: r.cod_barra || "" }); }
+                  }}
+                  maxHeight="300px"
+                  showFilters={XBarraShowFilters}
+                  filterValues={XBarraFilterValues}
+                  onFilterChange={(key, val) => setXBarraFilterValues(prev => ({ ...prev, [key]: val }))}
+                  exportTitle="Códigos de Barras"
+                />
+                {XBarras.length === 0 && (
                   <div className="text-sm text-muted-foreground text-center py-4">Não existem dados a serem exibidos</div>
                 )}
               </div>
@@ -654,12 +863,9 @@ const ProdutoForm: React.FC = () => {
               <div className="space-y-4">
                 <fieldset className="border border-border rounded p-3">
                   <legend className="text-xs font-medium text-muted-foreground px-2">Formação de Custo da Compra</legend>
-                  {/* Valor de Compra */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                     {renderNumField("Valor de Compra (R$)", "vl_compra")}
                   </div>
-
-                  {/* Cost pairs grid — 2 pairs per row, each pair = % + R$ */}
                   <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-x-3 gap-y-2 items-end">
                     {renderCostRow("IPI (%)", "pc_ipi", "vl_ipi")}
                     {renderCostRow("Subst. Trib. (%)", "pc_st_trib", "vl_st")}
@@ -674,8 +880,6 @@ const ProdutoForm: React.FC = () => {
                     {renderCostRow("Seguro (%)", "pc_seguro", "vl_seguro")}
                     {renderCostRow("Difal Simples (%)", "pc_difal_sn", "vl_difal_sn")}
                   </div>
-
-                  {/* Custo + Markup */}
                   <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-3 mt-4 items-end">
                     {renderNumField("Vl. Custo", "vl_custo", { readOnly: true })}
                     {renderCostRow("Markup (%)", "pc_multiplicador", "vl_multiplicador")}
@@ -683,7 +887,6 @@ const ProdutoForm: React.FC = () => {
                   </div>
                 </fieldset>
 
-                {/* Prices */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   {renderNumField("Vl. Venda", "preco_venda")}
                   {renderNumField("Vl. Venda Fat.", "preco_venda_faturado")}
@@ -714,8 +917,6 @@ const ProdutoForm: React.FC = () => {
                 {/* Fatores de Conversão */}
                 <fieldset className="border border-border rounded p-3">
                   <legend className="text-xs font-medium text-muted-foreground px-2">Fatores de Conversão</legend>
-
-                  {/* Mini toolbar */}
                   <div className="flex items-center gap-1 mb-2">
                     <ToolbarBtn icon={<Plus size={14} />} label="Incluir" onClick={handleConvIncluir} color="success" disabled={!XCurrentRecord} />
                     <ToolbarBtn icon={<SquarePen size={14} />} label="Editar" onClick={handleConvEditar} disabled={XConvIdx < 0} />
@@ -723,7 +924,6 @@ const ProdutoForm: React.FC = () => {
                     <ToolbarBtn icon={<RefreshCw size={14} />} label="Recarregar" onClick={() => XCurrentRecord && loadSubData(XCurrentRecord.produto_id)} />
                   </div>
 
-                  {/* Inline edit form */}
                   {XConvMode !== "view" && (
                     <div className="grid grid-cols-[1fr_1fr_100px_auto] gap-2 mb-2 items-end">
                       <div>

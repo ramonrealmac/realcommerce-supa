@@ -1986,6 +1986,7 @@ export type Database = {
           controla_estoque: string | null
           descricao: string
           dias_venda_online: string | null
+          ds_ecommerce: string
           dt_alteracao: string | null
           dt_cadastro: string | null
           empresa_id: number
@@ -2000,6 +2001,7 @@ export type Database = {
           linha_id: number | null
           mva: number
           ncm: string
+          nm_ecommerce: string
           nome: string
           nome_reduzido: string
           pc_cofins: number
@@ -2061,6 +2063,7 @@ export type Database = {
           controla_estoque?: string | null
           descricao?: string
           dias_venda_online?: string | null
+          ds_ecommerce?: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
@@ -2075,6 +2078,7 @@ export type Database = {
           linha_id?: number | null
           mva?: number
           ncm?: string
+          nm_ecommerce?: string
           nome: string
           nome_reduzido?: string
           pc_cofins?: number
@@ -2136,6 +2140,7 @@ export type Database = {
           controla_estoque?: string | null
           descricao?: string
           dias_venda_online?: string | null
+          ds_ecommerce?: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
@@ -2150,6 +2155,7 @@ export type Database = {
           linha_id?: number | null
           mva?: number
           ncm?: string
+          nm_ecommerce?: string
           nome?: string
           nome_reduzido?: string
           pc_cofins?: number
@@ -2264,6 +2270,33 @@ export type Database = {
           fator_mult?: number
           produto_id?: number
           unidade_id?: string
+        }
+        Relationships: []
+      }
+      produto_grupo: {
+        Row: {
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          grupo_id: number
+          nome: string
+        }
+        Insert: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          grupo_id?: number
+          nome: string
+        }
+        Update: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          grupo_id?: number
+          nome?: string
         }
         Relationships: []
       }
@@ -2480,6 +2513,36 @@ export type Database = {
             referencedColumns: ["rb_conexao_id"]
           },
         ]
+      }
+      subgrupo_produto: {
+        Row: {
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          grupo_id: number
+          nome: string
+          subgrupo_id: number
+        }
+        Insert: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          grupo_id: number
+          nome: string
+          subgrupo_id?: number
+        }
+        Update: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          grupo_id?: number
+          nome?: string
+          subgrupo_id?: number
+        }
+        Relationships: []
       }
       unidade: {
         Row: {
