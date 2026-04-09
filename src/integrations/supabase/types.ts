@@ -1993,7 +1993,6 @@ export type Database = {
           excluido: boolean | null
           grupo_ibscbs_id: number | null
           grupo_icms_id: number | null
-          grupo_id: number | null
           grupo_ipi_id: number | null
           grupo_pis_cofins_id: number | null
           gtin: string
@@ -2026,10 +2025,11 @@ export type Database = {
           preco_sugerido: number | null
           preco_venda: number | null
           preco_venda_faturado: number
+          produto_grupo_id: number | null
           produto_id: number
+          produto_subgrupo_id: number | null
           referencia: string
           st_promo: string
-          subgrupo_id: number | null
           tb_a_origem: string
           tp_produto: string | null
           unidade_id: string | null
@@ -2070,7 +2070,6 @@ export type Database = {
           excluido?: boolean | null
           grupo_ibscbs_id?: number | null
           grupo_icms_id?: number | null
-          grupo_id?: number | null
           grupo_ipi_id?: number | null
           grupo_pis_cofins_id?: number | null
           gtin?: string
@@ -2103,10 +2102,11 @@ export type Database = {
           preco_sugerido?: number | null
           preco_venda?: number | null
           preco_venda_faturado?: number
+          produto_grupo_id?: number | null
           produto_id?: number
+          produto_subgrupo_id?: number | null
           referencia?: string
           st_promo?: string
-          subgrupo_id?: number | null
           tb_a_origem?: string
           tp_produto?: string | null
           unidade_id?: string | null
@@ -2147,7 +2147,6 @@ export type Database = {
           excluido?: boolean | null
           grupo_ibscbs_id?: number | null
           grupo_icms_id?: number | null
-          grupo_id?: number | null
           grupo_ipi_id?: number | null
           grupo_pis_cofins_id?: number | null
           gtin?: string
@@ -2180,10 +2179,11 @@ export type Database = {
           preco_sugerido?: number | null
           preco_venda?: number | null
           preco_venda_faturado?: number
+          produto_grupo_id?: number | null
           produto_id?: number
+          produto_subgrupo_id?: number | null
           referencia?: string
           st_promo?: string
-          subgrupo_id?: number | null
           tb_a_origem?: string
           tp_produto?: string | null
           unidade_id?: string | null
@@ -2279,24 +2279,54 @@ export type Database = {
           dt_cadastro: string | null
           empresa_id: number
           excluido: boolean | null
-          grupo_id: number
           nome: string
+          produto_grupo_id: number
         }
         Insert: {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
           excluido?: boolean | null
-          grupo_id?: number
           nome: string
+          produto_grupo_id?: number
         }
         Update: {
           dt_alteracao?: string | null
           dt_cadastro?: string | null
           empresa_id?: number
           excluido?: boolean | null
-          grupo_id?: number
           nome?: string
+          produto_grupo_id?: number
+        }
+        Relationships: []
+      }
+      produto_subgrupo: {
+        Row: {
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          nome: string
+          produto_grupo_id: number
+          produto_subgrupo_id: number
+        }
+        Insert: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          nome: string
+          produto_grupo_id: number
+          produto_subgrupo_id?: number
+        }
+        Update: {
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          nome?: string
+          produto_grupo_id?: number
+          produto_subgrupo_id?: number
         }
         Relationships: []
       }
@@ -2513,36 +2543,6 @@ export type Database = {
             referencedColumns: ["rb_conexao_id"]
           },
         ]
-      }
-      subgrupo_produto: {
-        Row: {
-          dt_alteracao: string | null
-          dt_cadastro: string | null
-          empresa_id: number
-          excluido: boolean | null
-          grupo_id: number
-          nome: string
-          subgrupo_id: number
-        }
-        Insert: {
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido?: boolean | null
-          grupo_id: number
-          nome: string
-          subgrupo_id?: number
-        }
-        Update: {
-          dt_alteracao?: string | null
-          dt_cadastro?: string | null
-          empresa_id?: number
-          excluido?: boolean | null
-          grupo_id?: number
-          nome?: string
-          subgrupo_id?: number
-        }
-        Relationships: []
       }
       unidade: {
         Row: {
