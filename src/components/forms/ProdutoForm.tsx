@@ -217,10 +217,10 @@ const ProdutoForm: React.FC = () => {
   // Filtered subgrupos based on selected grupo
   const XFilteredSubgrupos = useMemo(() => {
     if (!XIsEditing) return XSubgrupos;
-    const XGrupoId = parseInt(XF.grupo_id);
+    const XGrupoId = parseInt(XF.produto_grupo_id);
     if (!XGrupoId) return [];
-    return XSubgrupos.filter((s: any) => s.grupo_id === XGrupoId);
-  }, [XSubgrupos, XF.grupo_id, XIsEditing]);
+    return XSubgrupos.filter((s: any) => s.produto_grupo_id === XGrupoId);
+  }, [XSubgrupos, XF.produto_grupo_id, XIsEditing]);
 
   /* ─── Cost pairs mapping ─── */
   const XCostPairs: [string, string][] = [
