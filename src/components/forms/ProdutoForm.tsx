@@ -323,8 +323,6 @@ const ProdutoForm: React.FC = () => {
       referencia: XF.referencia.trim(),
       tp_produto: XF.tp_produto || "PA",
       ativo: XF.ativo || "S",
-      grupo_id: undefined,
-      subgrupo_id: undefined,
       produto_grupo_id: toInt(XF.produto_grupo_id),
       produto_subgrupo_id: toInt(XF.produto_subgrupo_id),
       linha_id: toInt(XF.linha_id),
