@@ -399,6 +399,55 @@ const ProdutoForm: React.FC = () => {
   const handleRefresh = async () => { await loadData(); await loadLookups(); toast.info("Dados recarregados."); };
   const handleSair = () => { const t = XTabs.find(t => t.id === XActiveTabId); if (t) closeTab(t.id); };
 
+
+  /* ─── Estoque CRUD ─── */
+  const handleEstIncluir = () => {
+    setXEstMode("insert");
+    setXEstIdx(-1);
+    setXEstForm({ deposito_id: "", endereco: "", estoque_minimo: "0", estoque_padrao: "0" });
+  };
+  const handleEstEditar = () => {
+    if (XEstIdx < 0) return;
+    const r = XEstoques[XEstIdx];
+    setXEstMode("edit");
+    setXEstForm({ deposito_id: String(r.deposito_id), endereco: r.endereco || "", estoque_minimo: String(r.estoque_minimo || 0), estoque_padrao: String(r.estoque_padrao || 0) });
+  };
+  const handleEstSalvar = async () => {
+    if (!XCurrentRecord) return;
+    if (!XEstForm.deposito_id) { toast.error("Selecione o depósito."); return; }
+    const XPay = {
+      produto_id: XCurrentRecord.produto_id,
+      empresa_id: XEmpresaMatrizId,
+      deposito_id: parseInt(XEstForm.deposito_id),
+      endereco: XEstForm.endereco.trim(),
+      estoque_minimo: parseFloat(XEstForm.estoque_minimo) || 0,
+      estoque_padrao: parseFloat(XEstForm.estoque_padrao) || 0,
+    };
+    if (XEstMode === "edit" && XEstIdx >= 0) {
+      const { error } = await db.from("estoque").update({ ...XPay, dt_alteracao: new Date().toISOString() }).eq("estoque_id", XEstoques[XEstIdx].estoque_id);
+      if (error) { toast.error("Erro: " + error.message); return; }
+    } else {
+      const { error } = await db.from("estoque").insert(XPay);
+      if (error) { toast.error("Erro: " + error.message); return; }
+    }
+    toast.success("Estoque salvo.");
+    setXEstMode("view");
+    loadSubData(XCurrentRecord.produto_id);
+  };
+  const handleEstExcluir = async () => {
+    if (XEstIdx < 0 || !XCurrentRecord) return;
+    const r = XEstoques[XEstIdx];
+    if ((r.estoque_fisico || 0) !== 0 || (r.estoque_reservado || 0) !== 0) {
+      toast.error("Não é possível excluir estoque com quantidade física ou reservada diferente de zero.");
+      return;
+    }
+    if (!confirm("Excluir este registro de estoque?")) return;
+    await db.from("estoque").update({ excluido: true, dt_alteracao: new Date().toISOString() }).eq("estoque_id", r.estoque_id);
+    toast.success("Estoque excluído.");
+    setXEstIdx(-1);
+    loadSubData(XCurrentRecord.produto_id);
+  };
+
   /* ─── Conversão CRUD ─── */
   const handleConvIncluir = () => {
     setXConvMode("insert");
