@@ -586,15 +586,16 @@ const ProdutoForm: React.FC = () => {
     );
   };
 
-  /* ─── Cost row pair (percentage + R$) — both editable, pt-BR format ─── */
+  /* ─── Cost row pair (percentage + R$) — both editable, raw value during edit ─── */
   const renderCostRow = (labelPc: string, pcKey: string, vlKey: string) => (
     <>
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">{labelPc}</label>
         <input
           type="text"
-          value={XIsEditing ? fmtBR(XF[pcKey] || "0", 4) : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[pcKey] || 0) : 0, 4)}
+          value={XIsEditing ? (XF[pcKey] || "0") : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[pcKey] || 0) : 0, 4)}
           onChange={(e) => handleCostFieldChange(pcKey, e.target.value)}
+          onFocus={(e) => e.target.select()}
           readOnly={!XIsEditing}
           className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
         />
@@ -603,8 +604,9 @@ const ProdutoForm: React.FC = () => {
         <label className="block text-xs font-medium text-muted-foreground mb-1">R$</label>
         <input
           type="text"
-          value={XIsEditing ? fmtBR(XF[vlKey] || "0", 2) : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[vlKey] || 0) : 0, 2)}
+          value={XIsEditing ? (XF[vlKey] || "0") : fmtBR(XCurrentRecord ? Number((XCurrentRecord as any)[vlKey] || 0) : 0, 2)}
           onChange={(e) => handleCostFieldChange(vlKey, e.target.value)}
+          onFocus={(e) => e.target.select()}
           readOnly={!XIsEditing}
           className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${XIsEditing ? XBgEdit : XBgRead} focus:ring-2 focus:ring-ring outline-none`}
         />
