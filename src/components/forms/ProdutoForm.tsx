@@ -15,8 +15,16 @@ const db = supabase as any;
 type TFormMode = "view" | "edit" | "insert";
 
 /* ─── Helpers pt-BR formatting ─── */
+const parseBR = (s: string): number => {
+  if (typeof s !== "string") return Number(s) || 0;
+  // Remove thousand separators (.) and replace decimal comma with dot
+  const cleaned = s.replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+};
+
 const fmtBR = (v: number | string, decimals: number): string => {
-  const n = typeof v === "string" ? parseFloat(v) || 0 : v;
+  const n = typeof v === "string" ? parseBR(v) : v;
   return n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
 
@@ -231,35 +239,35 @@ const ProdutoForm: React.FC = () => {
 
   /* ─── Calculate cost values ─── */
   const recalcFromPercentages = useCallback((form: Record<string, string>, changedPcKey?: string) => {
-    const vl = parseFloat(form.vl_compra) || 0;
+    const vl = parseBR(form.vl_compra);
     const XUpdates: Record<string, string> = {};
     for (const [pcKey, vlKey] of XCostPairs) {
       if (changedPcKey && pcKey !== changedPcKey) continue;
-      const pc = parseFloat(form[pcKey]) || 0;
+      const pc = parseBR(form[pcKey]);
       XUpdates[vlKey] = ((pc / 100) * vl).toFixed(2);
     }
     return XUpdates;
   }, []);
 
   const recalcFromValue = useCallback((form: Record<string, string>, changedVlKey: string) => {
-    const vl = parseFloat(form.vl_compra) || 0;
+    const vl = parseBR(form.vl_compra);
     const XUpdates: Record<string, string> = {};
     for (const [pcKey, vlKey] of XCostPairs) {
       if (vlKey !== changedVlKey) continue;
-      const vlItem = parseFloat(form[vlKey]) || 0;
+      const vlItem = parseBR(form[vlKey]);
       XUpdates[pcKey] = vl > 0 ? ((vlItem / vl) * 100).toFixed(4) : "0";
     }
     return XUpdates;
   }, []);
 
   const recalcTotals = useCallback((form: Record<string, string>) => {
-    const vl = parseFloat(form.vl_compra) || 0;
+    const vl = parseBR(form.vl_compra);
     let XSumVl = 0;
     for (const [, vlKey] of XCostPairs) {
-      XSumVl += parseFloat(form[vlKey]) || 0;
+      XSumVl += parseBR(form[vlKey]);
     }
     const XCusto = vl + XSumVl;
-    const XMark = parseFloat(form.pc_multiplicador) || 0;
+    const XMark = parseBR(form.pc_multiplicador);
     const XVlMark = (XMark / 100) * XCusto;
     return {
       vl_custo: XCusto.toFixed(2),
@@ -306,7 +314,7 @@ const ProdutoForm: React.FC = () => {
   const handleSalvar = async () => {
     if (!XF.nome.trim()) { toast.error("A Descrição é obrigatória."); return; }
 
-    const toNum = (v: string) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+    const toNum = (v: string) => parseBR(v);
     const toInt = (v: string) => { const n = parseInt(v); return isNaN(n) ? null : n; };
 
     const XPayload: any = {
