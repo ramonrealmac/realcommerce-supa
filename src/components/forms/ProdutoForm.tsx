@@ -17,10 +17,19 @@ type TFormMode = "view" | "edit" | "insert";
 /* ─── Helpers pt-BR formatting ─── */
 const parseBR = (s: string): number => {
   if (typeof s !== "string") return Number(s) || 0;
-  // Remove thousand separators (.) and replace decimal comma with dot
-  const cleaned = s.replace(/\./g, "").replace(",", ".");
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? 0 : n;
+
+  const XRaw = s.trim().replace(/\s/g, "");
+  if (!XRaw) return 0;
+
+  let XNormalized = XRaw;
+  if (XRaw.includes(",") && XRaw.includes(".")) {
+    XNormalized = XRaw.replace(/\./g, "").replace(",", ".");
+  } else if (XRaw.includes(",")) {
+    XNormalized = XRaw.replace(",", ".");
+  }
+
+  const n = Number(XNormalized);
+  return Number.isFinite(n) ? n : 0;
 };
 
 const fmtBR = (v: number | string, decimals: number): string => {
