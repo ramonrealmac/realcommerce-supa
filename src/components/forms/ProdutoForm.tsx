@@ -260,15 +260,22 @@ const ProdutoForm: React.FC = () => {
     return XUpdates;
   }, []);
 
+  const XCreditKeys = new Set(["vl_icms_cred"]);
+
   const recalcTotals = useCallback((form: Record<string, string>) => {
     const vl = parseBR(form.vl_compra);
     let XSumVl = 0;
     for (const [, vlKey] of XCostPairs) {
-      XSumVl += parseBR(form[vlKey]);
+      const v = parseBR(form[vlKey]);
+      if (XCreditKeys.has(vlKey)) {
+        XSumVl -= v;
+      } else {
+        XSumVl += v;
+      }
     }
-    const XCusto = vl + XSumVl;
+    const XCusto = parseFloat((vl + XSumVl).toFixed(2));
     const XMark = parseBR(form.pc_multiplicador);
-    const XVlMark = (XMark / 100) * XCusto;
+    const XVlMark = parseFloat(((XMark / 100) * XCusto).toFixed(2));
     return {
       vl_custo: XCusto.toFixed(2),
       vl_multiplicador: XVlMark.toFixed(2),
