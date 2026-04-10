@@ -239,35 +239,35 @@ const ProdutoForm: React.FC = () => {
 
   /* ─── Calculate cost values ─── */
   const recalcFromPercentages = useCallback((form: Record<string, string>, changedPcKey?: string) => {
-    const vl = parseFloat(form.vl_compra) || 0;
+    const vl = parseBR(form.vl_compra);
     const XUpdates: Record<string, string> = {};
     for (const [pcKey, vlKey] of XCostPairs) {
       if (changedPcKey && pcKey !== changedPcKey) continue;
-      const pc = parseFloat(form[pcKey]) || 0;
+      const pc = parseBR(form[pcKey]);
       XUpdates[vlKey] = ((pc / 100) * vl).toFixed(2);
     }
     return XUpdates;
   }, []);
 
   const recalcFromValue = useCallback((form: Record<string, string>, changedVlKey: string) => {
-    const vl = parseFloat(form.vl_compra) || 0;
+    const vl = parseBR(form.vl_compra);
     const XUpdates: Record<string, string> = {};
     for (const [pcKey, vlKey] of XCostPairs) {
       if (vlKey !== changedVlKey) continue;
-      const vlItem = parseFloat(form[vlKey]) || 0;
+      const vlItem = parseBR(form[vlKey]);
       XUpdates[pcKey] = vl > 0 ? ((vlItem / vl) * 100).toFixed(4) : "0";
     }
     return XUpdates;
   }, []);
 
   const recalcTotals = useCallback((form: Record<string, string>) => {
-    const vl = parseFloat(form.vl_compra) || 0;
+    const vl = parseBR(form.vl_compra);
     let XSumVl = 0;
     for (const [, vlKey] of XCostPairs) {
-      XSumVl += parseFloat(form[vlKey]) || 0;
+      XSumVl += parseBR(form[vlKey]);
     }
     const XCusto = vl + XSumVl;
-    const XMark = parseFloat(form.pc_multiplicador) || 0;
+    const XMark = parseBR(form.pc_multiplicador);
     const XVlMark = (XMark / 100) * XCusto;
     return {
       vl_custo: XCusto.toFixed(2),
