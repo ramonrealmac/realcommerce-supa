@@ -15,8 +15,16 @@ const db = supabase as any;
 type TFormMode = "view" | "edit" | "insert";
 
 /* ─── Helpers pt-BR formatting ─── */
+const parseBR = (s: string): number => {
+  if (typeof s !== "string") return Number(s) || 0;
+  // Remove thousand separators (.) and replace decimal comma with dot
+  const cleaned = s.replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+};
+
 const fmtBR = (v: number | string, decimals: number): string => {
-  const n = typeof v === "string" ? parseFloat(v) || 0 : v;
+  const n = typeof v === "string" ? parseBR(v) : v;
   return n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
 
