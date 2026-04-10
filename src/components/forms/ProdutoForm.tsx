@@ -314,7 +314,7 @@ const ProdutoForm: React.FC = () => {
   const handleSalvar = async () => {
     if (!XF.nome.trim()) { toast.error("A Descrição é obrigatória."); return; }
 
-    const toNum = (v: string) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+    const toNum = (v: string) => parseBR(v);
     const toInt = (v: string) => { const n = parseInt(v); return isNaN(n) ? null : n; };
 
     const XPayload: any = {
