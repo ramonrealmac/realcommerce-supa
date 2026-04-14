@@ -53,6 +53,60 @@ export type Database = {
         }
         Relationships: []
       }
+      balanca: {
+        Row: {
+          baubrate: string | null
+          co2_max: number | null
+          co2_min: number | null
+          comm: string | null
+          databits: string | null
+          delayemerro: number | null
+          delaynormal: number | null
+          parity: string | null
+          stopbits: string | null
+          temp_max: number | null
+          temp_min: number | null
+          tempo_granja: number | null
+          tempo_refresh: number | null
+          umid_max: number | null
+          umid_min: number | null
+        }
+        Insert: {
+          baubrate?: string | null
+          co2_max?: number | null
+          co2_min?: number | null
+          comm?: string | null
+          databits?: string | null
+          delayemerro?: number | null
+          delaynormal?: number | null
+          parity?: string | null
+          stopbits?: string | null
+          temp_max?: number | null
+          temp_min?: number | null
+          tempo_granja?: number | null
+          tempo_refresh?: number | null
+          umid_max?: number | null
+          umid_min?: number | null
+        }
+        Update: {
+          baubrate?: string | null
+          co2_max?: number | null
+          co2_min?: number | null
+          comm?: string | null
+          databits?: string | null
+          delayemerro?: number | null
+          delaynormal?: number | null
+          parity?: string | null
+          stopbits?: string | null
+          temp_max?: number | null
+          temp_min?: number | null
+          tempo_granja?: number | null
+          tempo_refresh?: number | null
+          umid_max?: number | null
+          umid_min?: number | null
+        }
+        Relationships: []
+      }
       banco: {
         Row: {
           banco_id: number
@@ -1061,6 +1115,45 @@ export type Database = {
             referencedColumns: ["financeiro_id"]
           },
         ]
+      }
+      galpao_ambiencia: {
+        Row: {
+          abc_mq: string | null
+          data_evento: string | null
+          granja: string | null
+          id: number
+          origem: string | null
+          pressao_bmp: number | null
+          temperatura: number | null
+          temperatura_bmp: number | null
+          tensao_mq: number | null
+          umidade: number | null
+        }
+        Insert: {
+          abc_mq?: string | null
+          data_evento?: string | null
+          granja?: string | null
+          id?: number
+          origem?: string | null
+          pressao_bmp?: number | null
+          temperatura?: number | null
+          temperatura_bmp?: number | null
+          tensao_mq?: number | null
+          umidade?: number | null
+        }
+        Update: {
+          abc_mq?: string | null
+          data_evento?: string | null
+          granja?: string | null
+          id?: number
+          origem?: string | null
+          pressao_bmp?: number | null
+          temperatura?: number | null
+          temperatura_bmp?: number | null
+          tensao_mq?: number | null
+          umidade?: number | null
+        }
+        Relationships: []
       }
       grupo_ibscbs: {
         Row: {
