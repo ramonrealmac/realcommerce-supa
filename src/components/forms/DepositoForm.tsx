@@ -63,7 +63,7 @@ const DepositoForm: React.FC = () => {
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Depósito incluído com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await baseService.atualizar("deposito", "deposito_id", XCurrentRecord.deposito_id, { nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim() });
+      const { error } = await baseService.atualizar("deposito", "deposito_id", XCurrentRecord.deposito_id, { nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim(), st_privado: XStPrivadoEdit });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Depósito alterado com sucesso.");
     }
