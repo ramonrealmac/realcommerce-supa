@@ -139,6 +139,19 @@ const DepositoForm: React.FC = () => {
                 <input type="text" value={XCurrentRecord?.endereco ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
               )}
             </div>
+            <div className="flex items-center gap-2 mt-2">
+              {XIsEditing ? (
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={XStPrivadoEdit} onChange={(e) => setXStPrivadoEdit(e.target.checked)} className="rounded border-border" />
+                  Depósito privado (visível apenas para esta empresa)
+                </label>
+              ) : (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input type="checkbox" checked={XCurrentRecord?.st_privado ?? true} disabled className="rounded border-border" />
+                  Depósito privado (visível apenas para esta empresa)
+                </label>
+              )}
+            </div>
           </div>
         ) : (
           <DataGrid
