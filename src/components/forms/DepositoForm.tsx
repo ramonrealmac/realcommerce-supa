@@ -20,6 +20,7 @@ interface IDeposito {
   endereco: string;
   empresa_id: number;
   excluido: boolean;
+  st_privado: boolean;
 }
 
 const DepositoForm: React.FC = () => {
