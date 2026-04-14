@@ -32,6 +32,7 @@ const DepositoForm: React.FC = () => {
   const [XCurrentIdx, setXCurrentIdx] = useState(0);
   const [XNomeEdit, setXNomeEdit] = useState("");
   const [XEnderecoEdit, setXEnderecoEdit] = useState("");
+  const [XStPrivadoEdit, setXStPrivadoEdit] = useState(true);
   const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
 
   const XCurrentRecord = XData[XCurrentIdx] || null;
