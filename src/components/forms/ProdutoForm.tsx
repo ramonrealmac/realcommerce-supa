@@ -201,8 +201,11 @@ const ProdutoForm: React.FC = () => {
 
   /* ─── Load sub-data for current product ─── */
   const loadSubData = useCallback(async (produtoId: number) => {
+    const XVisibleDepIds = XDepositos.map((d: any) => d.deposito_id);
     const [rEst, rConv, rBarra] = await Promise.all([
-      db.from("estoque").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false),
+      XVisibleDepIds.length > 0
+        ? db.from("estoque").select("*").eq("produto_id", produtoId).eq("excluido", false).in("deposito_id", XVisibleDepIds)
+        : Promise.resolve({ data: [] }),
       db.from("produto_conversao").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false).order("conversao_id"),
       db.from("produto_codbarra").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false).order("produto_codbarra_id"),
     ]);
