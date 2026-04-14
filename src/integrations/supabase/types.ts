@@ -643,6 +643,7 @@ export type Database = {
           endereco: string
           excluido: boolean | null
           nome: string
+          st_privado: boolean
         }
         Insert: {
           deposito_id?: number
@@ -652,6 +653,7 @@ export type Database = {
           endereco?: string
           excluido?: boolean | null
           nome: string
+          st_privado?: boolean
         }
         Update: {
           deposito_id?: number
@@ -661,6 +663,7 @@ export type Database = {
           endereco?: string
           excluido?: boolean | null
           nome?: string
+          st_privado?: boolean
         }
         Relationships: [
           {

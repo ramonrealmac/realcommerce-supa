@@ -20,6 +20,7 @@ interface IDeposito {
   endereco: string;
   empresa_id: number;
   excluido: boolean;
+  st_privado: boolean;
 }
 
 const DepositoForm: React.FC = () => {
@@ -31,6 +32,7 @@ const DepositoForm: React.FC = () => {
   const [XCurrentIdx, setXCurrentIdx] = useState(0);
   const [XNomeEdit, setXNomeEdit] = useState("");
   const [XEnderecoEdit, setXEnderecoEdit] = useState("");
+  const [XStPrivadoEdit, setXStPrivadoEdit] = useState(true);
   const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
 
   const XCurrentRecord = XData[XCurrentIdx] || null;
@@ -47,20 +49,21 @@ const DepositoForm: React.FC = () => {
     if (XCurrentRecord && XFormMode === "edit") {
       setXNomeEdit(XCurrentRecord.nome);
       setXEnderecoEdit(XCurrentRecord.endereco || "");
+      setXStPrivadoEdit(XCurrentRecord.st_privado ?? true);
     }
   }, [XCurrentRecord, XFormMode]);
 
-  const handleIncluir = () => { setXFormMode("insert"); setXNomeEdit(""); setXEnderecoEdit(""); setXInnerTab("cadastro"); };
+  const handleIncluir = () => { setXFormMode("insert"); setXNomeEdit(""); setXEnderecoEdit(""); setXStPrivadoEdit(true); setXInnerTab("cadastro"); };
   const handleEditar = () => { if (!XCurrentRecord) return; setXFormMode("edit"); setXInnerTab("cadastro"); };
 
   const handleSalvar = async () => {
     if (!XNomeEdit.trim()) { toast.error("O nome do depósito é obrigatório."); return; }
     if (XFormMode === "insert") {
-      const { error } = await baseService.inserir("deposito", { empresa_id: XEmpresaId, nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim() });
+      const { error } = await baseService.inserir("deposito", { empresa_id: XEmpresaId, nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim(), st_privado: XStPrivadoEdit });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Depósito incluído com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await baseService.atualizar("deposito", "deposito_id", XCurrentRecord.deposito_id, { nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim() });
+      const { error } = await baseService.atualizar("deposito", "deposito_id", XCurrentRecord.deposito_id, { nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim(), st_privado: XStPrivadoEdit });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Depósito alterado com sucesso.");
     }
@@ -134,6 +137,19 @@ const DepositoForm: React.FC = () => {
                 <input type="text" value={XEnderecoEdit} onChange={(e) => setXEnderecoEdit(e.target.value)} className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none" />
               ) : (
                 <input type="text" value={XCurrentRecord?.endereco ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              {XIsEditing ? (
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={XStPrivadoEdit} onChange={(e) => setXStPrivadoEdit(e.target.checked)} className="rounded border-border" />
+                  Depósito privado (visível apenas para esta empresa)
+                </label>
+              ) : (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input type="checkbox" checked={XCurrentRecord?.st_privado ?? true} disabled className="rounded border-border" />
+                  Depósito privado (visível apenas para esta empresa)
+                </label>
               )}
             </div>
           </div>
