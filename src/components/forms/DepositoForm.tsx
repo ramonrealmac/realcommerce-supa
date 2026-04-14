@@ -49,6 +49,7 @@ const DepositoForm: React.FC = () => {
     if (XCurrentRecord && XFormMode === "edit") {
       setXNomeEdit(XCurrentRecord.nome);
       setXEnderecoEdit(XCurrentRecord.endereco || "");
+      setXStPrivadoEdit(XCurrentRecord.st_privado ?? true);
     }
   }, [XCurrentRecord, XFormMode]);
 
