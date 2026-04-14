@@ -139,6 +139,14 @@ const ProdutoForm: React.FC = () => {
   }, []);
 
   /* ─── Load lookups ─── */
+  const XGroupEmpresaIds = useMemo(() => {
+    const XSelectedEmp = XEmpresas.find(e => e.empresa_id === XEmpresaId);
+    const XMatrizId = XSelectedEmp?.empresa_matriz_id ?? XEmpresaMatrizId;
+    return XEmpresas
+      .filter(e => e.empresa_matriz_id === XMatrizId || e.empresa_id === XMatrizId)
+      .map(e => e.empresa_id);
+  }, [XEmpresas, XEmpresaId, XEmpresaMatrizId]);
+
   const loadLookups = useCallback(async () => {
     const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
       db.from("produto_grupo").select("produto_grupo_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
@@ -148,7 +156,8 @@ const ProdutoForm: React.FC = () => {
       db.from("grupo_icms").select("grupo_icms_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
       db.from("grupo_ipi").select("grupo_ipi_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
       db.from("grupo_pis_cofins").select("grupo_pis_cofins_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
-      db.from("deposito").select("deposito_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
+      db.from("deposito").select("deposito_id,nome,empresa_id,st_privado").eq("excluido", false)
+        .or(`empresa_id.eq.${XEmpresaId},and(st_privado.eq.false,empresa_id.in.(${XGroupEmpresaIds.join(",")}))`).order("nome"),
     ]);
     setXGrupos(r1.data || []);
     setXSubgrupos(r2.data || []);
@@ -158,7 +167,7 @@ const ProdutoForm: React.FC = () => {
     setXGrupoIpi(r6.data || []);
     setXGrupoPisCofins(r7.data || []);
     setXDepositos(r8.data || []);
-  }, [XEmpresaMatrizId]);
+  }, [XEmpresaMatrizId, XEmpresaId, XGroupEmpresaIds]);
 
   /* ─── Grupo/Subgrupo maps for grid display ─── */
   const XGrupoMap = useMemo(() => {
