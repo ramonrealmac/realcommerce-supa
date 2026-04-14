@@ -53,7 +53,7 @@ const DepositoForm: React.FC = () => {
     }
   }, [XCurrentRecord, XFormMode]);
 
-  const handleIncluir = () => { setXFormMode("insert"); setXNomeEdit(""); setXEnderecoEdit(""); setXInnerTab("cadastro"); };
+  const handleIncluir = () => { setXFormMode("insert"); setXNomeEdit(""); setXEnderecoEdit(""); setXStPrivadoEdit(true); setXInnerTab("cadastro"); };
   const handleEditar = () => { if (!XCurrentRecord) return; setXFormMode("edit"); setXInnerTab("cadastro"); };
 
   const handleSalvar = async () => {
