@@ -59,7 +59,7 @@ const DepositoForm: React.FC = () => {
   const handleSalvar = async () => {
     if (!XNomeEdit.trim()) { toast.error("O nome do depósito é obrigatório."); return; }
     if (XFormMode === "insert") {
-      const { error } = await baseService.inserir("deposito", { empresa_id: XEmpresaId, nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim() });
+      const { error } = await baseService.inserir("deposito", { empresa_id: XEmpresaId, nome: XNomeEdit.trim(), endereco: XEnderecoEdit.trim(), st_privado: XStPrivadoEdit });
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Depósito incluído com sucesso.");
     } else if (XCurrentRecord) {
