@@ -216,14 +216,18 @@ const ProdutoForm: React.FC = () => {
       db.from("produto_conversao").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false).order("conversao_id"),
       db.from("produto_codbarra").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false).order("produto_codbarra_id"),
     ]);
-    const XDepMap: Record<number, string> = {};
-    XDepositos.forEach((d: any) => { XDepMap[d.deposito_id] = d.nome; });
-    setXEstoques((rEst.data || []).map((e: any) => ({ ...e, deposito_nome: XDepMap[e.deposito_id] || String(e.deposito_id) })));
+    const XDepMap: Record<number, { nome: string; empresa_id: number }> = {};
+    XDepositos.forEach((d: any) => { XDepMap[d.deposito_id] = { nome: d.nome, empresa_id: d.empresa_id }; });
+    setXEstoques((rEst.data || []).map((e: any) => ({
+      ...e,
+      deposito_nome: XDepMap[e.deposito_id]?.nome || String(e.deposito_id),
+      empresa_nome: XEmpresaMap[XDepMap[e.deposito_id]?.empresa_id ?? e.empresa_id] || String(e.empresa_id),
+    })));
     setXConversoes(rConv.data || []);
     setXBarras(rBarra.data || []);
     setXEstIdx(-1);
     setXBarraIdx(-1);
-  }, [XEmpresaMatrizId, XDepositos]);
+  }, [XEmpresaMatrizId, XDepositos, XEmpresaMap]);
 
   useEffect(() => {
     loadData();
