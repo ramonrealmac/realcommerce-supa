@@ -77,6 +77,7 @@ const XConvGridCols: IGridColumn[] = [
 
 /* ─── Estoque grid columns ─── */
 const XEstoqueGridCols: IGridColumn[] = [
+  { key: "empresa_nome", label: "Empresa", width: "160px" },
   { key: "deposito_nome", label: "Depósito", width: "1fr" },
   { key: "endereco", label: "Endereço", width: "120px" },
   { key: "estoque_fisico", label: "Qt. Física", width: "120px", align: "right" },
