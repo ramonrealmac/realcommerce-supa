@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Plus, Save, Pencil, Trash2, RefreshCw, Search, Filter,
   HelpCircle, LogOut, List
@@ -33,10 +33,11 @@ interface IProduto {
 interface IDeposito {
   deposito_id: number;
   nome: string;
+  empresa_id: number;
 }
 
 const EstoqueForm: React.FC = () => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
 
   const [XEstoques, setXEstoques] = useState<IEstoque[]>([]);
   const [XProdutos, setXProdutos] = useState<IProduto[]>([]);
@@ -53,16 +54,30 @@ const EstoqueForm: React.FC = () => {
   const [XEditEstoquePadrao, setXEditEstoquePadrao] = useState(0);
   const [XEditEstoqueInventario, setXEditEstoqueInventario] = useState(0);
 
+  /* ─── Group empresa IDs (same empresa_matriz_id) ─── */
+  const XGroupEmpresaIds = useMemo(() => {
+    return XEmpresas
+      .filter(e => e.empresa_matriz_id === XEmpresaMatrizId || e.empresa_id === XEmpresaMatrizId)
+      .map(e => e.empresa_id);
+  }, [XEmpresas, XEmpresaMatrizId]);
+
+  const XEmpresaMap = useMemo(() => {
+    const m: Record<number, string> = {};
+    XEmpresas.forEach(e => { m[e.empresa_id] = e.nome_fantasia || e.razao_social; });
+    return m;
+  }, [XEmpresas]);
+
   const loadData = useCallback(async () => {
+    const XIds = XGroupEmpresaIds.length > 0 ? XGroupEmpresaIds : [XEmpresaId];
     const [{ data: XEstData }, { data: XProdData }, { data: XDepData }] = await Promise.all([
-      baseService.listar("estoque", XEmpresaId, "estoque_id"),
-      db.from("produto").select("produto_id, nm_produto").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nm_produto"),
-      db.from("deposito").select("deposito_id, nome").eq("empresa_id", XEmpresaId).eq("excluido", false).order("nome"),
+      db.from("estoque").select("*").in("empresa_id", XIds).eq("excluido", false).order("estoque_id"),
+      db.from("produto").select("produto_id, nm_produto").in("empresa_id", XIds).eq("excluido", false).order("nm_produto"),
+      db.from("deposito").select("deposito_id, nome, empresa_id").in("empresa_id", XIds).eq("excluido", false).order("nome"),
     ]);
     setXEstoques(XEstData || []);
     setXProdutos(XProdData || []);
     setXDepositos(XDepData || []);
-  }, [XEmpresaId]);
+  }, [XEmpresaId, XGroupEmpresaIds]);
 
   useEffect(() => {
     loadData();
@@ -70,23 +85,34 @@ const EstoqueForm: React.FC = () => {
     setXEditMode("none");
   }, [XEmpresaId, loadData]);
 
-  const XProdutoMap = React.useMemo(() => {
+  const XProdutoMap = useMemo(() => {
     const m: Record<number, string> = {};
     XProdutos.forEach(p => { m[p.produto_id] = p.nm_produto; });
     return m;
   }, [XProdutos]);
 
-  const XDepositoMap = React.useMemo(() => {
+  const XDepositoMap = useMemo(() => {
     const m: Record<number, string> = {};
     XDepositos.forEach(d => { m[d.deposito_id] = d.nome; });
     return m;
   }, [XDepositos]);
 
-  const XColumns: IGridColumn[] = React.useMemo(() => [
+  const XDepositoEmpresaMap = useMemo(() => {
+    const m: Record<number, number> = {};
+    XDepositos.forEach(d => { m[d.deposito_id] = d.empresa_id; });
+    return m;
+  }, [XDepositos]);
+
+  const XColumns: IGridColumn[] = useMemo(() => [
     {
       key: "produto_id", label: "Produto", width: "1fr",
       render: (r: IEstoque) => `${r.produto_id} - ${XProdutoMap[r.produto_id] || ""}`,
-      getValue: (r: IEstoque) => XProdutoMap[r.produto_id] || "",
+      getValue: (r: IEstoque) => `${r.produto_id} - ${XProdutoMap[r.produto_id] || ""}`,
+    },
+    {
+      key: "empresa_nome", label: "Empresa", width: "160px",
+      render: (r: IEstoque) => XEmpresaMap[r.empresa_id] || String(r.empresa_id),
+      getValue: (r: IEstoque) => XEmpresaMap[r.empresa_id] || "",
     },
     {
       key: "deposito_id", label: "Depósito", width: "160px",
@@ -100,7 +126,7 @@ const EstoqueForm: React.FC = () => {
     { key: "estoque_minimo", label: "Mínimo", width: "90px", align: "right" as const },
     { key: "estoque_padrao", label: "Padrão", width: "90px", align: "right" as const },
     { key: "estoque_inventario", label: "Inventário", width: "90px", align: "right" as const },
-  ], [XProdutoMap, XDepositoMap]);
+  ], [XProdutoMap, XDepositoMap, XEmpresaMap]);
 
   // Keep custom filter for estoque since it uses getValue/render
   const XFiltered = XEstoques.filter(e => {
