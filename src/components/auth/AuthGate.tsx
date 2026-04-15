@@ -91,7 +91,7 @@ const AuthGate = ({ children, onEmpresaSelected }: AuthGateProps) => {
 
         const { data: XEmpresas } = await (supabase as any)
           .from("empresa")
-          .select("empresa_id, razao_social, nome_fantasia, empresa_matriz_id, identificacao, empresamatriz_id")
+          .select("empresa_id, razao_social, nome_fantasia, empresa_matriz_id, identificacao")
           .in("empresa_id", XEmpresaIds)
           .eq("excluido", false)
           .order("razao_social");
