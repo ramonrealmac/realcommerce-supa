@@ -78,7 +78,7 @@ const emptyEmpresa = () => ({
   endereco_cep: "",
   endereco_cidade_id: 0,
   empresa_matriz_id: null as number | null,
-  empresamatriz_id: null as number | null,
+  
   fone_geral: "",
   fone_comercial: "",
   fone_financeiro: "",
@@ -416,9 +416,9 @@ const EmpresaForm: React.FC = () => {
               <div className="w-full md:w-64">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Empresa Matriz</label>
                 <select
-                  value={XDisplayVal("empresamatriz_id") || ""}
+                  value={XDisplayVal("empresa_matriz_id") || ""}
                   disabled={!XIsEditing}
-                  onChange={e => updateEdit("empresamatriz_id", e.target.value ? Number(e.target.value) : null)}
+                  onChange={e => updateEdit("empresa_matriz_id", e.target.value ? Number(e.target.value) : null)}
                   className={`w-full border border-border rounded px-3 py-1.5 text-sm ${!XIsEditing ? "bg-secondary" : "bg-card"}`}
                 >
                   <option value="">(Nenhuma)</option>

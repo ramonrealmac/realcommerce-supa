@@ -150,7 +150,7 @@ const AuthGateWrapper = () => {
     <AuthGate
       onEmpresaSelected={(empresa, allEmpresas) => {
         setXEmpresaId(empresa.empresa_id);
-        setXEmpresaMatrizId((empresa as any).empresamatriz_id ?? empresa.empresa_id);
+        setXEmpresaMatrizId(empresa.empresa_matriz_id ?? empresa.empresa_id);
         setXEmpresas(allEmpresas);
       }}
     >
