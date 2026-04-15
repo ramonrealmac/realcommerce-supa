@@ -139,14 +139,18 @@ const ProdutoForm: React.FC = () => {
     setXF(prev => ({ ...prev, [key]: val }));
   }, []);
 
-  /* ─── Load lookups ─── */
+  /* ─── Empresa IDs with same empresa_matriz_id ─── */
   const XGroupEmpresaIds = useMemo(() => {
-    const XSelectedEmp = XEmpresas.find(e => e.empresa_id === XEmpresaId);
-    const XMatrizId = XSelectedEmp?.empresa_matriz_id ?? XEmpresaMatrizId;
     return XEmpresas
-      .filter(e => e.empresa_matriz_id === XMatrizId || e.empresa_id === XMatrizId)
+      .filter(e => e.empresa_matriz_id === XEmpresaMatrizId || e.empresa_id === XEmpresaMatrizId)
       .map(e => e.empresa_id);
-  }, [XEmpresas, XEmpresaId, XEmpresaMatrizId]);
+  }, [XEmpresas, XEmpresaMatrizId]);
+
+  const XEmpresaMap = useMemo(() => {
+    const m: Record<number, string> = {};
+    XEmpresas.forEach(e => { m[e.empresa_id] = e.nome_fantasia || e.razao_social; });
+    return m;
+  }, [XEmpresas]);
 
   const loadLookups = useCallback(async () => {
     const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
@@ -157,8 +161,10 @@ const ProdutoForm: React.FC = () => {
       db.from("grupo_icms").select("grupo_icms_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
       db.from("grupo_ipi").select("grupo_ipi_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
       db.from("grupo_pis_cofins").select("grupo_pis_cofins_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
-      db.from("deposito").select("deposito_id,nome,empresa_id,st_privado").eq("excluido", false)
-        .or(`empresa_id.eq.${XEmpresaId},and(st_privado.eq.false,empresa_id.in.(${XGroupEmpresaIds.join(",")}))`).order("nome"),
+      XGroupEmpresaIds.length > 0
+        ? db.from("deposito").select("deposito_id,nome,empresa_id,st_privado").eq("excluido", false)
+            .in("empresa_id", XGroupEmpresaIds).order("nome")
+        : Promise.resolve({ data: [] }),
     ]);
     setXGrupos(r1.data || []);
     setXSubgrupos(r2.data || []);
