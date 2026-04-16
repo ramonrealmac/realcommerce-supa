@@ -27,13 +27,14 @@ interface IEstoque {
 
 interface IProduto {
   produto_id: number;
-  nm_produto: string;
+  nome: string;
 }
 
 interface IDeposito {
   deposito_id: number;
   nome: string;
   empresa_id: number;
+  st_privado: boolean;
 }
 
 const EstoqueForm: React.FC = () => {
@@ -71,13 +72,20 @@ const EstoqueForm: React.FC = () => {
     const XIds = XGroupEmpresaIds.length > 0 ? XGroupEmpresaIds : [XEmpresaId];
     const [{ data: XEstData }, { data: XProdData }, { data: XDepData }] = await Promise.all([
       db.from("estoque").select("*").in("empresa_id", XIds).eq("excluido", false).order("estoque_id"),
-      db.from("produto").select("produto_id, nm_produto").in("empresa_id", XIds).eq("excluido", false).order("nm_produto"),
-      db.from("deposito").select("deposito_id, nome, empresa_id").in("empresa_id", XIds).eq("excluido", false).order("nome"),
+      db.from("produto").select("produto_id, nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
+      db.from("deposito").select("deposito_id, nome, empresa_id, st_privado").in("empresa_id", XIds).eq("excluido", false).order("nome"),
     ]);
-    setXEstoques(XEstData || []);
+    // Filter deposits: own company = all, sister companies = only public (st_privado=false)
+    const XFilteredDeps = (XDepData || []).filter((d: IDeposito) =>
+      d.empresa_id === XEmpresaId || d.st_privado === false
+    );
+    // Filter estoques to only show those in visible deposits
+    const XVisibleDepIds = new Set(XFilteredDeps.map((d: IDeposito) => d.deposito_id));
+    const XFilteredEst = (XEstData || []).filter((e: IEstoque) => XVisibleDepIds.has(e.deposito_id));
+    setXEstoques(XFilteredEst);
     setXProdutos(XProdData || []);
-    setXDepositos(XDepData || []);
-  }, [XEmpresaId, XGroupEmpresaIds]);
+    setXDepositos(XFilteredDeps);
+  }, [XEmpresaId, XEmpresaMatrizId, XGroupEmpresaIds]);
 
   useEffect(() => {
     loadData();
@@ -87,7 +95,7 @@ const EstoqueForm: React.FC = () => {
 
   const XProdutoMap = useMemo(() => {
     const m: Record<number, string> = {};
-    XProdutos.forEach(p => { m[p.produto_id] = p.nm_produto; });
+    XProdutos.forEach(p => { m[p.produto_id] = p.nome; });
     return m;
   }, [XProdutos]);
 
@@ -249,7 +257,7 @@ const EstoqueForm: React.FC = () => {
             <label className="text-[10px] text-muted-foreground">Produto *</label>
             <select value={XEditProdutoId} onChange={(e) => setXEditProdutoId(e.target.value ? Number(e.target.value) : "")} disabled={XEditMode === "edit"} className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-56 disabled:opacity-50 disabled:bg-secondary">
               <option value="">Selecione...</option>
-              {XProdutos.map(p => (<option key={p.produto_id} value={p.produto_id}>{p.produto_id} - {p.nm_produto}</option>))}
+              {XProdutos.map(p => (<option key={p.produto_id} value={p.produto_id}>{p.produto_id} - {p.nome}</option>))}
             </select>
           </div>
           <div className="flex flex-col gap-0.5">

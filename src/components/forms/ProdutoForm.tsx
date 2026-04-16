@@ -208,7 +208,11 @@ const ProdutoForm: React.FC = () => {
 
   /* ─── Load sub-data for current product ─── */
   const loadSubData = useCallback(async (produtoId: number) => {
-    const XVisibleDepIds = XDepositos.map((d: any) => d.deposito_id);
+    // Filter deposits: own company = all, sister companies = only public (st_privado=false)
+    const XVisibleDeps = XDepositos.filter((d: any) =>
+      d.empresa_id === XEmpresaId || d.st_privado === false
+    );
+    const XVisibleDepIds = XVisibleDeps.map((d: any) => d.deposito_id);
     const [rEst, rConv, rBarra] = await Promise.all([
       XVisibleDepIds.length > 0
         ? db.from("estoque").select("*").eq("produto_id", produtoId).eq("excluido", false).in("deposito_id", XVisibleDepIds)
@@ -217,7 +221,7 @@ const ProdutoForm: React.FC = () => {
       db.from("produto_codbarra").select("*").eq("empresa_id", XEmpresaMatrizId).eq("produto_id", produtoId).eq("excluido", false).order("produto_codbarra_id"),
     ]);
     const XDepMap: Record<number, { nome: string; empresa_id: number }> = {};
-    XDepositos.forEach((d: any) => { XDepMap[d.deposito_id] = { nome: d.nome, empresa_id: d.empresa_id }; });
+    XVisibleDeps.forEach((d: any) => { XDepMap[d.deposito_id] = { nome: d.nome, empresa_id: d.empresa_id }; });
     setXEstoques((rEst.data || []).map((e: any) => ({
       ...e,
       deposito_nome: XDepMap[e.deposito_id]?.nome || String(e.deposito_id),
@@ -227,7 +231,7 @@ const ProdutoForm: React.FC = () => {
     setXBarras(rBarra.data || []);
     setXEstIdx(-1);
     setXBarraIdx(-1);
-  }, [XEmpresaMatrizId, XDepositos, XEmpresaMap]);
+  }, [XEmpresaId, XEmpresaMatrizId, XDepositos, XEmpresaMap]);
 
   useEffect(() => {
     loadData();
