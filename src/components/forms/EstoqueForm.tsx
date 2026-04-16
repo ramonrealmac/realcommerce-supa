@@ -257,7 +257,7 @@ const EstoqueForm: React.FC = () => {
             <label className="text-[10px] text-muted-foreground">Produto *</label>
             <select value={XEditProdutoId} onChange={(e) => setXEditProdutoId(e.target.value ? Number(e.target.value) : "")} disabled={XEditMode === "edit"} className="border border-border rounded px-2 py-1 text-sm bg-card outline-none focus:ring-2 focus:ring-ring w-56 disabled:opacity-50 disabled:bg-secondary">
               <option value="">Selecione...</option>
-              {XProdutos.map(p => (<option key={p.produto_id} value={p.produto_id}>{p.produto_id} - {p.nm_produto}</option>))}
+              {XProdutos.map(p => (<option key={p.produto_id} value={p.produto_id}>{p.produto_id} - {p.nome}</option>))}
             </select>
           </div>
           <div className="flex flex-col gap-0.5">
