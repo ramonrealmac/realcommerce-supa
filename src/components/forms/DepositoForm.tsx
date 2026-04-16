@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import FormToolbar from "@/components/shared/FormToolbar";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
@@ -24,7 +25,9 @@ interface IDeposito {
 }
 
 const DepositoForm: React.FC = () => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
+  const { XEmpresaId, XEmpresaMatrizId, XEmpresas, closeTab, XTabs, XActiveTabId } = useAppContext();
+
+  const db = supabase as any;
 
   const [XFormMode, setXFormMode] = useState<TFormMode>("view");
   const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
@@ -39,9 +42,19 @@ const DepositoForm: React.FC = () => {
   const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
 
   const loadData = useCallback(async () => {
-    const { data } = await baseService.listar("deposito", XEmpresaId, "deposito_id");
-    setXData(data || []);
-  }, [XEmpresaId]);
+    // Load own deposits + public deposits from sister companies (same empresa_matriz_id)
+    const XGroupIds = XEmpresas
+      .filter(e => e.empresa_matriz_id === XEmpresaMatrizId || e.empresa_id === XEmpresaMatrizId)
+      .map(e => e.empresa_id);
+    const XIds = XGroupIds.length > 0 ? XGroupIds : [XEmpresaId];
+    const { data } = await db.from("deposito").select("*")
+      .in("empresa_id", XIds).eq("excluido", false).order("deposito_id");
+    // Filter: own company = all, sister companies = only public
+    const XFiltered = (data || []).filter((d: IDeposito) =>
+      d.empresa_id === XEmpresaId || d.st_privado === false
+    );
+    setXData(XFiltered);
+  }, [XEmpresaId, XEmpresaMatrizId, XEmpresas]);
 
   useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaId]);
 
