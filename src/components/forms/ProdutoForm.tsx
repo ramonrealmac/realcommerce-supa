@@ -57,7 +57,7 @@ const emptyForm = (): Record<string, string> => ({
   dias_venda_online: "0,1,2,3,4", controla_estoque: "S",
   produto_grupo_id: "", produto_subgrupo_id: "", linha_id: "",
   nm_ecommerce: "", ds_ecommerce: "",
-  ncm: "", cest: "", mva: "0", tb_a_origem: "", grupo_icms_id: "", grupo_ipi_id: "", grupo_pis_cofins_id: "",
+  ncm: "", cest: "", mva: "0", tb_a_origem: "", grupo_icms_id: "", grupo_ipi_id: "", grupo_pis_cofins_id: "", grupo_ibscbs_id: "",
   pc_ipi: "0", pc_frete: "0", pc_icms_cred: "0", pc_ipi_cred: "0", pc_emb: "0", pc_seguro: "0",
   pc_st_trib: "0", pc_outras_desp: "0", pc_pis: "0", pc_cofins: "0", pc_fcp_st: "0", pc_difal_sn: "0",
   vl_ipi: "0", vl_frete: "0", vl_icms_cred: "0", vl_ipi_cred: "0", vl_emb: "0", vl_seguro: "0",
@@ -110,6 +110,7 @@ const ProdutoForm: React.FC = () => {
   const [XGrupoIcms, setXGrupoIcms] = useState<any[]>([]);
   const [XGrupoIpi, setXGrupoIpi] = useState<any[]>([]);
   const [XGrupoPisCofins, setXGrupoPisCofins] = useState<any[]>([]);
+  const [XGrupoIbsCbs, setXGrupoIbsCbs] = useState<any[]>([]);
   const [XDepositos, setXDepositos] = useState<any[]>([]);
 
   // Sub-grids
@@ -153,7 +154,7 @@ const ProdutoForm: React.FC = () => {
   }, [XEmpresas]);
 
   const loadLookups = useCallback(async () => {
-    const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
+    const [r1, r2, r3, r4, r5, r6, r7, r8, r9] = await Promise.all([
       db.from("produto_grupo").select("produto_grupo_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
       db.from("produto_subgrupo").select("produto_subgrupo_id,nome,produto_grupo_id").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
       db.from("linha_produto").select("linha_id,nome").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("nome"),
@@ -165,6 +166,7 @@ const ProdutoForm: React.FC = () => {
         ? db.from("deposito").select("deposito_id,nome,empresa_id,st_privado").eq("excluido", false)
             .in("empresa_id", XGroupEmpresaIds).order("nome")
         : Promise.resolve({ data: [] }),
+      db.from("grupo_ibscbs").select("grupo_ibscbs_id,descricao").eq("empresa_id", XEmpresaMatrizId).eq("excluido", false).order("descricao"),
     ]);
     setXGrupos(r1.data || []);
     setXSubgrupos(r2.data || []);
@@ -174,6 +176,7 @@ const ProdutoForm: React.FC = () => {
     setXGrupoIpi(r6.data || []);
     setXGrupoPisCofins(r7.data || []);
     setXDepositos(r8.data || []);
+    setXGrupoIbsCbs(r9.data || []);
   }, [XEmpresaMatrizId, XEmpresaId, XGroupEmpresaIds]);
 
   /* ─── Grupo/Subgrupo maps for grid display ─── */
@@ -383,7 +386,7 @@ const ProdutoForm: React.FC = () => {
       grupo_icms_id: toInt(XF.grupo_icms_id),
       grupo_ipi_id: toInt(XF.grupo_ipi_id),
       grupo_pis_cofins_id: toInt(XF.grupo_pis_cofins_id),
-      vl_compra: toNum(XF.vl_compra),
+      grupo_ibscbs_id: toInt(XF.grupo_ibscbs_id),
       pc_ipi: toNum(XF.pc_ipi), pc_frete: toNum(XF.pc_frete),
       pc_icms_cred: toNum(XF.pc_icms_cred), pc_ipi_cred: toNum(XF.pc_ipi_cred),
       pc_emb: toNum(XF.pc_emb), pc_seguro: toNum(XF.pc_seguro),
