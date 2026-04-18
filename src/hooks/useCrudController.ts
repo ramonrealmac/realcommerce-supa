@@ -81,7 +81,10 @@ export function useCrudController<T extends Record<string, any>>(config: ICrudCo
       const r = config.XValidator.safeParse(payload);
       if (!r.success) { toast.error(r.error.errors[0]?.message || "Dados inválidos."); return; }
     }
-    if (config.XOnBeforeSave) payload = await config.XOnBeforeSave(payload, XFormMode);
+    if (config.XOnBeforeSave) {
+      try { payload = await config.XOnBeforeSave(payload, XFormMode); }
+      catch (e: any) { toast.error(e?.message || "Validação falhou."); return; }
+    }
     if (config.XEmpresaId !== undefined && !payload.empresa_id) {
       (payload as any).empresa_id = config.XEmpresaId;
     }
