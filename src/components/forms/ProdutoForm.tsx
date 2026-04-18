@@ -1002,6 +1002,9 @@ const ProdutoForm: React.FC = () => {
                   {renderLookup("Grupo IPI", "grupo_ipi_id", XGrupoIpi, "grupo_ipi_id", "descricao")}
                   {renderLookup("Grupo PIS/COFINS", "grupo_pis_cofins_id", XGrupoPisCofins, "grupo_pis_cofins_id", "descricao")}
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {renderLookup("Grupo IBS/CBS", "grupo_ibscbs_id", XGrupoIbsCbs, "grupo_ibscbs_id", "descricao")}
+                </div>
               </div>
             )}
 
