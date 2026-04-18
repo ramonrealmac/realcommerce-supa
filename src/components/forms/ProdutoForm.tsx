@@ -387,6 +387,7 @@ const ProdutoForm: React.FC = () => {
       grupo_ipi_id: toInt(XF.grupo_ipi_id),
       grupo_pis_cofins_id: toInt(XF.grupo_pis_cofins_id),
       grupo_ibscbs_id: toInt(XF.grupo_ibscbs_id),
+      vl_compra: toNum(XF.vl_compra),
       pc_ipi: toNum(XF.pc_ipi), pc_frete: toNum(XF.pc_frete),
       pc_icms_cred: toNum(XF.pc_icms_cred), pc_ipi_cred: toNum(XF.pc_ipi_cred),
       pc_emb: toNum(XF.pc_emb), pc_seguro: toNum(XF.pc_seguro),
