@@ -1,53 +1,88 @@
 
 
-## Unificação dos campos `empresa_matriz_id` e `empresamatriz_id`
+## Módulo padrão de formulários CRUD (`StandardCrudForm`)
 
-### Diagnóstico
+### Objetivo
+Criar um componente reutilizável que encapsule o padrão repetido em ~15 formulários (Cliente, Produto, Empresa, Cidade, Rota, Linha, Unidade, Depósito, etc.), eliminando repetição e garantindo consistência.
 
-A tabela `empresa` possui dois campos redundantes:
-- `empresa_matriz_id` (integer, nullable, sem default)
-- `empresamatriz_id` (integer, nullable, sem default)
+### Padrão identificado nos forms existentes
+Analisando `ProdutoForm`, `EstoqueForm`, `EmpresaForm`, `CidadeForm`, `DepositoForm`:
 
-### Decisão: manter `empresa_matriz_id`
-
-Motivos:
-1. Segue a convenção de nomenclatura do projeto (underscores separando nomes compostos)
-2. A variável `XEmpresaMatrizId` mapeia naturalmente para `empresa_matriz_id` (camelCase com prefixo X)
-3. Já é usada na interface `IEmpresaOption` e nos filtros de `ProdutoForm` e `EstoqueForm`
-
-### Plano de execução
-
-**1. Migração SQL** (migration tool)
-```sql
--- Copiar dados de empresamatriz_id para empresa_matriz_id onde empresa_matriz_id é null
-UPDATE empresa 
-SET empresa_matriz_id = empresamatriz_id 
-WHERE empresa_matriz_id IS NULL AND empresamatriz_id IS NOT NULL;
-
--- Remover a coluna duplicada
-ALTER TABLE empresa DROP COLUMN empresamatriz_id;
+```text
+┌─────────────────────────────────────────────┐
+│ FormToolbar (Incluir/Editar/Salvar/Nav...)  │
+├─────────────────────────────────────────────┤
+│ Tabs: [Cadastro] [Localizar]                │
+│ ┌─ Cadastro ──────────────────────────────┐ │
+│ │  campos do formulário (custom)          │ │
+│ │  + abas extras opcionais (estoque, etc) │ │
+│ └─────────────────────────────────────────┘ │
+│ ┌─ Localizar ─────────────────────────────┐ │
+│ │  DataGrid + filtros por coluna          │ │
+│ │  + botão Exportar (CSV)                 │ │
+│ └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
 ```
 
-**2. Atualizar `AuthGate.tsx`**
-- Remover `empresamatriz_id` do select da query (linha 94)
-- Manter apenas `empresa_matriz_id`
+### Arquitetura proposta
 
-**3. Atualizar `EmpresaForm.tsx`**
-- Remover `empresamatriz_id` do estado inicial
-- Alterar referências de `empresamatriz_id` para `empresa_matriz_id` no select do formulário de Empresa Matriz (linhas ~419-421)
+**1. `src/components/shared/StandardCrudForm.tsx`** — componente genérico
+   - Gerencia: modo (view/edit/insert), registro atual, índice, lista, filtros, loading
+   - Renderiza: `FormToolbar` + `Tabs` (Cadastro/Localizar) + `DataGrid` com filtros + botão Exportar
+   - Recebe via props: configuração da entidade + slot do formulário customizado
 
-**4. Atualizar `TopBar.tsx`**
-- Linha 70: trocar `(emp as any)?.empresamatriz_id` para `emp?.empresa_matriz_id`
+**2. `src/hooks/useCrudController.ts`** — lógica de CRUD desacoplada
+   - `loadData`, `handleSave`, `handleDelete`, navegação (first/prev/next/last), refresh
+   - Validação via Zod schema opcional
+   - Callbacks `beforeSave`, `afterLoad` para casos especiais
 
-**5. Atualizar `Index.tsx`**
-- Linha 153: trocar `(empresa as any).empresamatriz_id` para `empresa.empresa_matriz_id`
+**3. `src/components/shared/ExportButton.tsx`** — exportação CSV/XLSX da grade filtrada
 
-**6. Manter variáveis inalteradas**
-- `XEmpresaId` e `XEmpresaMatrizId` no `AppContext` e em todos os formulários permanecem como estão — já mapeiam bem para `empresa_id` e `empresa_matriz_id`
-- A interface `IEmpresaOption` já usa `empresa_matriz_id`, sem alteração necessária
+**4. Tipo de configuração:**
+```ts
+interface ICrudConfig<T> {
+  XTableName: string;          // tabela Supabase
+  XPrimaryKey: keyof T;        // ex: "produto_id"
+  XTitle: string;              // título do form
+  XGridCols: IGridCol<T>[];    // colunas + filtros automáticos
+  XDefaultRecord: Partial<T>;  // valores iniciais para insert
+  XOrderBy?: string;
+  XExtraFilter?: (q) => q;     // ex: filtro por empresa_id
+  XExtraTabs?: ITabConfig[];   // abas adicionais (ex: Estoque no Produto)
+  XValidator?: ZodSchema;
+  XOnBeforeSave?: (rec) => rec;
+  XOnAfterLoad?: (data) => void;
+}
+```
 
-### Impacto
-- 5 arquivos editados (AuthGate, EmpresaForm, TopBar, Index, types.ts via migration)
-- Nenhuma variável renomeada — zero risco de quebra nos 16 arquivos que usam `XEmpresaMatrizId`
-- O `types.ts` será atualizado automaticamente após a migration
+**5. Uso simplificado (exemplo CidadeForm refatorado):**
+```tsx
+<StandardCrudForm
+  config={XCidadeConfig}
+  renderCadastro={(rec, setRec, mode) => (
+    <CidadeFields record={rec} onChange={setRec} mode={mode} />
+  )}
+/>
+```
+
+### Estratégia de migração
+- **Fase 1 (este loop)**: criar `StandardCrudForm` + `useCrudController` + `ExportButton`. Migrar **2 forms simples como prova de conceito**: `CidadeForm` e `LinhaProdutoForm`.
+- **Fase 2 (próximos loops, sob demanda)**: migrar os demais. Forms complexos (`ProdutoForm`, `EmpresaForm` com abas extras) usam `XExtraTabs` para preservar comportamento específico.
+- Forms já existentes continuam funcionando — migração incremental, sem breaking changes.
+
+### Benefícios
+- Toolbar, abas, grid, filtros e exportação garantidos por padrão (não esqueço mais)
+- Código de cada form reduz ~70%
+- Mudanças no padrão (ex: novo botão na toolbar) aplicadas em um único lugar
+- Você só descreve **exceções** específicas
+
+### Arquivos a criar/editar
+- `src/components/shared/StandardCrudForm.tsx` (novo)
+- `src/hooks/useCrudController.ts` (novo)
+- `src/components/shared/ExportButton.tsx` (novo)
+- `src/components/forms/CidadeForm.tsx` (refatorar como prova)
+- `src/components/forms/LinhaProdutoForm.tsx` (refatorar como prova)
+
+### Pergunta antes de começar
+Confirme o formato de exportação preferido: **CSV apenas** (leve, sem libs novas) ou **CSV + XLSX** (precisa instalar `xlsx`)?
 
