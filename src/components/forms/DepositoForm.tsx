@@ -2,10 +2,6 @@ import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import StandardCrudForm from "@/components/shared/StandardCrudForm";
 import type { IGridColumn } from "@/components/grid/DataGrid";
-import { supabase } from "@/integrations/supabase/client";
-
-const db = supabase as any;
-
 interface IDeposito {
   deposito_id: number;
   nome: string;
@@ -23,11 +19,10 @@ const XGridCols: IGridColumn[] = [
 const DepositoForm: React.FC = () => {
   const { XEmpresaId, XEmpresaMatrizId, XEmpresas } = useAppContext();
 
-  // IDs de empresas "irmãs" (mesma matriz)
-  const XGroupIds = XEmpresas
-    .filter(e => e.empresa_matriz_id === XEmpresaMatrizId || e.empresa_id === XEmpresaMatrizId)
+  // IDs de empresas "irmãs" (mesma matriz, exceto a atual)
+  const XSisterIds = XEmpresas
+    .filter(e => (e.empresa_matriz_id === XEmpresaMatrizId || e.empresa_id === XEmpresaMatrizId) && e.empresa_id !== XEmpresaId)
     .map(e => e.empresa_id);
-  const XIds = XGroupIds.length > 0 ? XGroupIds : [XEmpresaId];
 
   return (
     <StandardCrudForm<IDeposito>
@@ -36,11 +31,11 @@ const DepositoForm: React.FC = () => {
         XPrimaryKey: "deposito_id",
         XTitle: "Depósitos",
         XDefaultRecord: { nome: "", endereco: "", st_privado: true, empresa_id: XEmpresaId },
-        // Filtro: empresas irmãs (in IDs) — visibilidade pública refinada client-side
-        XApplyFilter: (q) => q.in("empresa_id", XIds),
-        XOnAfterLoad: (data) => {
-          // Filtra: depósitos próprios = todos; irmãs = só públicos
-          // (manipulação direta em useCrudController via XApplyFilter; aqui só validamos)
+        // Mostra: todos da empresa atual + apenas públicos das irmãs
+        XApplyFilter: (q) => {
+          if (XSisterIds.length === 0) return q.eq("empresa_id", XEmpresaId);
+          const XSisterList = XSisterIds.join(",");
+          return q.or(`empresa_id.eq.${XEmpresaId},and(empresa_id.in.(${XSisterList}),st_privado.eq.false)`);
         },
         XOnBeforeSave: (rec) => {
           if (!rec.nome?.toString().trim()) throw new Error("O nome do depósito é obrigatório.");
