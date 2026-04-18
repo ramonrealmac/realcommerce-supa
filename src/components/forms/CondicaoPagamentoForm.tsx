@@ -1,34 +1,20 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { toast } from "sonner";
-import FormToolbar from "@/components/shared/FormToolbar";
-import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+import StandardCrudForm from "@/components/shared/StandardCrudForm";
+import type { IGridColumn } from "@/components/grid/DataGrid";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { baseService } from "@/utils/baseService";
-import { useGridFilter } from "@/hooks/useGridFilter";
-
-type TFormMode = "view" | "edit" | "insert";
 
 interface ICondicao {
   condicao_id: number;
   descricao: string;
   tp_doc: string;
-  prazo_1: number | null;
-  prazo_2: number;
-  prazo_3: number;
-  prazo_4: number;
-  prazo_5: number;
-  prazo_6: number;
-  prazo_7: number;
-  prazo_8: number;
-  prazo_9: number;
-  prazo_10: number;
-  prazo_11: number;
-  prazo_12: number;
+  prazo_1: number; prazo_2: number; prazo_3: number; prazo_4: number;
+  prazo_5: number; prazo_6: number; prazo_7: number; prazo_8: number;
+  prazo_9: number; prazo_10: number; prazo_11: number; prazo_12: number;
   empresa_id: number;
 }
 
-const XLocalizarColumns: IGridColumn[] = [
+const XGridCols: IGridColumn[] = [
   { key: "condicao_id", label: "Código", width: "80px", align: "right" },
   { key: "descricao", label: "Descrição", width: "1fr" },
   { key: "tp_doc", label: "Tipo Doc.", width: "100px" },
@@ -49,172 +35,83 @@ const TP_DOC_OPTIONS = [
 
 const PRAZO_KEYS = ["prazo_1","prazo_2","prazo_3","prazo_4","prazo_5","prazo_6","prazo_7","prazo_8","prazo_9","prazo_10","prazo_11","prazo_12"] as const;
 
-const emptyForm = (): Record<string, string> => {
-  const f: Record<string, string> = { descricao: "", tp_doc: "" };
-  PRAZO_KEYS.forEach(k => (f[k] = "0"));
-  return f;
+const XDefault: Partial<ICondicao> = {
+  descricao: "", tp_doc: "",
+  prazo_1: 0, prazo_2: 0, prazo_3: 0, prazo_4: 0, prazo_5: 0, prazo_6: 0,
+  prazo_7: 0, prazo_8: 0, prazo_9: 0, prazo_10: 0, prazo_11: 0, prazo_12: 0,
 };
 
 const CondicaoPagamentoForm: React.FC = () => {
-  const { XEmpresaId, closeTab, XTabs, XActiveTabId } = useAppContext();
-
-  const [XFormMode, setXFormMode] = useState<TFormMode>("view");
-  const [XInnerTab, setXInnerTab] = useState<"cadastro" | "localizar">("cadastro");
-  const [XData, setXData] = useState<ICondicao[]>([]);
-  const [XCurrentIdx, setXCurrentIdx] = useState(0);
-  const [XF, setXF] = useState(emptyForm());
-  const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
-
-  const XCurrentRecord = XData[XCurrentIdx] || null;
-  const XIsEditing = XFormMode === "edit" || XFormMode === "insert";
-
-  const set = useCallback((key: string, val: string) => setXF(prev => ({ ...prev, [key]: val })), []);
-
-  const loadData = useCallback(async () => {
-    const { data } = await baseService.listar("condicao_pagamento", XEmpresaId, "condicao_id");
-    setXData(data || []);
-  }, [XEmpresaId]);
-
-  useEffect(() => { loadData(); setXCurrentIdx(0); setXFormMode("view"); }, [XEmpresaId]);
-
-  useEffect(() => {
-    if (XCurrentRecord && XFormMode === "edit") {
-      const nf: Record<string, string> = {
-        descricao: XCurrentRecord.descricao || "",
-        tp_doc: XCurrentRecord.tp_doc || "",
-      };
-      PRAZO_KEYS.forEach(k => (nf[k] = String((XCurrentRecord as any)[k] ?? 0)));
-      setXF(nf);
-    }
-  }, [XCurrentRecord, XFormMode]);
-
-  const handleIncluir = () => { setXFormMode("insert"); setXF(emptyForm()); setXInnerTab("cadastro"); };
-  const handleEditar = () => { if (!XCurrentRecord) return; setXFormMode("edit"); setXInnerTab("cadastro"); };
-
-  const handleSalvar = async () => {
-    if (!XF.descricao.trim()) { toast.error("A descrição é obrigatória."); return; }
-
-    const payload: any = {
-      empresa_id: XEmpresaId,
-      descricao: XF.descricao.trim(),
-      tp_doc: XF.tp_doc || "",
-    };
-    PRAZO_KEYS.forEach(k => (payload[k] = parseInt(XF[k]) || 0));
-
-    if (XFormMode === "insert") {
-      const { error } = await baseService.inserir("condicao_pagamento", payload);
-      if (error) { toast.error("Erro: " + error.message); return; }
-      toast.success("Condição incluída com sucesso.");
-    } else if (XCurrentRecord) {
-      const { empresa_id: _, ...updatePayload } = payload;
-      const { error } = await baseService.atualizar("condicao_pagamento", "condicao_id", XCurrentRecord.condicao_id, updatePayload);
-      if (error) { toast.error("Erro: " + error.message); return; }
-      toast.success("Condição alterada com sucesso.");
-    }
-    setXFormMode("view");
-    await loadData();
-  };
-
-  const handleCancelar = () => setXFormMode("view");
-
-  const handleExcluir = async () => {
-    if (!XCurrentRecord) return;
-    if (!confirm(`Deseja realmente excluir "${XCurrentRecord.descricao}"?`)) return;
-    await baseService.excluirLogico("condicao_pagamento", "condicao_id", XCurrentRecord.condicao_id);
-    toast.success("Condição excluída.");
-    await loadData();
-    if (XCurrentIdx > 0) setXCurrentIdx(XCurrentIdx - 1);
-  };
-
-  const handleSair = () => { const t = XTabs.find(t => t.id === XActiveTabId); if (t) closeTab(t.id); };
-
-  const XFilteredData = useGridFilter(XData, XSearchFilters);
-
-  const handleSelectFromSearch = (row: any) => {
-    const idx = XData.findIndex(r => r.condicao_id === row.condicao_id);
-    if (idx >= 0) { setXCurrentIdx(idx); setXInnerTab("cadastro"); setXFormMode("view"); }
-  };
-
-  const renderPrazoField = (label: string, key: string) => (
-    <div>
-      <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
-      {XIsEditing ? (
-        <input type="number" value={XF[key] || "0"} onChange={e => set(key, e.target.value)}
-          className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none text-right" />
-      ) : (
-        <input type="text" value={(XCurrentRecord as any)?.[key] ?? 0} readOnly
-          className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
-      )}
-    </div>
-  );
-
+  const { XEmpresaId } = useAppContext();
   return (
-    <div className="flex flex-col h-full bg-card" data-form-container>
-      <FormToolbar
-        XIsEditing={XIsEditing} XHasRecord={!!XCurrentRecord}
-        XIsFirst={XCurrentIdx === 0} XIsLast={XCurrentIdx >= XData.length - 1}
-        onIncluir={handleIncluir} onEditar={handleEditar} onSalvar={handleSalvar}
-        onCancelar={handleCancelar} onExcluir={handleExcluir}
-        onFirst={() => setXCurrentIdx(0)} onPrev={() => setXCurrentIdx(Math.max(0, XCurrentIdx - 1))}
-        onNext={() => setXCurrentIdx(Math.min(XData.length - 1, XCurrentIdx + 1))}
-        onLast={() => setXCurrentIdx(XData.length - 1)}
-        onRefresh={async () => { await loadData(); toast.info("Dados recarregados."); }}
-        onLocalizar={() => setXInnerTab("localizar")} onSair={handleSair}
-      />
-
-      <div className="flex border-b border-border bg-card">
-        {(["cadastro", "localizar"] as const).map(t => (
-          <button key={t} className={`px-4 py-1.5 text-sm font-medium border-b-2 ${XInnerTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => setXInnerTab(t)}>
-            {t === "cadastro" ? "Cadastro" : "Localizar"}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 overflow-auto p-4">
-        {XInnerTab === "cadastro" ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
-              <div className="w-full md:w-32">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
-                <input type="text" value={XFormMode === "insert" ? "(Novo)" : XCurrentRecord?.condicao_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Descrição <span className="text-destructive">*</span></label>
-                {XIsEditing ? (
-                  <input type="text" value={XF.descricao} onChange={e => set("descricao", e.target.value.toUpperCase())} autoFocus className="w-full border border-border rounded px-3 py-1.5 text-sm bg-card focus:ring-2 focus:ring-ring outline-none" />
-                ) : (
-                  <input type="text" value={XCurrentRecord?.descricao ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
-                )}
-              </div>
-              <div className="w-full md:w-48">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Tipo Documento</label>
-                {XIsEditing ? (
-                  <Select value={XF.tp_doc || "__none__"} onValueChange={v => set("tp_doc", v === "__none__" ? "" : v)}>
-                    <SelectTrigger className="h-[34px] text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TP_DOC_OPTIONS.map(o => <SelectItem key={o.v || "__none__"} value={o.v || "__none__"}>{o.l}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <input type="text" value={TP_DOC_OPTIONS.find(o => o.v === XCurrentRecord?.tp_doc)?.l || XCurrentRecord?.tp_doc || ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
-                )}
-              </div>
+    <StandardCrudForm<ICondicao>
+      config={{
+        XTableName: "condicao_pagamento",
+        XPrimaryKey: "condicao_id",
+        XTitle: "Condições de Pagamento",
+        XEmpresaId,
+        XDefaultRecord: XDefault,
+        XOnBeforeSave: (rec) => {
+          if (!rec.descricao?.trim()) throw new Error("A descrição é obrigatória.");
+          const out: any = { ...rec, descricao: rec.descricao.trim(), tp_doc: rec.tp_doc || "" };
+          PRAZO_KEYS.forEach(k => { out[k] = parseInt(String(out[k] ?? 0)) || 0; });
+          return out;
+        },
+      }}
+      XGridCols={XGridCols}
+      XExportTitle="Condições de Pagamento"
+      renderCadastro={({ record, setField, mode, isEditing }) => (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:flex md:gap-4 gap-3">
+            <div className="w-full md:w-32">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Código</label>
+              <input type="text" value={mode === "insert" ? "(Novo)" : record.condicao_id ?? ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary text-right" />
             </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-2">Prazos (dias)</h3>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                {PRAZO_KEYS.map((k, i) => renderPrazoField(`${i + 1}ª Parcela`, k))}
-              </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Descrição <span className="text-destructive">*</span></label>
+              <input
+                type="text"
+                value={record.descricao ?? ""}
+                onChange={e => setField("descricao", e.target.value.toUpperCase())}
+                readOnly={!isEditing}
+                autoFocus={isEditing}
+                className={`w-full border border-border rounded px-3 py-1.5 text-sm ${isEditing ? "bg-card focus:ring-2 focus:ring-ring outline-none" : "bg-secondary"}`}
+              />
+            </div>
+            <div className="w-full md:w-48">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Tipo Documento</label>
+              {isEditing ? (
+                <Select value={record.tp_doc || "__none__"} onValueChange={v => setField("tp_doc", v === "__none__" ? "" : v)}>
+                  <SelectTrigger className="h-[34px] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TP_DOC_OPTIONS.map(o => <SelectItem key={o.v || "__none__"} value={o.v || "__none__"}>{o.l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <input type="text" value={TP_DOC_OPTIONS.find(o => o.v === record.tp_doc)?.l || record.tp_doc || ""} readOnly className="w-full border border-border rounded px-3 py-1.5 text-sm bg-secondary" />
+              )}
             </div>
           </div>
-        ) : (
-          <DataGrid columns={XLocalizarColumns} data={XFilteredData} showFilters filterValues={XSearchFilters}
-            onFilterChange={(key, value) => setXSearchFilters(prev => ({ ...prev, [key]: value }))}
-            onRowDoubleClick={handleSelectFromSearch} maxHeight="400px" exportTitle="Condições de Pagamento" />
-        )}
-      </div>
-    </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">Prazos (dias)</h3>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              {PRAZO_KEYS.map((k, i) => (
+                <div key={k}>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{i + 1}ª Parcela</label>
+                  <input
+                    type="number"
+                    value={String((record as any)[k] ?? 0)}
+                    onChange={e => setField(k, parseInt(e.target.value) || 0 as any)}
+                    readOnly={!isEditing}
+                    className={`w-full border border-border rounded px-3 py-1.5 text-sm text-right ${isEditing ? "bg-card focus:ring-2 focus:ring-ring outline-none" : "bg-secondary"}`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    />
   );
 };
 
