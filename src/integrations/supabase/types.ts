@@ -1157,6 +1157,7 @@ export type Database = {
       }
       grupo_ibscbs: {
         Row: {
+          cst_ibscbs: string | null
           descricao: string
           dt_alteracao: string | null
           dt_cadastro: string | null
@@ -1165,6 +1166,7 @@ export type Database = {
           grupo_ibscbs_id: number
         }
         Insert: {
+          cst_ibscbs?: string | null
           descricao: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
@@ -1173,6 +1175,7 @@ export type Database = {
           grupo_ibscbs_id?: number
         }
         Update: {
+          cst_ibscbs?: string | null
           descricao?: string
           dt_alteracao?: string | null
           dt_cadastro?: string | null
