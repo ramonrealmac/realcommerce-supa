@@ -16,11 +16,19 @@ const db = supabase as any;
 interface ILookup { id: number; label: string; }
 interface IClienteInfo { id: number; cnpj: string; razao: string; fantasia: string; }
 
-const XGridCols: IGridColumn[] = [
+const buildGridCols = (
+  vendedores: ILookup[],
+  clientesCache: Record<number, IClienteInfo>,
+): IGridColumn[] => [
   { key: "nr_movimento", label: "Pedido", width: "90px", align: "right" },
   { key: "dt_emissao", label: "Emissão", width: "120px", render: r => r.dt_emissao ? new Date(r.dt_emissao).toLocaleDateString("pt-BR") : "" },
-  { key: "_cliente", label: "Cliente", width: "2fr", getValue: r => r._cliente_nome || "", render: r => r._cliente_nome || `#${r.cadastro_id ?? ""}` },
-  { key: "_vendedor", label: "Vendedor", width: "1fr", render: r => r._vendedor_nome || "" },
+  {
+    key: "_cliente", label: "Cliente", width: "2fr",
+    getValue: r => clientesCache[r.cadastro_id]?.razao || "",
+    render: r => clientesCache[r.cadastro_id]?.razao || (r.cadastro_id ? `#${r.cadastro_id}` : ""),
+  },
+  { key: "_vendedor", label: "Vendedor", width: "1fr", render: r => vendedores.find(v => v.id === r.funcionario_id)?.label || "" },
+
   { key: "st_pedido", label: "Status", width: "110px", render: r => ST_PEDIDO_LABELS[r.st_pedido] || r.st_pedido },
   { key: "vl_movimento", label: "Total", width: "120px", align: "right", render: r => Number(r.vl_movimento || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) },
   { key: "faturado", label: "Faturado", width: "90px" },
