@@ -124,7 +124,10 @@ const PedidoForm: React.FC = () => {
         XSelectCols: "*",
         XOrderBy: "movimento_id",
         XApplyFilter: (q) => q.in("tp_movimento", ["PD", "SV", "OR"]),
-        XOnAfterLoad: () => { /* enriquecimento é feito em XGridCols via map externo */ },
+        XOnAfterLoad: (rows: any[]) => {
+          const ids = Array.from(new Set(rows.map(r => r.cadastro_id).filter(Boolean))) as number[];
+          if (ids.length) ensureClienteInfo(ids);
+        },
         XOnBeforeSave: (rec, mode) => {
           if (!rec.cadastro_id) throw new Error("Selecione o Cliente.");
           if (!rec.funcionario_id) throw new Error("Selecione o Vendedor.");
@@ -136,7 +139,7 @@ const PedidoForm: React.FC = () => {
         },
         XSoftDelete: false,
       }}
-      XGridCols={XGridCols}
+      XGridCols={buildGridCols(XVendedores, XClientesCache)}
       XExportTitle="Pedidos"
       XExtraTabs={[
         {
@@ -232,10 +235,34 @@ const PedidoForm: React.FC = () => {
               </div>
               <div className="col-span-5">
                 <label className="text-xs text-muted-foreground">Cliente <span className="text-destructive">*</span></label>
-                <select disabled={ro} value={record.cadastro_id ?? ""} onChange={e => setField("cadastro_id", e.target.value ? Number(e.target.value) : null as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
-                  <option value="">--</option>
-                  {XClientes.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
+                <div className="flex gap-1">
+                  <input
+                    readOnly
+                    value={record.cadastro_id ? (XClientesCache[record.cadastro_id]?.razao || `#${record.cadastro_id}`) : ""}
+                    placeholder="Clique na lupa para pesquisar..."
+                    className="flex-1 border border-border rounded px-2 py-1 text-sm bg-secondary"
+                  />
+                  <button
+                    type="button"
+                    disabled={ro}
+                    onClick={() => abrirPesquisaCliente((c) => {
+                      setXClientesCache(prev => ({ ...prev, [c.cadastro_id]: { id: c.cadastro_id, cnpj: c.cnpj || "", razao: c.razao_social || "", fantasia: c.nome_fantasia || "" } }));
+                      setField("cadastro_id", c.cadastro_id as any);
+                    })}
+                    className="px-2 py-1 border border-border rounded bg-card hover:bg-accent disabled:opacity-50"
+                    title="Pesquisar cliente"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+                  {record.cadastro_id && !ro && (
+                    <button
+                      type="button"
+                      onClick={() => setField("cadastro_id", null as any)}
+                      className="px-2 py-1 border border-border rounded bg-card hover:bg-accent text-xs"
+                      title="Limpar"
+                    >×</button>
+                  )}
+                </div>
               </div>
               <div className="col-span-3">
                 <label className="text-xs text-muted-foreground">Vendedor <span className="text-destructive">*</span></label>
