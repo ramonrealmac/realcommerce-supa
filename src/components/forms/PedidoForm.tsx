@@ -62,6 +62,7 @@ const PedidoForm: React.FC = () => {
   const [XClientesCache, setXClientesCache] = useState<Record<number, IClienteInfo>>({});
   const [XSearchOpen, setXSearchOpen] = useState(false);
   const [XSearchTarget, setXSearchTarget] = useState<((c: IClienteRow) => void) | null>(null);
+  const [XAutoNovoItem, setXAutoNovoItem] = useState(0);
 
   // Lookups (sem clientes — usa pesquisa via diálogo)
   useEffect(() => {
