@@ -352,6 +352,13 @@ const PedidoForm: React.FC = () => {
         );
       }}
     />
+    <ClienteSearchDialog
+      open={XSearchOpen}
+      onClose={() => setXSearchOpen(false)}
+      empresaId={XEmpresaId}
+      onSelect={(c) => XSearchTarget?.(c)}
+    />
+    </>
   );
 };
 
