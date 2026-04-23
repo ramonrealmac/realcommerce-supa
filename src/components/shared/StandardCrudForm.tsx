@@ -8,7 +8,14 @@ import { useAppContext } from "@/contexts/AppContext";
 export interface IExtraTab {
   key: string;
   label: string;
-  render: (ctx: { record: any; mode: TFormMode }) => React.ReactNode;
+  render: (ctx: {
+    record: any;
+    mode: TFormMode;
+    setField: <K extends string>(k: K, v: any) => void;
+    setRecord: (r: any) => void;
+    isEditing: boolean;
+    currentRecord: any | null;
+  }) => React.ReactNode;
 }
 
 interface StandardCrudFormProps<T extends Record<string, any>> {
@@ -103,7 +110,14 @@ function StandardCrudForm<T extends Record<string, any>>({
         })}
 
         {XExtraTabs.map(t => XInnerTab === t.key && (
-          <div key={t.key}>{t.render({ record: XActiveRecord, mode: ctrl.XFormMode })}</div>
+          <div key={t.key}>{t.render({
+            record: XActiveRecord,
+            mode: ctrl.XFormMode,
+            setField: ctrl.setField,
+            setRecord: ctrl.setXEditRecord,
+            isEditing: ctrl.XIsEditing,
+            currentRecord: ctrl.XCurrentRecord,
+          })}</div>
         ))}
 
         {XInnerTab === "localizar" && (
