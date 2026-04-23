@@ -114,6 +114,7 @@ const PedidoForm: React.FC = () => {
   };
 
   return (
+    <>
     <StandardCrudForm<IMovimento>
       config={{
         XTableName: "movimento",
