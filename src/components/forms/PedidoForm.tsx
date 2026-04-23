@@ -1,0 +1,305 @@
+import React, { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAppContext } from "@/contexts/AppContext";
+import StandardCrudForm from "@/components/shared/StandardCrudForm";
+import type { IGridColumn } from "@/components/grid/DataGrid";
+import type { IMovimento } from "./pedido/types";
+import { ST_PEDIDO_LABELS, TP_DESCONTO_LABELS } from "./pedido/types";
+import PedidoItensTab from "./pedido/PedidoItensTab";
+import PedidoPagamentoTab from "./pedido/PedidoPagamentoTab";
+
+const db = supabase as any;
+
+interface ILookup { id: number; label: string; }
+
+const XGridCols: IGridColumn[] = [
+  { key: "nr_movimento", label: "Pedido", width: "90px", align: "right" },
+  { key: "dt_emissao", label: "Emissão", width: "120px", render: r => r.dt_emissao ? new Date(r.dt_emissao).toLocaleDateString("pt-BR") : "" },
+  { key: "_cliente", label: "Cliente", width: "2fr", getValue: r => r._cliente_nome || "", render: r => r._cliente_nome || `#${r.cadastro_id ?? ""}` },
+  { key: "_vendedor", label: "Vendedor", width: "1fr", render: r => r._vendedor_nome || "" },
+  { key: "st_pedido", label: "Status", width: "110px", render: r => ST_PEDIDO_LABELS[r.st_pedido] || r.st_pedido },
+  { key: "vl_movimento", label: "Total", width: "120px", align: "right", render: r => Number(r.vl_movimento || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) },
+  { key: "faturado", label: "Faturado", width: "90px" },
+];
+
+const XDefaultRecord: Partial<IMovimento> = {
+  tp_movimento: "PD",
+  tp_origem: "PDV",
+  st_pedido: "O",
+  faturado: "N",
+  tp_desconto: "N",
+  pc_desconto: 0,
+  vl_produto: 0,
+  vl_desconto: 0,
+  vl_movimento: 0,
+  vl_frete: 0,
+  vl_despesa: 0,
+  vl_seguro: 0,
+  vl_outro: 0,
+  obs_pedido: "",
+  dt_emissao: new Date().toISOString().substring(0, 10),
+  dt_entrega: new Date().toISOString().substring(0, 10),
+};
+
+const PedidoForm: React.FC = () => {
+  const { XEmpresaId } = useAppContext();
+  const [XClientes, setXClientes] = useState<ILookup[]>([]);
+  const [XVendedores, setXVendedores] = useState<ILookup[]>([]);
+  const [XTpOperacoes, setXTpOperacoes] = useState<ILookup[]>([]);
+  const [XRotas, setXRotas] = useState<ILookup[]>([]);
+  const [XCidades, setXCidades] = useState<ILookup[]>([]);
+
+  // Lookups
+  useEffect(() => {
+    (async () => {
+      const [{ data: cli }, { data: vend }, { data: tps }, { data: rotas }, { data: cid }] = await Promise.all([
+        db.from("cadastro").select("cadastro_id, cnpj, razao_social").eq("excluido", false).eq("st_cliente", "S").order("razao_social").limit(500),
+        db.from("cadastro").select("cadastro_id, razao_social").eq("excluido", false).eq("st_vendedor", "S").order("razao_social").limit(200),
+        db.from("tp_operacao").select("tp_operacao_id, descricao").order("descricao"),
+        db.from("rota").select("rota_id, descricao").eq("excluido", false).order("descricao"),
+        db.from("cidade").select("cidade_id, descricao, uf").eq("excluido", false).order("descricao").limit(1000),
+      ]);
+      setXClientes((cli || []).map((c: any) => ({ id: c.cadastro_id, label: `${c.cadastro_id} - ${c.cnpj || ""} - ${c.razao_social}` })));
+      setXVendedores((vend || []).map((c: any) => ({ id: c.cadastro_id, label: c.razao_social })));
+      setXTpOperacoes((tps || []).map((t: any) => ({ id: t.tp_operacao_id, label: t.descricao })));
+      setXRotas((rotas || []).map((r: any) => ({ id: r.rota_id, label: r.descricao })));
+      setXCidades((cid || []).map((c: any) => ({ id: c.cidade_id, label: `${c.descricao} - ${c.uf || ""}` })));
+    })();
+  }, []);
+
+  const enrich = useCallback((rows: any[]) => {
+    return rows.map(r => ({
+      ...r,
+      _cliente_nome: XClientes.find(c => c.id === r.cadastro_id)?.label,
+      _vendedor_nome: XVendedores.find(v => v.id === r.funcionario_id)?.label,
+    }));
+  }, [XClientes, XVendedores]);
+
+  // Status change helpers (Orçamento / Caixa buttons)
+  const mudarStatus = async (movimento_id: number, novo: string) => {
+    if (!movimento_id) { toast.error("Salve o pedido primeiro."); return; }
+    const { error } = await db.from("movimento")
+      .update({ st_pedido: novo, dt_alteracao: new Date().toISOString() })
+      .eq("movimento_id", movimento_id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Status alterado para ${ST_PEDIDO_LABELS[novo] || novo}.`);
+    window.location.reload();
+  };
+
+  return (
+    <StandardCrudForm<IMovimento>
+      config={{
+        XTableName: "movimento",
+        XPrimaryKey: "movimento_id",
+        XTitle: "Pedidos",
+        XDefaultRecord: { ...XDefaultRecord, empresa_id: XEmpresaId } as any,
+        XEmpresaId,
+        XSelectCols: "*",
+        XOrderBy: "movimento_id",
+        XApplyFilter: (q) => q.in("tp_movimento", ["PD", "SV", "OR"]),
+        XOnAfterLoad: () => { /* enriquecimento é feito em XGridCols via map externo */ },
+        XOnBeforeSave: (rec, mode) => {
+          if (!rec.cadastro_id) throw new Error("Selecione o Cliente.");
+          if (!rec.funcionario_id) throw new Error("Selecione o Vendedor.");
+          if (!rec.dt_emissao) throw new Error("Informe a Data de Emissão.");
+          if (mode === "edit" && rec.st_pedido && rec.st_pedido !== "O") {
+            throw new Error("Pedido não está em modo Orçamento; não pode ser alterado.");
+          }
+          return { ...rec, empresa_id: rec.empresa_id || XEmpresaId };
+        },
+        XSoftDelete: false,
+      }}
+      XGridCols={XGridCols}
+      XExportTitle="Pedidos"
+      XExtraTabs={[
+        {
+          key: "itens", label: "Itens do Pedido",
+          render: ({ record, currentRecord }) => {
+            const ped = (currentRecord || record) as IMovimento;
+            return <PedidoItensTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} />;
+          },
+        },
+        {
+          key: "pagamento", label: "Forma de Pagamento",
+          render: ({ record, currentRecord }) => {
+            const ped = (currentRecord || record) as IMovimento;
+            return <PedidoPagamentoTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} />;
+          },
+        },
+        {
+          key: "entrega", label: "Dados de Entrega",
+          render: ({ record, setField, isEditing }) => {
+            const ro = !isEditing || record.st_pedido !== "O";
+            return (
+              <div className="space-y-3">
+                <div className="grid grid-cols-12 gap-3">
+                  <div className="col-span-3">
+                    <label className="text-xs text-muted-foreground">Rota</label>
+                    <select disabled={ro} value={record.rota_id ?? ""} onChange={e => setField("rota_id" as any, e.target.value ? Number(e.target.value) : null as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
+                      <option value="">--</option>
+                      {XRotas.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-muted-foreground">CEP</label>
+                    <input disabled={ro} value={record.cep_entrega ?? ""} onChange={e => setField("cep_entrega" as any, e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div className="col-span-7">
+                    <label className="text-xs text-muted-foreground">Cidade</label>
+                    <select disabled={ro} value={record.cidade_id ?? ""} onChange={e => setField("cidade_id" as any, e.target.value ? Number(e.target.value) : null as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
+                      <option value="">--</option>
+                      {XCidades.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-12 gap-3">
+                  <div className="col-span-7">
+                    <label className="text-xs text-muted-foreground">Logradouro</label>
+                    <input disabled={ro} value={record.logradouro_entrega ?? ""} onChange={e => setField("logradouro_entrega" as any, e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div className="col-span-3">
+                    <label className="text-xs text-muted-foreground">Bairro</label>
+                    <input disabled={ro} value={record.bairro_entrega ?? ""} onChange={e => setField("bairro_entrega" as any, e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-muted-foreground">Nº</label>
+                    <input disabled={ro} value={record.numero_entrega ?? ""} onChange={e => setField("numero_entrega" as any, e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">E-mail</label>
+                  <input disabled={ro} value={record.email_entrega ?? ""} onChange={e => setField("email_entrega" as any, e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm" />
+                </div>
+              </div>
+            );
+          },
+        },
+        {
+          key: "adicionais", label: "Dados Adicionais",
+          render: ({ record, setField, isEditing }) => {
+            const ro = !isEditing || record.st_pedido !== "O";
+            return (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Observação do Pedido</label>
+                  <textarea disabled={ro} value={record.obs_pedido ?? ""} onChange={e => setField("obs_pedido" as any, e.target.value as any)} className="w-full border border-border rounded px-2 py-2 text-sm min-h-[100px]" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Observação NF</label>
+                  <textarea disabled={ro} value={record.observacao_nf ?? ""} onChange={e => setField("observacao_nf" as any, e.target.value as any)} className="w-full border border-border rounded px-2 py-2 text-sm min-h-[100px]" />
+                </div>
+              </div>
+            );
+          },
+        },
+      ]}
+      renderCadastro={({ record, setField, mode, isEditing, currentRecord }) => {
+        const stAtual = (record.st_pedido || "O") as string;
+        const ro = !isEditing || (mode === "edit" && stAtual !== "O");
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-1">
+                <label className="text-xs text-muted-foreground">Pedido</label>
+                <input readOnly value={record.nr_movimento ?? (mode === "insert" ? "(Novo)" : "")} className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" />
+              </div>
+              <div className="col-span-5">
+                <label className="text-xs text-muted-foreground">Cliente <span className="text-destructive">*</span></label>
+                <select disabled={ro} value={record.cadastro_id ?? ""} onChange={e => setField("cadastro_id", e.target.value ? Number(e.target.value) : null as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
+                  <option value="">--</option>
+                  {XClientes.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </div>
+              <div className="col-span-3">
+                <label className="text-xs text-muted-foreground">Vendedor <span className="text-destructive">*</span></label>
+                <select disabled={ro} value={record.funcionario_id ?? ""} onChange={e => setField("funcionario_id", e.target.value ? Number(e.target.value) : null as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
+                  <option value="">--</option>
+                  {XVendedores.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground">Status</label>
+                <input readOnly value={ST_PEDIDO_LABELS[stAtual] || stAtual} className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary" />
+              </div>
+              <div className="col-span-1">
+                <label className="text-xs text-muted-foreground">Faturado</label>
+                <input readOnly value={record.faturado ?? "N"} className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-center" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground">Dt. Emissão <span className="text-destructive">*</span></label>
+                <input type="date" disabled={ro} value={(record.dt_emissao || "").toString().substring(0, 10)} onChange={e => setField("dt_emissao", e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground">Dt. Entrega <span className="text-destructive">*</span></label>
+                <input type="date" disabled={ro} value={(record.dt_entrega || "").toString().substring(0, 10)} onChange={e => setField("dt_entrega", e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm" />
+              </div>
+              <div className="col-span-3">
+                <label className="text-xs text-muted-foreground">Tipo de Operação</label>
+                <select disabled={ro} value={record.tp_operacao_id ?? ""} onChange={e => setField("tp_operacao_id", e.target.value ? Number(e.target.value) : null as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
+                  <option value="">--</option>
+                  {XTpOperacoes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                </select>
+              </div>
+              <div className="col-span-3">
+                <label className="text-xs text-muted-foreground">Tipo de Movimento <span className="text-destructive">*</span></label>
+                <select disabled={ro} value={record.tp_movimento || "PD"} onChange={e => setField("tp_movimento", e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
+                  <option value="PD">Pedido</option>
+                  <option value="SV">Saída por Venda</option>
+                  <option value="OR">Orçamento</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground">NF</label>
+                <input readOnly value={record.numero_nfe ?? ""} className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-3">
+                <label className="text-xs text-muted-foreground">Tipo de Desconto <span className="text-destructive">*</span></label>
+                <select disabled={ro} value={record.tp_desconto || "N"} onChange={e => setField("tp_desconto", e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
+                  {Object.entries(TP_DESCONTO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              {record.tp_desconto === "P" && (
+                <>
+                  <div className="col-span-2">
+                    <label className="text-xs text-muted-foreground">Desc. Pedido (%)</label>
+                    <input type="number" disabled={ro} value={record.pc_desconto ?? 0} onChange={e => setField("pc_desconto", Number(e.target.value) as any)} className="w-full border border-border rounded px-2 py-1 text-sm text-right" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-muted-foreground">Desc. Pedido (R$)</label>
+                    <input type="number" disabled={ro} value={record.vl_desc_rs ?? 0} onChange={e => setField("vl_desc_rs", Number(e.target.value) as any)} className="w-full border border-border rounded px-2 py-1 text-sm text-right" />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {currentRecord?.movimento_id && (
+              <div className="flex gap-2 pt-3 border-t border-border">
+                {stAtual === "O" && (
+                  <button onClick={() => mudarStatus(currentRecord.movimento_id, "P")} className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground">→ Caixa (Pedido)</button>
+                )}
+                {stAtual === "P" && (
+                  <button onClick={() => mudarStatus(currentRecord.movimento_id, "O")} className="text-sm px-4 py-1.5 rounded border border-border">↩ Voltar p/ Orçamento</button>
+                )}
+                {(stAtual === "O" || stAtual === "P") && (
+                  <button onClick={() => { if (confirm("Cancelar este pedido?")) mudarStatus(currentRecord.movimento_id, "C"); }} className="text-sm px-4 py-1.5 rounded border border-destructive text-destructive">Cancelar Pedido</button>
+                )}
+                <div className="ml-auto text-sm text-muted-foreground self-center">
+                  Vlr. Total: <span className="font-bold text-primary">{Number(currentRecord.vl_movimento || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }}
+    />
+  );
+};
+
+export default PedidoForm;
