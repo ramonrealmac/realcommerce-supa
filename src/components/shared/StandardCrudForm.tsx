@@ -39,6 +39,8 @@ function StandardCrudForm<T extends Record<string, any>>({
   config, XGridCols, renderCadastro, XExtraTabs = [], XExportTitle, XAfterInsertTab,
 }: StandardCrudFormProps<T>) {
   const { closeTab, XTabs, XActiveTabId } = useAppContext();
+  const [XInnerTab, setXInnerTab] = useState<string>("cadastro");
+  const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
   const wrappedConfig = useMemo(() => ({
     ...config,
     XOnAfterSave: async (rec: any, mode: any) => {
@@ -49,8 +51,6 @@ function StandardCrudForm<T extends Record<string, any>>({
     },
   }), [config, XAfterInsertTab]);
   const ctrl = useCrudController<T>(wrappedConfig);
-  const [XInnerTab, setXInnerTab] = useState<string>("cadastro");
-  const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
 
   const XFilteredData = useGridFilter(ctrl.XData, XSearchFilters);
 
