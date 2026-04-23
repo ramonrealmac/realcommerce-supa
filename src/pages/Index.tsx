@@ -20,6 +20,7 @@ import UnidadeForm from "@/components/forms/UnidadeForm";
 import DepositoForm from "@/components/forms/DepositoForm";
 import EstoqueForm from "@/components/forms/EstoqueForm";
 import ProdutoForm from "@/components/forms/ProdutoForm";
+import PedidoForm from "@/components/forms/PedidoForm";
 import AuthGate from "@/components/auth/AuthGate";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import RbConexaoForm from "@/rbuilder/components/rb_ConexaoForm";
@@ -77,6 +78,8 @@ const AppContent = () => {
         return <EstoqueForm />;
       case "produtos":
         return <ProdutoForm />;
+      case "pdv":
+        return <PedidoForm />;
       case "rb-conexoes":
         return <RbConexaoForm />;
       case "rb-templates":

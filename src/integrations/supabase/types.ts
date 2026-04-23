@@ -14,6 +14,415 @@ export type Database = {
   }
   public: {
     Tables: {
+      abate: {
+        Row: {
+          abate_id: number
+          cadastro_id: number
+          data: string
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          dt_fim_realizado: string | null
+          dt_inicio: string | null
+          empresa_id: number
+          excluido: boolean | null
+          lote_id: number
+          peso_mortalidade: number | null
+          peso_prod: number | null
+          ps_previsto: number | null
+          ps_realizado: number | null
+          qt_faltas: number | null
+          qt_funcionarios: number | null
+          qt_mortalidade: number | null
+          qt_prevista: number | null
+          qt_problema: number | null
+          qt_realizada: number | null
+          tempo_parado: number | null
+          tempo_realizado: number | null
+          tempo_redvel: number | null
+          turno: string | null
+        }
+        Insert: {
+          abate_id: number
+          cadastro_id: number
+          data: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          dt_fim_realizado?: string | null
+          dt_inicio?: string | null
+          empresa_id: number
+          excluido?: boolean | null
+          lote_id: number
+          peso_mortalidade?: number | null
+          peso_prod?: number | null
+          ps_previsto?: number | null
+          ps_realizado?: number | null
+          qt_faltas?: number | null
+          qt_funcionarios?: number | null
+          qt_mortalidade?: number | null
+          qt_prevista?: number | null
+          qt_problema?: number | null
+          qt_realizada?: number | null
+          tempo_parado?: number | null
+          tempo_realizado?: number | null
+          tempo_redvel?: number | null
+          turno?: string | null
+        }
+        Update: {
+          abate_id?: number
+          cadastro_id?: number
+          data?: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          dt_fim_realizado?: string | null
+          dt_inicio?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          lote_id?: number
+          peso_mortalidade?: number | null
+          peso_prod?: number | null
+          ps_previsto?: number | null
+          ps_realizado?: number | null
+          qt_faltas?: number | null
+          qt_funcionarios?: number | null
+          qt_mortalidade?: number | null
+          qt_prevista?: number | null
+          qt_problema?: number | null
+          qt_realizada?: number | null
+          tempo_parado?: number | null
+          tempo_realizado?: number | null
+          tempo_redvel?: number | null
+          turno?: string | null
+        }
+        Relationships: []
+      }
+      abate_entrada: {
+        Row: {
+          abate_entrada_id: number
+          abate_id: number
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: string
+          excluido: boolean | null
+          placa: string | null
+          ps_previsto: number | null
+          ps_realizado: number | null
+          qt_prevista: number | null
+          qt_realizada: number | null
+        }
+        Insert: {
+          abate_entrada_id: number
+          abate_id: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id: string
+          excluido?: boolean | null
+          placa?: string | null
+          ps_previsto?: number | null
+          ps_realizado?: number | null
+          qt_prevista?: number | null
+          qt_realizada?: number | null
+        }
+        Update: {
+          abate_entrada_id?: number
+          abate_id?: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: string
+          excluido?: boolean | null
+          placa?: string | null
+          ps_previsto?: number | null
+          ps_realizado?: number | null
+          qt_prevista?: number | null
+          qt_realizada?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_abate_entrada"
+            columns: ["abate_id"]
+            isOneToOne: false
+            referencedRelation: "abate"
+            referencedColumns: ["abate_id"]
+          },
+        ]
+      }
+      abate_mortalidade: {
+        Row: {
+          abate_id: number
+          data: string | null
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          mortalidade_id: number
+          motivo_id: number | null
+          peso: number | null
+          quantidade: number | null
+        }
+        Insert: {
+          abate_id: number
+          data?: string | null
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id: number
+          excluido?: boolean | null
+          mortalidade_id: number
+          motivo_id?: number | null
+          peso?: number | null
+          quantidade?: number | null
+        }
+        Update: {
+          abate_id?: number
+          data?: string | null
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          mortalidade_id?: number
+          motivo_id?: number | null
+          peso?: number | null
+          quantidade?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_abate_mortalidade"
+            columns: ["abate_id"]
+            isOneToOne: false
+            referencedRelation: "abate"
+            referencedColumns: ["abate_id"]
+          },
+        ]
+      }
+      abate_mortalidade_motivo: {
+        Row: {
+          descricao_id: string | null
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          excluido: boolean | null
+          motivo_id: number
+          setor: string | null
+        }
+        Insert: {
+          descricao_id?: string | null
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          excluido?: boolean | null
+          motivo_id?: number
+          setor?: string | null
+        }
+        Update: {
+          descricao_id?: string | null
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          excluido?: boolean | null
+          motivo_id?: number
+          setor?: string | null
+        }
+        Relationships: []
+      }
+      abate_problema: {
+        Row: {
+          abate_id: number
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          inicio: string | null
+          pc_reducao: number | null
+          problema_id: number
+          qt_reducao: number | null
+          tempo: number | null
+          termino: string | null
+          tp_problema: string | null
+        }
+        Insert: {
+          abate_id: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id: number
+          excluido?: boolean | null
+          inicio?: string | null
+          pc_reducao?: number | null
+          problema_id: number
+          qt_reducao?: number | null
+          tempo?: number | null
+          termino?: string | null
+          tp_problema?: string | null
+        }
+        Update: {
+          abate_id?: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          inicio?: string | null
+          pc_reducao?: number | null
+          problema_id?: number
+          qt_reducao?: number | null
+          tempo?: number | null
+          termino?: string | null
+          tp_problema?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_abate_problema"
+            columns: ["empresa_id", "abate_id"]
+            isOneToOne: false
+            referencedRelation: "abate"
+            referencedColumns: ["empresa_id", "abate_id"]
+          },
+        ]
+      }
+      abate_producao: {
+        Row: {
+          abate_id: number
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          pc_chile: number
+          producao_id: number
+          produto_id: number
+          ps_producao: number
+        }
+        Insert: {
+          abate_id: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id: number
+          excluido?: boolean | null
+          pc_chile: number
+          producao_id: number
+          produto_id: number
+          ps_producao: number
+        }
+        Update: {
+          abate_id?: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          pc_chile?: number
+          producao_id?: number
+          produto_id?: number
+          ps_producao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_abate_producao"
+            columns: ["abate_id"]
+            isOneToOne: false
+            referencedRelation: "abate"
+            referencedColumns: ["abate_id"]
+          },
+        ]
+      }
+      agendamento: {
+        Row: {
+          agendamento_id: number
+          convenio_id: number | null
+          dt_agendamento: string
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          dt_inclusao: string
+          empresa_id: number | null
+          excluido: boolean | null
+          funcionario_id: number | null
+          hs_agendamento: string
+          hs_inclusao: string | null
+          ob_agendamento: string | null
+          origem: string | null
+          paciente_id: number
+          procedimento_id: number
+          profissional_id: number
+          vl_agendamento: number
+        }
+        Insert: {
+          agendamento_id: number
+          convenio_id?: number | null
+          dt_agendamento: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          dt_inclusao: string
+          empresa_id?: number | null
+          excluido?: boolean | null
+          funcionario_id?: number | null
+          hs_agendamento: string
+          hs_inclusao?: string | null
+          ob_agendamento?: string | null
+          origem?: string | null
+          paciente_id: number
+          procedimento_id: number
+          profissional_id: number
+          vl_agendamento: number
+        }
+        Update: {
+          agendamento_id?: number
+          convenio_id?: number | null
+          dt_agendamento?: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          dt_inclusao?: string
+          empresa_id?: number | null
+          excluido?: boolean | null
+          funcionario_id?: number | null
+          hs_agendamento?: string
+          hs_inclusao?: string | null
+          ob_agendamento?: string | null
+          origem?: string | null
+          paciente_id?: number
+          procedimento_id?: number
+          profissional_id?: number
+          vl_agendamento?: number
+        }
+        Relationships: []
+      }
+      agendamento_financeiro: {
+        Row: {
+          agendamento_financeiro_id: number
+          agendamento_id: number
+          condicao_id: number
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          excluido: boolean | null
+          nr_autorizacao: string
+          portador_id: number
+          vl_agendamento: number
+        }
+        Insert: {
+          agendamento_financeiro_id: number
+          agendamento_id: number
+          condicao_id: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id: number
+          excluido?: boolean | null
+          nr_autorizacao: string
+          portador_id: number
+          vl_agendamento: number
+        }
+        Update: {
+          agendamento_financeiro_id?: number
+          agendamento_id?: number
+          condicao_id?: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          excluido?: boolean | null
+          nr_autorizacao?: string
+          portador_id?: number
+          vl_agendamento?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_agendamento_financeiro"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamento"
+            referencedColumns: ["agendamento_id"]
+          },
+        ]
+      }
       auditoria: {
         Row: {
           id: number
@@ -481,6 +890,39 @@ export type Database = {
         }
         Relationships: []
       }
+      clas_trib: {
+        Row: {
+          ativo: boolean | null
+          bc_legal: string | null
+          clas_trib_id: string
+          created_at: string | null
+          descricao: string
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          grupo_ibscbs_id: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bc_legal?: string | null
+          clas_trib_id: string
+          created_at?: string | null
+          descricao: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          grupo_ibscbs_id?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bc_legal?: string | null
+          clas_trib_id?: string
+          created_at?: string | null
+          descricao?: string
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          grupo_ibscbs_id?: number | null
+        }
+        Relationships: []
+      }
       comissao: {
         Row: {
           cadastro_id: number | null
@@ -533,6 +975,7 @@ export type Database = {
           dt_cadastro: string | null
           empresa_id: number
           excluido: boolean | null
+          intervalo: number | null
           prazo_1: number | null
           prazo_10: number
           prazo_11: number
@@ -545,6 +988,8 @@ export type Database = {
           prazo_7: number
           prazo_8: number
           prazo_9: number
+          qtd_parcelas: number | null
+          tipo_prazo: boolean | null
           tp_doc: string
         }
         Insert: {
@@ -554,6 +999,7 @@ export type Database = {
           dt_cadastro?: string | null
           empresa_id?: number
           excluido?: boolean | null
+          intervalo?: number | null
           prazo_1?: number | null
           prazo_10?: number
           prazo_11?: number
@@ -566,6 +1012,8 @@ export type Database = {
           prazo_7?: number
           prazo_8?: number
           prazo_9?: number
+          qtd_parcelas?: number | null
+          tipo_prazo?: boolean | null
           tp_doc?: string
         }
         Update: {
@@ -575,6 +1023,7 @@ export type Database = {
           dt_cadastro?: string | null
           empresa_id?: number
           excluido?: boolean | null
+          intervalo?: number | null
           prazo_1?: number | null
           prazo_10?: number
           prazo_11?: number
@@ -587,6 +1036,8 @@ export type Database = {
           prazo_7?: number
           prazo_8?: number
           prazo_9?: number
+          qtd_parcelas?: number | null
+          tipo_prazo?: boolean | null
           tp_doc?: string
         }
         Relationships: [
@@ -1338,106 +1789,295 @@ export type Database = {
       }
       movimento: {
         Row: {
+          aliq_icms: number | null
+          altera_custo: string | null
+          autenticacao: string | null
+          bairro_entrega: string | null
+          bc_icmsst: number | null
           cadastro_id: number | null
+          cep_entrega: string | null
+          cidade_id: number | null
+          cnpj: string | null
+          condicao_id: number | null
+          condicao_unica: string | null
+          deposito_id: number | null
           dt_cancelamento: string | null
           dt_emissao: string | null
+          dt_entrega: string | null
           dt_faturamento: string | null
           dt_finalizacao: string | null
           dt_pagamento: string | null
+          dt_validade: string | null
+          email_entrega: string | null
           email_responsavel: string
           empresa_id: number
           excluido: boolean | null
           faturado: string | null
+          funcionario_id: number | null
+          gerou_financeiro: string
           hr_movimento: string
           id_transacao_abacatepay: string
+          ind_pres: string | null
           lg_pagamento_online: boolean | null
           lg_pedido_link: boolean | null
           lg_pedido_pdv: boolean | null
+          logradouro_entrega: string | null
+          mensagem_contr_id: number | null
+          mensagem_fisco_id: number | null
+          minuta_id: number | null
+          mod_frete: string | null
+          modelo_nf: number | null
+          motivo_cancelamento: string | null
           movimento_id: number
           nm_crianca: string
           nm_responsavel: string
+          nota_fiscal_id: number | null
           nr_movimento: number | null
           nr_telefone_responsavel: string
+          numero_entrega: string | null
+          numero_nfe: string | null
           obs_pedido: string
           observacao: string
+          observacao_nf: string | null
+          pag_entrada: string | null
+          pc_desconto: number | null
+          pedido_origem_id: number | null
+          peso_bruto: number | null
+          peso_liquido: number | null
+          produto_id: number | null
           qr_code_pagamento: string
+          rota_id: number | null
+          serie: number | null
           st_pedido: string | null
           status: string | null
+          supervisor_id: number | null
+          termo_adesao: string | null
+          tp_comissao_id: number | null
+          tp_desconto: string | null
+          tp_documento_id: number | null
           tp_movimento: string | null
+          tp_operacao_id: number | null
           tp_origem: string | null
+          transportadora_id: number | null
           url_pagamento: string
           usuario_id: string | null
+          veiculo_id: number | null
+          vl_bc_cofins: number | null
+          vl_bc_icms: number | null
+          vl_bc_ipi: number | null
+          vl_bc_iss: number | null
+          vl_bc_pis: number | null
+          vl_cofins: number | null
+          vl_comissao: number | null
+          vl_desc_rs: number | null
           vl_desconto: number | null
+          vl_despesa: number | null
+          vl_frete: number | null
+          vl_icms: number | null
+          vl_icmsst: number | null
+          vl_ipi: number | null
+          vl_iss: number | null
           vl_movimento: number | null
+          vl_outro: number | null
+          vl_pago: number | null
+          vl_pis: number | null
           vl_produto: number | null
+          vl_seguro: number | null
+          vl_total_nota: number | null
         }
         Insert: {
+          aliq_icms?: number | null
+          altera_custo?: string | null
+          autenticacao?: string | null
+          bairro_entrega?: string | null
+          bc_icmsst?: number | null
           cadastro_id?: number | null
+          cep_entrega?: string | null
+          cidade_id?: number | null
+          cnpj?: string | null
+          condicao_id?: number | null
+          condicao_unica?: string | null
+          deposito_id?: number | null
           dt_cancelamento?: string | null
           dt_emissao?: string | null
+          dt_entrega?: string | null
           dt_faturamento?: string | null
           dt_finalizacao?: string | null
           dt_pagamento?: string | null
+          dt_validade?: string | null
+          email_entrega?: string | null
           email_responsavel?: string
           empresa_id?: number
           excluido?: boolean | null
           faturado?: string | null
+          funcionario_id?: number | null
+          gerou_financeiro?: string
           hr_movimento?: string
           id_transacao_abacatepay?: string
+          ind_pres?: string | null
           lg_pagamento_online?: boolean | null
           lg_pedido_link?: boolean | null
           lg_pedido_pdv?: boolean | null
+          logradouro_entrega?: string | null
+          mensagem_contr_id?: number | null
+          mensagem_fisco_id?: number | null
+          minuta_id?: number | null
+          mod_frete?: string | null
+          modelo_nf?: number | null
+          motivo_cancelamento?: string | null
           movimento_id?: number
           nm_crianca?: string
           nm_responsavel?: string
+          nota_fiscal_id?: number | null
           nr_movimento?: number | null
           nr_telefone_responsavel?: string
+          numero_entrega?: string | null
+          numero_nfe?: string | null
           obs_pedido?: string
           observacao?: string
+          observacao_nf?: string | null
+          pag_entrada?: string | null
+          pc_desconto?: number | null
+          pedido_origem_id?: number | null
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          produto_id?: number | null
           qr_code_pagamento?: string
+          rota_id?: number | null
+          serie?: number | null
           st_pedido?: string | null
           status?: string | null
+          supervisor_id?: number | null
+          termo_adesao?: string | null
+          tp_comissao_id?: number | null
+          tp_desconto?: string | null
+          tp_documento_id?: number | null
           tp_movimento?: string | null
+          tp_operacao_id?: number | null
           tp_origem?: string | null
+          transportadora_id?: number | null
           url_pagamento?: string
           usuario_id?: string | null
+          veiculo_id?: number | null
+          vl_bc_cofins?: number | null
+          vl_bc_icms?: number | null
+          vl_bc_ipi?: number | null
+          vl_bc_iss?: number | null
+          vl_bc_pis?: number | null
+          vl_cofins?: number | null
+          vl_comissao?: number | null
+          vl_desc_rs?: number | null
           vl_desconto?: number | null
+          vl_despesa?: number | null
+          vl_frete?: number | null
+          vl_icms?: number | null
+          vl_icmsst?: number | null
+          vl_ipi?: number | null
+          vl_iss?: number | null
           vl_movimento?: number | null
+          vl_outro?: number | null
+          vl_pago?: number | null
+          vl_pis?: number | null
           vl_produto?: number | null
+          vl_seguro?: number | null
+          vl_total_nota?: number | null
         }
         Update: {
+          aliq_icms?: number | null
+          altera_custo?: string | null
+          autenticacao?: string | null
+          bairro_entrega?: string | null
+          bc_icmsst?: number | null
           cadastro_id?: number | null
+          cep_entrega?: string | null
+          cidade_id?: number | null
+          cnpj?: string | null
+          condicao_id?: number | null
+          condicao_unica?: string | null
+          deposito_id?: number | null
           dt_cancelamento?: string | null
           dt_emissao?: string | null
+          dt_entrega?: string | null
           dt_faturamento?: string | null
           dt_finalizacao?: string | null
           dt_pagamento?: string | null
+          dt_validade?: string | null
+          email_entrega?: string | null
           email_responsavel?: string
           empresa_id?: number
           excluido?: boolean | null
           faturado?: string | null
+          funcionario_id?: number | null
+          gerou_financeiro?: string
           hr_movimento?: string
           id_transacao_abacatepay?: string
+          ind_pres?: string | null
           lg_pagamento_online?: boolean | null
           lg_pedido_link?: boolean | null
           lg_pedido_pdv?: boolean | null
+          logradouro_entrega?: string | null
+          mensagem_contr_id?: number | null
+          mensagem_fisco_id?: number | null
+          minuta_id?: number | null
+          mod_frete?: string | null
+          modelo_nf?: number | null
+          motivo_cancelamento?: string | null
           movimento_id?: number
           nm_crianca?: string
           nm_responsavel?: string
+          nota_fiscal_id?: number | null
           nr_movimento?: number | null
           nr_telefone_responsavel?: string
+          numero_entrega?: string | null
+          numero_nfe?: string | null
           obs_pedido?: string
           observacao?: string
+          observacao_nf?: string | null
+          pag_entrada?: string | null
+          pc_desconto?: number | null
+          pedido_origem_id?: number | null
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          produto_id?: number | null
           qr_code_pagamento?: string
+          rota_id?: number | null
+          serie?: number | null
           st_pedido?: string | null
           status?: string | null
+          supervisor_id?: number | null
+          termo_adesao?: string | null
+          tp_comissao_id?: number | null
+          tp_desconto?: string | null
+          tp_documento_id?: number | null
           tp_movimento?: string | null
+          tp_operacao_id?: number | null
           tp_origem?: string | null
+          transportadora_id?: number | null
           url_pagamento?: string
           usuario_id?: string | null
+          veiculo_id?: number | null
+          vl_bc_cofins?: number | null
+          vl_bc_icms?: number | null
+          vl_bc_ipi?: number | null
+          vl_bc_iss?: number | null
+          vl_bc_pis?: number | null
+          vl_cofins?: number | null
+          vl_comissao?: number | null
+          vl_desc_rs?: number | null
           vl_desconto?: number | null
+          vl_despesa?: number | null
+          vl_frete?: number | null
+          vl_icms?: number | null
+          vl_icmsst?: number | null
+          vl_ipi?: number | null
+          vl_iss?: number | null
           vl_movimento?: number | null
+          vl_outro?: number | null
+          vl_pago?: number | null
+          vl_pis?: number | null
           vl_produto?: number | null
+          vl_seguro?: number | null
+          vl_total_nota?: number | null
         }
         Relationships: [
           {
@@ -1458,51 +2098,189 @@ export type Database = {
       }
       movimento_item: {
         Row: {
+          bc_icmsst: number | null
           cd_produto: string
+          cest: string | null
+          cfop_id: string | null
+          cst_cofins: string | null
+          cst_icms: string | null
+          cst_ipi: string | null
+          cst_pis: string | null
+          deposito_id: number | null
           empresa_id: number
+          entrega: string | null
           excluido: boolean | null
+          infad_produto: string | null
+          lote: number | null
           movimento_id: number
           movimento_item_id: number
           nm_produto: string
+          pc_aliq_icms: number | null
+          pc_cofins: number | null
+          pc_desconto: number | null
+          pc_fcp: number | null
+          pc_fcpst: number | null
+          pc_icms: number | null
+          pc_icmsst: number | null
+          pc_ipi: number | null
+          pc_iss: number | null
+          pc_pis: number | null
+          pc_red_icms: number | null
+          pc_red_icmsst: number | null
+          pedido_origem_id: number | null
           produto_id: number | null
           qt_movimento: number | null
+          tp_desconto: string | null
           tp_movimento: string | null
           unidade_id: string | null
+          vl_bc_cofins: number | null
+          vl_bc_fcp: number | null
+          vl_bc_fcpst: number | null
+          vl_bc_icms: number | null
+          vl_bc_ipi: number | null
+          vl_bc_iss: number | null
+          vl_bc_pis: number | null
+          vl_cofins: number | null
+          vl_custo: number | null
+          vl_desc_rs: number | null
           vl_desconto: number | null
+          vl_despesa: number | null
+          vl_fcp: number | null
+          vl_fcpst: number | null
+          vl_frete: number | null
+          vl_icms: number | null
+          vl_icmsst: number | null
+          vl_ipi: number | null
+          vl_iss: number | null
           vl_movimento: number | null
+          vl_outro: number | null
+          vl_pis: number | null
           vl_produto: number | null
+          vl_seguro: number | null
           vl_und_produto: number | null
         }
         Insert: {
+          bc_icmsst?: number | null
           cd_produto?: string
+          cest?: string | null
+          cfop_id?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_ipi?: string | null
+          cst_pis?: string | null
+          deposito_id?: number | null
           empresa_id?: number
+          entrega?: string | null
           excluido?: boolean | null
+          infad_produto?: string | null
+          lote?: number | null
           movimento_id: number
           movimento_item_id?: number
           nm_produto?: string
+          pc_aliq_icms?: number | null
+          pc_cofins?: number | null
+          pc_desconto?: number | null
+          pc_fcp?: number | null
+          pc_fcpst?: number | null
+          pc_icms?: number | null
+          pc_icmsst?: number | null
+          pc_ipi?: number | null
+          pc_iss?: number | null
+          pc_pis?: number | null
+          pc_red_icms?: number | null
+          pc_red_icmsst?: number | null
+          pedido_origem_id?: number | null
           produto_id?: number | null
           qt_movimento?: number | null
+          tp_desconto?: string | null
           tp_movimento?: string | null
           unidade_id?: string | null
+          vl_bc_cofins?: number | null
+          vl_bc_fcp?: number | null
+          vl_bc_fcpst?: number | null
+          vl_bc_icms?: number | null
+          vl_bc_ipi?: number | null
+          vl_bc_iss?: number | null
+          vl_bc_pis?: number | null
+          vl_cofins?: number | null
+          vl_custo?: number | null
+          vl_desc_rs?: number | null
           vl_desconto?: number | null
+          vl_despesa?: number | null
+          vl_fcp?: number | null
+          vl_fcpst?: number | null
+          vl_frete?: number | null
+          vl_icms?: number | null
+          vl_icmsst?: number | null
+          vl_ipi?: number | null
+          vl_iss?: number | null
           vl_movimento?: number | null
+          vl_outro?: number | null
+          vl_pis?: number | null
           vl_produto?: number | null
+          vl_seguro?: number | null
           vl_und_produto?: number | null
         }
         Update: {
+          bc_icmsst?: number | null
           cd_produto?: string
+          cest?: string | null
+          cfop_id?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_ipi?: string | null
+          cst_pis?: string | null
+          deposito_id?: number | null
           empresa_id?: number
+          entrega?: string | null
           excluido?: boolean | null
+          infad_produto?: string | null
+          lote?: number | null
           movimento_id?: number
           movimento_item_id?: number
           nm_produto?: string
+          pc_aliq_icms?: number | null
+          pc_cofins?: number | null
+          pc_desconto?: number | null
+          pc_fcp?: number | null
+          pc_fcpst?: number | null
+          pc_icms?: number | null
+          pc_icmsst?: number | null
+          pc_ipi?: number | null
+          pc_iss?: number | null
+          pc_pis?: number | null
+          pc_red_icms?: number | null
+          pc_red_icmsst?: number | null
+          pedido_origem_id?: number | null
           produto_id?: number | null
           qt_movimento?: number | null
+          tp_desconto?: string | null
           tp_movimento?: string | null
           unidade_id?: string | null
+          vl_bc_cofins?: number | null
+          vl_bc_fcp?: number | null
+          vl_bc_fcpst?: number | null
+          vl_bc_icms?: number | null
+          vl_bc_ipi?: number | null
+          vl_bc_iss?: number | null
+          vl_bc_pis?: number | null
+          vl_cofins?: number | null
+          vl_custo?: number | null
+          vl_desc_rs?: number | null
           vl_desconto?: number | null
+          vl_despesa?: number | null
+          vl_fcp?: number | null
+          vl_fcpst?: number | null
+          vl_frete?: number | null
+          vl_icms?: number | null
+          vl_icmsst?: number | null
+          vl_ipi?: number | null
+          vl_iss?: number | null
           vl_movimento?: number | null
+          vl_outro?: number | null
+          vl_pis?: number | null
           vl_produto?: number | null
+          vl_seguro?: number | null
           vl_und_produto?: number | null
         }
         Relationships: [
@@ -1524,37 +2302,67 @@ export type Database = {
       }
       movimento_pagamento: {
         Row: {
+          bandeira_id: number | null
+          condicao_id: number
+          dt_fim: string | null
+          dt_inicio: string | null
           dt_pagamento: string | null
           empresa_id: number
           excluido: boolean | null
           movimento_id: number
           movimento_pagamento_id: number
+          n_parcelas: number | null
           nr_autorizacao: string
+          numero_autorizacao: string | null
           obs_pagamento: string
+          operadora_id: number | null
+          tipo_recebimento: string | null
           tp_pagamento: string
           vl_pagamento: number | null
+          vl_parcelas: number | null
+          vl_total: number | null
         }
         Insert: {
+          bandeira_id?: number | null
+          condicao_id?: number
+          dt_fim?: string | null
+          dt_inicio?: string | null
           dt_pagamento?: string | null
           empresa_id?: number
           excluido?: boolean | null
           movimento_id: number
           movimento_pagamento_id?: number
+          n_parcelas?: number | null
           nr_autorizacao?: string
+          numero_autorizacao?: string | null
           obs_pagamento?: string
+          operadora_id?: number | null
+          tipo_recebimento?: string | null
           tp_pagamento: string
           vl_pagamento?: number | null
+          vl_parcelas?: number | null
+          vl_total?: number | null
         }
         Update: {
+          bandeira_id?: number | null
+          condicao_id?: number
+          dt_fim?: string | null
+          dt_inicio?: string | null
           dt_pagamento?: string | null
           empresa_id?: number
           excluido?: boolean | null
           movimento_id?: number
           movimento_pagamento_id?: number
+          n_parcelas?: number | null
           nr_autorizacao?: string
+          numero_autorizacao?: string | null
           obs_pagamento?: string
+          operadora_id?: number | null
+          tipo_recebimento?: string | null
           tp_pagamento?: string
           vl_pagamento?: number | null
+          vl_parcelas?: number | null
+          vl_total?: number | null
         }
         Relationships: [
           {
@@ -2637,6 +3445,53 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rb_conexao"
             referencedColumns: ["rb_conexao_id"]
+          },
+        ]
+      }
+      tp_operacao: {
+        Row: {
+          descricao: string
+          empresa_id: number
+          gera_boleto: string | null
+          gera_financeiro: string | null
+          gera_nf: string | null
+          modifica_estoque: string | null
+          plano_id: number | null
+          tp_movimento: string
+          tp_operacao_id: number
+          valida_preco: string | null
+        }
+        Insert: {
+          descricao?: string
+          empresa_id?: number
+          gera_boleto?: string | null
+          gera_financeiro?: string | null
+          gera_nf?: string | null
+          modifica_estoque?: string | null
+          plano_id?: number | null
+          tp_movimento?: string
+          tp_operacao_id?: number
+          valida_preco?: string | null
+        }
+        Update: {
+          descricao?: string
+          empresa_id?: number
+          gera_boleto?: string | null
+          gera_financeiro?: string | null
+          gera_nf?: string | null
+          modifica_estoque?: string | null
+          plano_id?: number | null
+          tp_movimento?: string
+          tp_operacao_id?: number
+          valida_preco?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tp_operacao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["empresa_id"]
           },
         ]
       }
