@@ -62,6 +62,7 @@ const PedidoForm: React.FC = () => {
   const [XClientesCache, setXClientesCache] = useState<Record<number, IClienteInfo>>({});
   const [XSearchOpen, setXSearchOpen] = useState(false);
   const [XSearchTarget, setXSearchTarget] = useState<((c: IClienteRow) => void) | null>(null);
+  const [XAutoNovoItem, setXAutoNovoItem] = useState(0);
 
   // Lookups (sem clientes — usa pesquisa via diálogo)
   useEffect(() => {
@@ -138,16 +139,20 @@ const PedidoForm: React.FC = () => {
           }
           return { ...rec, empresa_id: rec.empresa_id || XEmpresaId };
         },
+        XOnAfterSave: (_rec, mode) => {
+          if (mode === "insert") setXAutoNovoItem(n => n + 1);
+        },
         XSoftDelete: false,
       }}
       XGridCols={buildGridCols(XVendedores, XClientesCache)}
       XExportTitle="Pedidos"
+      XAfterInsertTab="itens"
       XExtraTabs={[
         {
           key: "itens", label: "Itens do Pedido",
           render: ({ record, currentRecord }) => {
             const ped = (currentRecord || record) as IMovimento;
-            return <PedidoItensTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} />;
+            return <PedidoItensTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} autoNovoTrigger={XAutoNovoItem} />;
           },
         },
         {
