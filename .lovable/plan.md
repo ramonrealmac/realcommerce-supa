@@ -1,88 +1,125 @@
 
 
-## Módulo padrão de formulários CRUD (`StandardCrudForm`)
+## Formulário de Pedidos (`PedidoForm`) — `2. Movimentações → Novo Pedido`
 
-### Objetivo
-Criar um componente reutilizável que encapsule o padrão repetido em ~15 formulários (Cliente, Produto, Empresa, Cidade, Rota, Linha, Unidade, Depósito, etc.), eliminando repetição e garantindo consistência.
+Reaproveita o `StandardCrudForm`. O cabeçalho (tabela `movimento`) fica na aba "Cadastro" com sub-abas internas; itens (`movimento_item`) e pagamentos (`movimento_pagamento`) entram como `XExtraTabs`.
 
-### Padrão identificado nos forms existentes
-Analisando `ProdutoForm`, `EstoqueForm`, `EmpresaForm`, `CidadeForm`, `DepositoForm`:
+### Estrutura visual
 
-```text
-┌─────────────────────────────────────────────┐
-│ FormToolbar (Incluir/Editar/Salvar/Nav...)  │
-├─────────────────────────────────────────────┤
-│ Tabs: [Cadastro] [Localizar]                │
-│ ┌─ Cadastro ──────────────────────────────┐ │
-│ │  campos do formulário (custom)          │ │
-│ │  + abas extras opcionais (estoque, etc) │ │
-│ └─────────────────────────────────────────┘ │
-│ ┌─ Localizar ─────────────────────────────┐ │
-│ │  DataGrid + filtros por coluna          │ │
-│ │  + botão Exportar (CSV)                 │ │
-│ └─────────────────────────────────────────┘ │
-└─────────────────────────────────────────────┘
+```
+[Toolbar StandardCrudForm: + ✏ « ‹ › » 🗑 ↻ ➜]
+[Cadastro][Itens do Pedido][Forma de Pagamento][Dados de Entrega][Dados Adicionais][Localizar]
 ```
 
-### Arquitetura proposta
+A aba "Cadastro" exibe o bloco "Dados Principais" + ações de status (Salvar / Orçamento / Caixa / Cancelar).
 
-**1. `src/components/shared/StandardCrudForm.tsx`** — componente genérico
-   - Gerencia: modo (view/edit/insert), registro atual, índice, lista, filtros, loading
-   - Renderiza: `FormToolbar` + `Tabs` (Cadastro/Localizar) + `DataGrid` com filtros + botão Exportar
-   - Recebe via props: configuração da entidade + slot do formulário customizado
+### Aba 1 — Dados Principais (`movimento`)
 
-**2. `src/hooks/useCrudController.ts`** — lógica de CRUD desacoplada
-   - `loadData`, `handleSave`, `handleDelete`, navegação (first/prev/next/last), refresh
-   - Validação via Zod schema opcional
-   - Callbacks `beforeSave`, `afterLoad` para casos especiais
+| Campo PDF | Coluna BD | Componente |
+|---|---|---|
+| Pedido | `nr_movimento` | input readonly |
+| Cliente * | `cadastro_id` | combobox → `cadastro WHERE st_cliente='S'` (mostra `cadastro_id - cnpj - razao_social`) |
+| Vendedor * | `funcionario_id` | combobox → `funcionario` |
+| Status * | `st_pedido` | select fixo: `O` Orçamento, `P` Pedido, `V` Venda, `C` Cancelado (readonly fora do modo Orçamento) |
+| Faturado | `faturado` | switch S/N (readonly) |
+| Dt. Emissão * | `dt_emissao` | date |
+| Dt. Entrega * | `dt_entrega` | date |
+| Tipo de Operação | `tp_operacao_id` | combobox → `tp_operacao` (tabela já criada pelo usuário) |
+| Tipo de Movimento * | `tp_movimento` | select fixo: `PD` Pedido / `SV` Saída por Venda / `OR` Orçamento |
+| NF | `numero_nfe` | input readonly |
+| Tipo de Desconto * | `tp_desconto` | select: `N` Sem Desconto, `I` Desconto Item, `P` Desconto Pedido |
 
-**3. `src/components/shared/ExportButton.tsx`** — exportação CSV/XLSX da grade filtrada
+**Botões de status** (ao lado de Salvar):
+- **Orçamento** → grava `st_pedido='O'` (editável)
+- **Caixa** → grava `st_pedido='P'` (vira pedido, bloqueia edição)
+- Status `V` (Venda) e `C` (Cancelado) só são exibidos como readonly — alteração para esses estados é feita por outras telas.
 
-**4. Tipo de configuração:**
-```ts
-interface ICrudConfig<T> {
-  XTableName: string;          // tabela Supabase
-  XPrimaryKey: keyof T;        // ex: "produto_id"
-  XTitle: string;              // título do form
-  XGridCols: IGridCol<T>[];    // colunas + filtros automáticos
-  XDefaultRecord: Partial<T>;  // valores iniciais para insert
-  XOrderBy?: string;
-  XExtraFilter?: (q) => q;     // ex: filtro por empresa_id
-  XExtraTabs?: ITabConfig[];   // abas adicionais (ex: Estoque no Produto)
-  XValidator?: ZodSchema;
-  XOnBeforeSave?: (rec) => rec;
-  XOnAfterLoad?: (data) => void;
-}
-```
+Regra: enquanto `st_pedido !== 'O'`, todos os campos ficam desabilitados (apenas navegação/visualização).
 
-**5. Uso simplificado (exemplo CidadeForm refatorado):**
-```tsx
-<StandardCrudForm
-  config={XCidadeConfig}
-  renderCadastro={(rec, setRec, mode) => (
-    <CidadeFields record={rec} onChange={setRec} mode={mode} />
-  )}
-/>
-```
+### Aba 2 — Itens do Pedido (`movimento_item`)
 
-### Estratégia de migração
-- **Fase 1 (este loop)**: criar `StandardCrudForm` + `useCrudController` + `ExportButton`. Migrar **2 forms simples como prova de conceito**: `CidadeForm` e `LinhaProdutoForm`.
-- **Fase 2 (próximos loops, sob demanda)**: migrar os demais. Forms complexos (`ProdutoForm`, `EmpresaForm` com abas extras) usam `XExtraTabs` para preservar comportamento específico.
-- Forms já existentes continuam funcionando — migração incremental, sem breaking changes.
+Painel superior (formulário de inclusão/edição de item):
+- Produto (combobox `produto`, traz `vl_und_produto`, `unidade_id`, `cd_produto`, `nm_produto`)
+- Und. (`unidade_id`, readonly do produto)
+- Preço Unit. R$ (`vl_und_produto`)
+- Qtd. (`qt_movimento`)
+- Subtotal R$ (`vl_produto` = qt × vl_und, calculado)
+- Desconto % (`pc_desconto`) — recalcula `vl_desconto`
+- Desconto R$ (`vl_desconto`) — recalcula `pc_desconto`
+- P/Entrega? (`entrega` S/N)
+- FC (texto livre, mapeado para `infad_produto`)
+- Estoq. Disp. (consulta `estoque.estoque_disponivel`, readonly)
+- Depósito (combobox `deposito` filtrado pela mesma regra de visibilidade matriz/sister; `deposito_id`)
+- Valor Desp./Frete/Seg./Outros (`vl_despesa`, `vl_frete`, `vl_seguro`, `vl_outro`)
+- Total R$ (`vl_movimento` calculado)
+- Botão **Inserir Produto**
 
-### Benefícios
-- Toolbar, abas, grid, filtros e exportação garantidos por padrão (não esqueço mais)
-- Código de cada form reduz ~70%
-- Mudanças no padrão (ex: novo botão na toolbar) aplicadas em um único lugar
-- Você só descreve **exceções** específicas
+Toolbar do grid: ✏ 🗑 ↻ +. Grid abaixo lista os itens já incluídos com colunas: Produto, Qtd, Vlr Unit, Vlr Produto, Desc(%), Vlr Outros, Total, Desc(R$).
+
+Rodapé "Totais do Pedido": Vlr Itens, Vlr Desconto, Vlr Frete, Vlr Desp., Vlr Seg., Vlr Outros, **Vlr Total** — todos recalculados ao alterar a grade. Após salvar/excluir item, chama `fu_recalcular_pedido(_movimento_id)`.
+
+**Regra de Tipo de Desconto:**
+- `N`: zera `pc_desconto`/`vl_desconto` em todos os itens.
+- `I`: usuário edita desconto por item.
+- `P`: desconto digitado no cabeçalho (`pc_desconto`/`vl_desc_rs` em `movimento`) é distribuído proporcionalmente nos itens.
+
+Edição: % ↔ R$ se recalculam mutuamente conforme última edição.
+
+### Aba 3 — Forma de Pagamento (`movimento_pagamento`)
+
+- Header: **Valor a Pagar** = `vl_movimento` − Σ `vl_pagamento` já lançado.
+- Toolbar grid: + ✏ 🗑 ↻
+- Grid: Condição (`condicao_id` → `condicao_pagamento.descricao`), Valor (`vl_pagamento`), Parcelas (`n_parcelas`), Valor Parcela (`vl_parcelas`).
+- Rodapé com somatórios.
+- Modal de inclusão pede: Condição, Valor, Parcelas (auto a partir de `condicao_pagamento.qtd_parcelas`), Valor Parcela (auto = valor / parcelas).
+
+### Aba 4 — Dados de Entrega
+
+Mapeada para campos já existentes em `movimento`:
+- Rota (`rota_id` → `rota`)
+- CEP (`cep_entrega`) com lookup `consulta-cep`
+- Cidade (`cidade_id` → `cidade`)
+- Logradouro (`logradouro_entrega`)
+- Bairro (`bairro_entrega`)
+- Nº (`numero_entrega`)
+- E-mail (`email_entrega`)
+
+### Aba 5 — Dados Adicionais
+
+- Observação do Pedido → `obs_pedido`
+- Observação NF → `observacao_nf`
+
+### Aba 6 — Localizar
+
+`DataGrid` padrão sobre `movimento` (filtrado por `empresa_id` e `tp_movimento IN ('PD','SV','OR')`), colunas: nº pedido, dt_emissão, cliente (lookup), vendedor, st_pedido, vl_movimento, faturado. Duplo clique abre na aba Cadastro.
+
+### Integração técnica
+
+1. **Novo arquivo** `src/components/forms/PedidoForm.tsx` usando `StandardCrudForm<Movimento>` com `XExtraTabs` para Itens, Pagamento, Entrega, Adicionais.
+2. **Hook auxiliar** `usePedidoItens(movimento_id)` e `usePedidoPagamentos(movimento_id)` com CRUD direto no Supabase + recálculo.
+3. **Sub-componentes** `PedidoItemPanel.tsx`, `PedidoPagamentoPanel.tsx`.
+4. **`useCrudController`** ganha `XOnAfterSave?: (rec, mode)` para disparar `fu_recalcular_pedido` quando necessário (extensão pequena, retrocompatível).
+5. **Roteamento**: registrar `case "pdv": return <PedidoForm />;` em `src/pages/Index.tsx`.
+6. **Validações de status**: helper `XPodeEditar = st_pedido === 'O'`. Tudo (campos, toolbar Editar/Excluir/Itens/Pagamento) respeita esse flag.
+7. **Filtro de Depósito** no item: reutiliza a regra sister (`empresa_id = own OR (empresa_id IN sisters AND st_privado=false)`) já implementada em `DepositoForm`.
+8. **RLS**: `movimento`, `movimento_item`, `movimento_pagamento` já possuem políticas para `authenticated` — nenhuma migration necessária.
+9. **Tabelas lookup confirmadas**: `funcionario`, `tp_operacao` (criadas pelo usuário). O `PedidoForm` selecionará via `select('id, nome')` — se os nomes das colunas forem diferentes, ajusto após primeira execução.
 
 ### Arquivos a criar/editar
-- `src/components/shared/StandardCrudForm.tsx` (novo)
-- `src/hooks/useCrudController.ts` (novo)
-- `src/components/shared/ExportButton.tsx` (novo)
-- `src/components/forms/CidadeForm.tsx` (refatorar como prova)
-- `src/components/forms/LinhaProdutoForm.tsx` (refatorar como prova)
 
-### Pergunta antes de começar
-Confirme o formato de exportação preferido: **CSV apenas** (leve, sem libs novas) ou **CSV + XLSX** (precisa instalar `xlsx`)?
+- `src/components/forms/PedidoForm.tsx` (novo)
+- `src/components/forms/pedido/PedidoItensTab.tsx` (novo)
+- `src/components/forms/pedido/PedidoPagamentoTab.tsx` (novo)
+- `src/components/forms/pedido/PedidoEntregaTab.tsx` (novo)
+- `src/components/forms/pedido/PedidoAdicionaisTab.tsx` (novo)
+- `src/hooks/useCrudController.ts` (adicionar `XOnAfterSave`)
+- `src/pages/Index.tsx` (registrar `case "pdv"`)
+
+### Pendências para confirmar antes de começar
+
+Por favor confirme as colunas reais das tabelas que você criou para que o lookup funcione no primeiro deploy:
+
+1. **`funcionario`** — nome da PK e do campo "nome" (ex.: `funcionario_id`, `nm_funcionario`)?
+2. **`tp_operacao`** — nome da PK e do campo descrição (ex.: `tp_operacao_id`, `descricao`)?
+3. Confirmar se o status **inicial** ao incluir é `O` (Orçamento) e se o botão **Caixa** apenas muda para `P` (sem chamar `fu_transition_pedido_status`, já que aquela função usa `A→F→T`).
 
