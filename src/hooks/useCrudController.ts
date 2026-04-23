@@ -17,6 +17,7 @@ export interface ICrudConfig<T extends Record<string, any>> {
   XEmpresaId?: number;          // when set, filters/inserts using empresa_id
   XValidator?: ZodSchema<any>;
   XOnBeforeSave?: (rec: Partial<T>, mode: TFormMode) => Partial<T> | Promise<Partial<T>>;
+  XOnAfterSave?: (savedRec: Partial<T>, mode: TFormMode) => void | Promise<void>;
   XOnAfterLoad?: (data: T[]) => void;
   XApplyFilter?: (query: any) => any; // custom filter (e.g. matriz, st_privado)
   XSoftDelete?: boolean;             // default true (uses excluido = true)
@@ -89,19 +90,39 @@ export function useCrudController<T extends Record<string, any>>(config: ICrudCo
       (payload as any).empresa_id = config.XEmpresaId;
     }
 
+    let savedRec: Partial<T> = payload;
     if (XFormMode === "insert") {
-      const { error } = await db.from(config.XTableName).insert(payload);
+      const { data: ins, error } = await db.from(config.XTableName).insert(payload).select().single();
       if (error) { toast.error("Erro: " + error.message); return; }
+      savedRec = (ins || payload) as Partial<T>;
       toast.success("Registro incluído com sucesso.");
     } else if (XCurrentRecord) {
-      const { error } = await db.from(config.XTableName)
+      const { data: upd, error } = await db.from(config.XTableName)
         .update({ ...payload, dt_alteracao: new Date().toISOString() })
-        .eq(config.XPrimaryKey, XCurrentRecord[config.XPrimaryKey]);
+        .eq(config.XPrimaryKey, XCurrentRecord[config.XPrimaryKey])
+        .select().single();
       if (error) { toast.error("Erro: " + error.message); return; }
+      savedRec = (upd || { ...XCurrentRecord, ...payload }) as Partial<T>;
       toast.success("Registro alterado com sucesso.");
+    }
+    if (config.XOnAfterSave) {
+      try { await config.XOnAfterSave(savedRec, XFormMode); } catch (e: any) {
+        toast.error(e?.message || "Pós-processamento falhou.");
+      }
     }
     setXFormMode("view");
     await loadData();
+    // Try to keep selection on the saved record
+    if (savedRec && (savedRec as any)[config.XPrimaryKey] !== undefined) {
+      const pkVal = (savedRec as any)[config.XPrimaryKey];
+      setTimeout(() => {
+        setXData(curr => {
+          const idx = curr.findIndex(r => (r as any)[config.XPrimaryKey] === pkVal);
+          if (idx >= 0) setXCurrentIdx(idx);
+          return curr;
+        });
+      }, 0);
+    }
   }, [XEditRecord, XFormMode, XCurrentRecord, config, loadData]);
 
   const handleExcluir = useCallback(async () => {
