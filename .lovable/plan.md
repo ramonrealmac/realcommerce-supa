@@ -1,125 +1,54 @@
 
 
-## Formulário de Pedidos (`PedidoForm`) — `2. Movimentações → Novo Pedido`
+## Correções no Formulário de Pedidos
 
-Reaproveita o `StandardCrudForm`. O cabeçalho (tabela `movimento`) fica na aba "Cadastro" com sub-abas internas; itens (`movimento_item`) e pagamentos (`movimento_pagamento`) entram como `XExtraTabs`.
+### 1. Carregamento de produtos no item do pedido
 
-### Estrutura visual
+**Problema**: `PedidoItensTab` consulta `produto.cd_produto` e `produto.vl_venda` — colunas que **não existem**. As corretas são `nome` e `preco_venda`. Por isso o `<select>` vem vazio.
 
-```
-[Toolbar StandardCrudForm: + ✏ « ‹ › » 🗑 ↻ ➜]
-[Cadastro][Itens do Pedido][Forma de Pagamento][Dados de Entrega][Dados Adicionais][Localizar]
-```
+**Correção**:
+- Trocar o `select` da query por: `produto_id, nome, preco_venda, unidade_id`.
+- Usar a mesma regra de filtragem do formulário **Meus Estoques (`EstoqueForm`)**:
+  - Considerar todas as empresas do grupo (`empresa_matriz_id === XEmpresaMatrizId` ou `empresa_id === XEmpresaMatrizId`) → `XGroupEmpresaIds`.
+  - Produtos: `.in("empresa_id", XGroupEmpresaIds)` (hoje filtra só pela matriz).
+  - Depósitos: já filtrados — manter, mas reaproveitar os ids para somar estoque do grupo.
+- Ajustar mapeamento de campos no `setProduto`: usar `p.nome` em `nm_produto` e `p.preco_venda` em `vl_und_produto`. Manter `cd_produto = String(p.produto_id)` (banco não tem código separado).
 
-A aba "Cadastro" exibe o bloco "Dados Principais" + ações de status (Salvar / Orçamento / Caixa / Cancelar).
+### 2. Pesquisa de produto (substituir `<select>`)
 
-### Aba 1 — Dados Principais (`movimento`)
+Criar `src/components/forms/pedido/ProdutoSearchDialog.tsx`, espelhando `ClienteSearchDialog`:
 
-| Campo PDF | Coluna BD | Componente |
-|---|---|---|
-| Pedido | `nr_movimento` | input readonly |
-| Cliente * | `cadastro_id` | combobox → `cadastro WHERE st_cliente='S'` (mostra `cadastro_id - cnpj - razao_social`) |
-| Vendedor * | `funcionario_id` | combobox → `funcionario` |
-| Status * | `st_pedido` | select fixo: `O` Orçamento, `P` Pedido, `V` Venda, `C` Cancelado (readonly fora do modo Orçamento) |
-| Faturado | `faturado` | switch S/N (readonly) |
-| Dt. Emissão * | `dt_emissao` | date |
-| Dt. Entrega * | `dt_entrega` | date |
-| Tipo de Operação | `tp_operacao_id` | combobox → `tp_operacao` (tabela já criada pelo usuário) |
-| Tipo de Movimento * | `tp_movimento` | select fixo: `PD` Pedido / `SV` Saída por Venda / `OR` Orçamento |
-| NF | `numero_nfe` | input readonly |
-| Tipo de Desconto * | `tp_desconto` | select: `N` Sem Desconto, `I` Desconto Item, `P` Desconto Pedido |
+- Campo de busca com debounce 300ms (filtra por `produto_id`, `nome`, `referencia`, `gtin`).
+- Resultados (limite 100) carregados via duas queries paralelas:
+  1. `produto`: `produto_id, nome, unidade_id, preco_venda` filtrado por grupo de empresas e `excluido=false`.
+  2. `estoque`: `produto_id, estoque_disponivel, estoque_reservado` para os mesmos `produto_id`s, restrito aos depósitos visíveis (mesma regra do `EstoqueForm`: depósito da própria empresa **ou** depósito não privado de empresa irmã). Soma por `produto_id`.
+- Grade com colunas: **Código** (`produto_id`), **Nome**, **Unidade**, **Preço Venda** (R$), **Estoque Disponível**, **Estoque Reservado**.
+- Clique/duplo-clique seleciona e fecha — retorna objeto com produto + somatórios.
 
-**Botões de status** (ao lado de Salvar):
-- **Orçamento** → grava `st_pedido='O'` (editável)
-- **Caixa** → grava `st_pedido='P'` (vira pedido, bloqueia edição)
-- Status `V` (Venda) e `C` (Cancelado) só são exibidos como readonly — alteração para esses estados é feita por outras telas.
+No `PedidoItensTab`:
+- Substituir o `<select>` de produto por: input read-only com nome + botão lupa (🔎) e botão limpar (×), padrão idêntico ao do cliente.
+- Ao selecionar, popular `produto_id`, `nm_produto`, `unidade_id`, `vl_und_produto = preco_venda`, e mostrar os estoques retornados no campo "Estoq. Disp." (atualmente vazio).
 
-Regra: enquanto `st_pedido !== 'O'`, todos os campos ficam desabilitados (apenas navegação/visualização).
+### 3. Após salvar o cabeçalho → ir para "Itens do Pedido" em modo de inclusão
 
-### Aba 2 — Itens do Pedido (`movimento_item`)
+**Mudanças em `StandardCrudForm.tsx`**:
+- Aceitar nova prop opcional `XOnAfterSave?: (record, mode) => void` que dispara após `ctrl.handleSalvar` concluir com sucesso (envolver em wrapper local).
 
-Painel superior (formulário de inclusão/edição de item):
-- Produto (combobox `produto`, traz `vl_und_produto`, `unidade_id`, `cd_produto`, `nm_produto`)
-- Und. (`unidade_id`, readonly do produto)
-- Preço Unit. R$ (`vl_und_produto`)
-- Qtd. (`qt_movimento`)
-- Subtotal R$ (`vl_produto` = qt × vl_und, calculado)
-- Desconto % (`pc_desconto`) — recalcula `vl_desconto`
-- Desconto R$ (`vl_desconto`) — recalcula `pc_desconto`
-- P/Entrega? (`entrega` S/N)
-- FC (texto livre, mapeado para `infad_produto`)
-- Estoq. Disp. (consulta `estoque.estoque_disponivel`, readonly)
-- Depósito (combobox `deposito` filtrado pela mesma regra de visibilidade matriz/sister; `deposito_id`)
-- Valor Desp./Frete/Seg./Outros (`vl_despesa`, `vl_frete`, `vl_seguro`, `vl_outro`)
-- Total R$ (`vl_movimento` calculado)
-- Botão **Inserir Produto**
+**Mudanças em `PedidoForm.tsx`**:
+- Passar `XOnAfterSave={(rec, mode) => { if (mode === "insert") { setXInnerTab("itens"); setXAutoNovoItem(true); } }}`.
+- Como `setXInnerTab` é interno do `StandardCrudForm`, expor também via callback que recebe um objeto `{ setInnerTab }` (o handler retorna a aba alvo). Implementação simples: adicionar prop `XInitialTabAfterInsert` + bandeira `XTriggerNovoItemAfterInsert` no `XExtraTabs` da aba "itens".
 
-Toolbar do grid: ✏ 🗑 ↻ +. Grid abaixo lista os itens já incluídos com colunas: Produto, Qtd, Vlr Unit, Vlr Produto, Desc(%), Vlr Outros, Total, Desc(R$).
+**Mudanças em `PedidoItensTab.tsx`**:
+- Aceitar prop opcional `autoNovo?: boolean`. Quando `true` e o pedido tem `movimento_id`, chamar `novo()` automaticamente uma vez (efeito com guarda).
 
-Rodapé "Totais do Pedido": Vlr Itens, Vlr Desconto, Vlr Frete, Vlr Desp., Vlr Seg., Vlr Outros, **Vlr Total** — todos recalculados ao alterar a grade. Após salvar/excluir item, chama `fu_recalcular_pedido(_movimento_id)`.
+### 4. Ajustes técnicos resumidos
 
-**Regra de Tipo de Desconto:**
-- `N`: zera `pc_desconto`/`vl_desconto` em todos os itens.
-- `I`: usuário edita desconto por item.
-- `P`: desconto digitado no cabeçalho (`pc_desconto`/`vl_desc_rs` em `movimento`) é distribuído proporcionalmente nos itens.
+| Arquivo | Mudança |
+|---|---|
+| `src/components/forms/pedido/ProdutoSearchDialog.tsx` | **Novo** — diálogo de busca de produto com estoque agregado |
+| `src/components/forms/pedido/PedidoItensTab.tsx` | Corrigir colunas da query, usar grupo de empresas, trocar `<select>` por lupa, exibir estoque, suportar `autoNovo` |
+| `src/components/shared/StandardCrudForm.tsx` | Adicionar `XOnAfterSave` + `XInitialTabAfterInsert` |
+| `src/components/forms/PedidoForm.tsx` | Após salvar (insert) navegar para aba "Itens do Pedido" e disparar `autoNovo` |
 
-Edição: % ↔ R$ se recalculam mutuamente conforme última edição.
-
-### Aba 3 — Forma de Pagamento (`movimento_pagamento`)
-
-- Header: **Valor a Pagar** = `vl_movimento` − Σ `vl_pagamento` já lançado.
-- Toolbar grid: + ✏ 🗑 ↻
-- Grid: Condição (`condicao_id` → `condicao_pagamento.descricao`), Valor (`vl_pagamento`), Parcelas (`n_parcelas`), Valor Parcela (`vl_parcelas`).
-- Rodapé com somatórios.
-- Modal de inclusão pede: Condição, Valor, Parcelas (auto a partir de `condicao_pagamento.qtd_parcelas`), Valor Parcela (auto = valor / parcelas).
-
-### Aba 4 — Dados de Entrega
-
-Mapeada para campos já existentes em `movimento`:
-- Rota (`rota_id` → `rota`)
-- CEP (`cep_entrega`) com lookup `consulta-cep`
-- Cidade (`cidade_id` → `cidade`)
-- Logradouro (`logradouro_entrega`)
-- Bairro (`bairro_entrega`)
-- Nº (`numero_entrega`)
-- E-mail (`email_entrega`)
-
-### Aba 5 — Dados Adicionais
-
-- Observação do Pedido → `obs_pedido`
-- Observação NF → `observacao_nf`
-
-### Aba 6 — Localizar
-
-`DataGrid` padrão sobre `movimento` (filtrado por `empresa_id` e `tp_movimento IN ('PD','SV','OR')`), colunas: nº pedido, dt_emissão, cliente (lookup), vendedor, st_pedido, vl_movimento, faturado. Duplo clique abre na aba Cadastro.
-
-### Integração técnica
-
-1. **Novo arquivo** `src/components/forms/PedidoForm.tsx` usando `StandardCrudForm<Movimento>` com `XExtraTabs` para Itens, Pagamento, Entrega, Adicionais.
-2. **Hook auxiliar** `usePedidoItens(movimento_id)` e `usePedidoPagamentos(movimento_id)` com CRUD direto no Supabase + recálculo.
-3. **Sub-componentes** `PedidoItemPanel.tsx`, `PedidoPagamentoPanel.tsx`.
-4. **`useCrudController`** ganha `XOnAfterSave?: (rec, mode)` para disparar `fu_recalcular_pedido` quando necessário (extensão pequena, retrocompatível).
-5. **Roteamento**: registrar `case "pdv": return <PedidoForm />;` em `src/pages/Index.tsx`.
-6. **Validações de status**: helper `XPodeEditar = st_pedido === 'O'`. Tudo (campos, toolbar Editar/Excluir/Itens/Pagamento) respeita esse flag.
-7. **Filtro de Depósito** no item: reutiliza a regra sister (`empresa_id = own OR (empresa_id IN sisters AND st_privado=false)`) já implementada em `DepositoForm`.
-8. **RLS**: `movimento`, `movimento_item`, `movimento_pagamento` já possuem políticas para `authenticated` — nenhuma migration necessária.
-9. **Tabelas lookup confirmadas**: `funcionario`, `tp_operacao` (criadas pelo usuário). O `PedidoForm` selecionará via `select('id, nome')` — se os nomes das colunas forem diferentes, ajusto após primeira execução.
-
-### Arquivos a criar/editar
-
-- `src/components/forms/PedidoForm.tsx` (novo)
-- `src/components/forms/pedido/PedidoItensTab.tsx` (novo)
-- `src/components/forms/pedido/PedidoPagamentoTab.tsx` (novo)
-- `src/components/forms/pedido/PedidoEntregaTab.tsx` (novo)
-- `src/components/forms/pedido/PedidoAdicionaisTab.tsx` (novo)
-- `src/hooks/useCrudController.ts` (adicionar `XOnAfterSave`)
-- `src/pages/Index.tsx` (registrar `case "pdv"`)
-
-### Pendências para confirmar antes de começar
-
-Por favor confirme as colunas reais das tabelas que você criou para que o lookup funcione no primeiro deploy:
-
-1. **`funcionario`** — nome da PK e do campo "nome" (ex.: `funcionario_id`, `nm_funcionario`)?
-2. **`tp_operacao`** — nome da PK e do campo descrição (ex.: `tp_operacao_id`, `descricao`)?
-3. Confirmar se o status **inicial** ao incluir é `O` (Orçamento) e se o botão **Caixa** apenas muda para `P` (sem chamar `fu_transition_pedido_status`, já que aquela função usa `A→F→T`).
+Sem necessidade de alterações no banco — colunas e RLS já existem.
 
