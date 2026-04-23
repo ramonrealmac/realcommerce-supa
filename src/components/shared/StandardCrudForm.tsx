@@ -31,13 +31,24 @@ interface StandardCrudFormProps<T extends Record<string, any>> {
   }) => React.ReactNode;
   XExtraTabs?: IExtraTab[];
   XExportTitle?: string;
+  /** Switch to this inner tab automatically after a successful insert save. */
+  XAfterInsertTab?: string;
 }
 
 function StandardCrudForm<T extends Record<string, any>>({
-  config, XGridCols, renderCadastro, XExtraTabs = [], XExportTitle,
+  config, XGridCols, renderCadastro, XExtraTabs = [], XExportTitle, XAfterInsertTab,
 }: StandardCrudFormProps<T>) {
   const { closeTab, XTabs, XActiveTabId } = useAppContext();
-  const ctrl = useCrudController<T>(config);
+  const wrappedConfig = useMemo(() => ({
+    ...config,
+    XOnAfterSave: async (rec: any, mode: any) => {
+      if (config.XOnAfterSave) await config.XOnAfterSave(rec, mode);
+      if (mode === "insert" && XAfterInsertTab) {
+        setXInnerTab(XAfterInsertTab);
+      }
+    },
+  }), [config, XAfterInsertTab]);
+  const ctrl = useCrudController<T>(wrappedConfig);
   const [XInnerTab, setXInnerTab] = useState<string>("cadastro");
   const [XSearchFilters, setXSearchFilters] = useState<Record<string, string>>({});
 
