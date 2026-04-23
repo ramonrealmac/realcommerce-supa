@@ -1,19 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+import { Search } from "lucide-react";
 import type { IMovimento, IMovimentoItem } from "./types";
+import ProdutoSearchDialog, { IProdutoRow } from "./ProdutoSearchDialog";
 
 const db = supabase as any;
-
-interface IProdutoLookup {
-  produto_id: number;
-  cd_produto: string;
-  nm_produto: string;
-  vl_venda: number;
-  unidade_id: string | null;
-}
 
 interface IDepositoLookup { deposito_id: number; nome: string; }
 
@@ -21,22 +15,26 @@ interface IProps {
   pedido: IMovimento | null;
   podeEditar: boolean;
   onTotalsChanged?: () => void;
+  autoNovoTrigger?: number; // change value to trigger "novo()"
 }
 
 const fmt = (v: number) =>
   (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged }) => {
+const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged, autoNovoTrigger }) => {
   const { XEmpresaId, XEmpresaMatrizId, XEmpresas } = useAppContext();
   const [XItens, setXItens] = useState<IMovimentoItem[]>([]);
-  const [XProdutos, setXProdutos] = useState<IProdutoLookup[]>([]);
   const [XDepositos, setXDepositos] = useState<IDepositoLookup[]>([]);
   const [XEdit, setXEdit] = useState<Partial<IMovimentoItem> | null>(null);
   const [XEditingId, setXEditingId] = useState<number | null>(null);
+  const [XSearchOpen, setXSearchOpen] = useState(false);
+  const [XEditEstoque, setXEditEstoque] = useState<{ disp: number; res: number } | null>(null);
 
-  const sisterIds = XEmpresas
-    .filter(e => (e.empresa_matriz_id === XEmpresaMatrizId || e.empresa_id === XEmpresaMatrizId) && e.empresa_id !== XEmpresaId)
-    .map(e => e.empresa_id);
+  const XGroupEmpresaIds = useMemo(() => {
+    return XEmpresas
+      .filter(e => e.empresa_matriz_id === XEmpresaMatrizId || e.empresa_id === XEmpresaMatrizId)
+      .map(e => e.empresa_id);
+  }, [XEmpresas, XEmpresaMatrizId]);
 
   const loadItens = useCallback(async () => {
     if (!pedido?.movimento_id) { setXItens([]); return; }
@@ -49,37 +47,46 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged 
 
   useEffect(() => { loadItens(); }, [loadItens]);
 
+  // Carrega depósitos visíveis (mesma regra do EstoqueForm)
   useEffect(() => {
     (async () => {
-      const { data } = await db.from("produto")
-        .select("produto_id, cd_produto, nm_produto, vl_venda, unidade_id")
-        .eq("empresa_id", XEmpresaMatrizId || XEmpresaId).eq("excluido", false)
-        .order("nm_produto").limit(500);
-      setXProdutos(data || []);
+      const ids = XGroupEmpresaIds.length > 0 ? XGroupEmpresaIds : [XEmpresaId];
+      const { data } = await db.from("deposito")
+        .select("deposito_id, nome, empresa_id, st_privado")
+        .in("empresa_id", ids)
+        .eq("excluido", false)
+        .order("nome");
+      const filtered = (data || []).filter((d: any) =>
+        d.empresa_id === XEmpresaId || d.st_privado === false
+      );
+      setXDepositos(filtered);
     })();
-  }, [XEmpresaId, XEmpresaMatrizId]);
+  }, [XEmpresaId, XGroupEmpresaIds]);
 
-  useEffect(() => {
-    (async () => {
-      let q = db.from("deposito").select("deposito_id, nome").eq("excluido", false);
-      if (sisterIds.length === 0) q = q.eq("empresa_id", XEmpresaId);
-      else q = q.or(`empresa_id.eq.${XEmpresaId},and(empresa_id.in.(${sisterIds.join(",")}),st_privado.eq.false)`);
-      const { data } = await q.order("nome");
-      setXDepositos(data || []);
-    })();
-  }, [XEmpresaId, sisterIds.join(",")]);
-
-  const novo = () => {
+  const novo = useCallback(() => {
     setXEditingId(null);
+    setXEditEstoque(null);
     setXEdit({
       qt_movimento: 1, vl_und_produto: 0, vl_produto: 0,
       pc_desconto: 0, vl_desconto: 0, vl_movimento: 0,
       vl_despesa: 0, vl_frete: 0, vl_seguro: 0, vl_outro: 0,
       entrega: "N", deposito_id: 1,
     });
-  };
+  }, []);
 
-  const editar = (it: IMovimentoItem) => { setXEdit({ ...it }); setXEditingId(it.movimento_item_id); };
+  // Auto disparar "novo item" quando solicitado
+  useEffect(() => {
+    if (autoNovoTrigger && pedido?.movimento_id && podeEditar && !XEdit) {
+      novo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoNovoTrigger, pedido?.movimento_id]);
+
+  const editar = (it: IMovimentoItem) => {
+    setXEdit({ ...it });
+    setXEditingId(it.movimento_item_id);
+    setXEditEstoque(null);
+  };
 
   const recalc = (e: Partial<IMovimentoItem>): Partial<IMovimentoItem> => {
     const qt = Number(e.qt_movimento) || 0;
@@ -95,10 +102,28 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged 
     setXEdit(prev => recalc({ ...prev!, [k]: v }));
   };
 
-  const setProduto = (pid: number) => {
-    const p = XProdutos.find(x => x.produto_id === pid);
-    if (!p) return;
-    setXEdit(prev => recalc({ ...prev!, produto_id: p.produto_id, cd_produto: p.cd_produto, nm_produto: p.nm_produto, unidade_id: p.unidade_id, vl_und_produto: Number(p.vl_venda) || 0 }));
+  const onPickProduto = (p: IProdutoRow) => {
+    setXEdit(prev => recalc({
+      ...(prev || {}),
+      produto_id: p.produto_id,
+      cd_produto: String(p.produto_id),
+      nm_produto: p.nome,
+      unidade_id: p.unidade_id,
+      vl_und_produto: Number(p.preco_venda) || 0,
+    }));
+    setXEditEstoque({ disp: p.estoque_disponivel, res: p.estoque_reservado });
+  };
+
+  const limparProduto = () => {
+    setXEdit(prev => recalc({
+      ...(prev || {}),
+      produto_id: undefined,
+      cd_produto: undefined,
+      nm_produto: undefined,
+      unidade_id: undefined,
+      vl_und_produto: 0,
+    }));
+    setXEditEstoque(null);
   };
 
   const onPcDesc = (pc: number) => setXEdit(prev => recalc({ ...prev!, pc_desconto: pc }));
@@ -129,7 +154,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged 
     }
     await db.rpc("fu_recalcular_pedido", { _movimento_id: pedido.movimento_id });
     toast.success("Item salvo.");
-    setXEdit(null); setXEditingId(null);
+    setXEdit(null); setXEditingId(null); setXEditEstoque(null);
     await loadItens();
     onTotalsChanged?.();
   };
@@ -192,10 +217,31 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged 
           <div className="grid grid-cols-12 gap-2">
             <div className="col-span-5">
               <label className="text-xs text-muted-foreground">Produto</label>
-              <select disabled={ro} value={XEdit.produto_id ?? ""} onChange={e => setProduto(Number(e.target.value))} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
-                <option value="">--</option>
-                {XProdutos.map(p => <option key={p.produto_id} value={p.produto_id}>{p.produto_id} - {p.nm_produto}</option>)}
-              </select>
+              <div className="flex gap-1">
+                <input
+                  readOnly
+                  value={XEdit.produto_id ? `${XEdit.produto_id} - ${XEdit.nm_produto || ""}` : ""}
+                  placeholder="Clique na lupa para pesquisar..."
+                  className="flex-1 border border-border rounded px-2 py-1 text-sm bg-secondary"
+                />
+                <button
+                  type="button"
+                  disabled={ro}
+                  onClick={() => setXSearchOpen(true)}
+                  className="px-2 py-1 border border-border rounded bg-card hover:bg-accent disabled:opacity-50"
+                  title="Pesquisar produto"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+                {XEdit.produto_id && !ro && (
+                  <button
+                    type="button"
+                    onClick={limparProduto}
+                    className="px-2 py-1 border border-border rounded bg-card hover:bg-accent text-xs"
+                    title="Limpar"
+                  >×</button>
+                )}
+              </div>
             </div>
             <div className="col-span-1"><label className="text-xs text-muted-foreground">Und.</label><input readOnly value={XEdit.unidade_id ?? ""} className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary" /></div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">Preço Unit.</label><input type="number" disabled={ro} value={XEdit.vl_und_produto ?? 0} onChange={e => setF("vl_und_produto", Number(e.target.value))} className="w-full border border-border rounded px-2 py-1 text-sm text-right" /></div>
@@ -207,7 +253,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged 
             <div className="col-span-2"><label className="text-xs text-muted-foreground">Desc. (R$)</label><input type="number" disabled={ro || pedido.tp_desconto === "N"} value={XEdit.vl_desconto ?? 0} onChange={e => onVlDesc(Number(e.target.value))} className="w-full border border-border rounded px-2 py-1 text-sm text-right" /></div>
             <div className="col-span-1 flex items-end gap-1"><label className="flex items-center gap-1 text-xs"><input type="checkbox" disabled={ro} checked={XEdit.entrega === "S"} onChange={e => setF("entrega", e.target.checked ? "S" : "N")} />P/Entrega?</label></div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">FC</label><input disabled={ro} value={XEdit.infad_produto ?? ""} onChange={e => setF("infad_produto", e.target.value)} className="w-full border border-border rounded px-2 py-1 text-sm" /></div>
-            <div className="col-span-2"><label className="text-xs text-muted-foreground">Estoq. Disp.</label><input readOnly value="" className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" /></div>
+            <div className="col-span-2"><label className="text-xs text-muted-foreground">Estoq. Disp.</label><input readOnly value={XEditEstoque ? fmt(XEditEstoque.disp) : ""} className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" /></div>
             <div className="col-span-3"><label className="text-xs text-muted-foreground">Depósito</label>
               <select disabled={ro} value={XEdit.deposito_id ?? ""} onChange={e => setF("deposito_id", Number(e.target.value))} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
                 <option value="">--</option>
@@ -223,7 +269,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged 
             <div className="col-span-2"><label className="text-xs text-muted-foreground">Total</label><input readOnly value={fmt(XEdit.vl_movimento || 0)} className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right font-semibold" /></div>
             <div className="col-span-2 flex items-end gap-1">
               <button onClick={salvarItem} disabled={ro} className="text-sm px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">Inserir Produto</button>
-              <button onClick={() => { setXEdit(null); setXEditingId(null); }} className="text-sm px-3 py-1 rounded border border-border">Cancelar</button>
+              <button onClick={() => { setXEdit(null); setXEditingId(null); setXEditEstoque(null); }} className="text-sm px-3 py-1 rounded border border-border">Cancelar</button>
             </div>
           </div>
         </div>
@@ -243,6 +289,12 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged 
           <div className="col-span-2"><span className="text-muted-foreground">Vlr. Total:</span> <span className="font-bold text-primary text-lg">{fmt(T.vl_movimento)}</span></div>
         </div>
       </div>
+
+      <ProdutoSearchDialog
+        open={XSearchOpen}
+        onClose={() => setXSearchOpen(false)}
+        onSelect={onPickProduto}
+      />
     </div>
   );
 };
