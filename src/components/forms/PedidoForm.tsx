@@ -8,16 +8,27 @@ import type { IMovimento } from "./pedido/types";
 import { ST_PEDIDO_LABELS, TP_DESCONTO_LABELS } from "./pedido/types";
 import PedidoItensTab from "./pedido/PedidoItensTab";
 import PedidoPagamentoTab from "./pedido/PedidoPagamentoTab";
+import ClienteSearchDialog, { IClienteRow } from "./pedido/ClienteSearchDialog";
+import { Search } from "lucide-react";
 
 const db = supabase as any;
 
 interface ILookup { id: number; label: string; }
+interface IClienteInfo { id: number; cnpj: string; razao: string; fantasia: string; }
 
-const XGridCols: IGridColumn[] = [
+const buildGridCols = (
+  vendedores: ILookup[],
+  clientesCache: Record<number, IClienteInfo>,
+): IGridColumn[] => [
   { key: "nr_movimento", label: "Pedido", width: "90px", align: "right" },
   { key: "dt_emissao", label: "Emissão", width: "120px", render: r => r.dt_emissao ? new Date(r.dt_emissao).toLocaleDateString("pt-BR") : "" },
-  { key: "_cliente", label: "Cliente", width: "2fr", getValue: r => r._cliente_nome || "", render: r => r._cliente_nome || `#${r.cadastro_id ?? ""}` },
-  { key: "_vendedor", label: "Vendedor", width: "1fr", render: r => r._vendedor_nome || "" },
+  {
+    key: "_cliente", label: "Cliente", width: "2fr",
+    getValue: r => clientesCache[r.cadastro_id]?.razao || "",
+    render: r => clientesCache[r.cadastro_id]?.razao || (r.cadastro_id ? `#${r.cadastro_id}` : ""),
+  },
+  { key: "_vendedor", label: "Vendedor", width: "1fr", render: r => vendedores.find(v => v.id === r.funcionario_id)?.label || "" },
+
   { key: "st_pedido", label: "Status", width: "110px", render: r => ST_PEDIDO_LABELS[r.st_pedido] || r.st_pedido },
   { key: "vl_movimento", label: "Total", width: "120px", align: "right", render: r => Number(r.vl_movimento || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) },
   { key: "faturado", label: "Faturado", width: "90px" },
@@ -44,37 +55,52 @@ const XDefaultRecord: Partial<IMovimento> = {
 
 const PedidoForm: React.FC = () => {
   const { XEmpresaId } = useAppContext();
-  const [XClientes, setXClientes] = useState<ILookup[]>([]);
   const [XVendedores, setXVendedores] = useState<ILookup[]>([]);
   const [XTpOperacoes, setXTpOperacoes] = useState<ILookup[]>([]);
   const [XRotas, setXRotas] = useState<ILookup[]>([]);
   const [XCidades, setXCidades] = useState<ILookup[]>([]);
+  const [XClientesCache, setXClientesCache] = useState<Record<number, IClienteInfo>>({});
+  const [XSearchOpen, setXSearchOpen] = useState(false);
+  const [XSearchTarget, setXSearchTarget] = useState<((c: IClienteRow) => void) | null>(null);
 
-  // Lookups
+  // Lookups (sem clientes — usa pesquisa via diálogo)
   useEffect(() => {
     (async () => {
-      const [{ data: cli }, { data: vend }, { data: tps }, { data: rotas }, { data: cid }] = await Promise.all([
-        db.from("cadastro").select("cadastro_id, cnpj, razao_social").eq("excluido", false).eq("st_cliente", "S").order("razao_social").limit(500),
-        db.from("cadastro").select("cadastro_id, razao_social").eq("excluido", false).eq("st_vendedor", "S").order("razao_social").limit(200),
+      const [{ data: vend }, { data: tps }, { data: rotas }, { data: cid }] = await Promise.all([
+        db.from("funcionario").select("funcionario_id, nome").order("nome").limit(500),
         db.from("tp_operacao").select("tp_operacao_id, descricao").order("descricao"),
         db.from("rota").select("rota_id, descricao").eq("excluido", false).order("descricao"),
         db.from("cidade").select("cidade_id, descricao, uf").eq("excluido", false).order("descricao").limit(1000),
       ]);
-      setXClientes((cli || []).map((c: any) => ({ id: c.cadastro_id, label: `${c.cadastro_id} - ${c.cnpj || ""} - ${c.razao_social}` })));
-      setXVendedores((vend || []).map((c: any) => ({ id: c.cadastro_id, label: c.razao_social })));
+      setXVendedores((vend || []).map((c: any) => ({ id: c.funcionario_id, label: c.nome })));
       setXTpOperacoes((tps || []).map((t: any) => ({ id: t.tp_operacao_id, label: t.descricao })));
       setXRotas((rotas || []).map((r: any) => ({ id: r.rota_id, label: r.descricao })));
       setXCidades((cid || []).map((c: any) => ({ id: c.cidade_id, label: `${c.descricao} - ${c.uf || ""}` })));
     })();
   }, []);
 
-  const enrich = useCallback((rows: any[]) => {
-    return rows.map(r => ({
-      ...r,
-      _cliente_nome: XClientes.find(c => c.id === r.cadastro_id)?.label,
-      _vendedor_nome: XVendedores.find(v => v.id === r.funcionario_id)?.label,
-    }));
-  }, [XClientes, XVendedores]);
+  // Resolve nomes de clientes para o grid sob demanda
+  const ensureClienteInfo = useCallback(async (ids: number[]) => {
+    const faltando = ids.filter(id => id && !XClientesCache[id]);
+    if (!faltando.length) return;
+    const { data } = await db.from("cadastro")
+      .select("cadastro_id, cnpj, razao_social, nome_fantasia")
+      .in("cadastro_id", faltando);
+    if (data) {
+      setXClientesCache(prev => {
+        const next = { ...prev };
+        for (const c of data as any[]) {
+          next[c.cadastro_id] = { id: c.cadastro_id, cnpj: c.cnpj || "", razao: c.razao_social || "", fantasia: c.nome_fantasia || "" };
+        }
+        return next;
+      });
+    }
+  }, [XClientesCache]);
+
+  const abrirPesquisaCliente = (onPick: (c: IClienteRow) => void) => {
+    setXSearchTarget(() => onPick);
+    setXSearchOpen(true);
+  };
 
   // Status change helpers (Orçamento / Caixa buttons)
   const mudarStatus = async (movimento_id: number, novo: string) => {
@@ -88,6 +114,7 @@ const PedidoForm: React.FC = () => {
   };
 
   return (
+    <>
     <StandardCrudForm<IMovimento>
       config={{
         XTableName: "movimento",
@@ -98,7 +125,10 @@ const PedidoForm: React.FC = () => {
         XSelectCols: "*",
         XOrderBy: "movimento_id",
         XApplyFilter: (q) => q.in("tp_movimento", ["PD", "SV", "OR"]),
-        XOnAfterLoad: () => { /* enriquecimento é feito em XGridCols via map externo */ },
+        XOnAfterLoad: (rows: any[]) => {
+          const ids = Array.from(new Set(rows.map(r => r.cadastro_id).filter(Boolean))) as number[];
+          if (ids.length) ensureClienteInfo(ids);
+        },
         XOnBeforeSave: (rec, mode) => {
           if (!rec.cadastro_id) throw new Error("Selecione o Cliente.");
           if (!rec.funcionario_id) throw new Error("Selecione o Vendedor.");
@@ -110,7 +140,7 @@ const PedidoForm: React.FC = () => {
         },
         XSoftDelete: false,
       }}
-      XGridCols={XGridCols}
+      XGridCols={buildGridCols(XVendedores, XClientesCache)}
       XExportTitle="Pedidos"
       XExtraTabs={[
         {
@@ -206,10 +236,34 @@ const PedidoForm: React.FC = () => {
               </div>
               <div className="col-span-5">
                 <label className="text-xs text-muted-foreground">Cliente <span className="text-destructive">*</span></label>
-                <select disabled={ro} value={record.cadastro_id ?? ""} onChange={e => setField("cadastro_id", e.target.value ? Number(e.target.value) : null as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
-                  <option value="">--</option>
-                  {XClientes.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
+                <div className="flex gap-1">
+                  <input
+                    readOnly
+                    value={record.cadastro_id ? (XClientesCache[record.cadastro_id]?.razao || `#${record.cadastro_id}`) : ""}
+                    placeholder="Clique na lupa para pesquisar..."
+                    className="flex-1 border border-border rounded px-2 py-1 text-sm bg-secondary"
+                  />
+                  <button
+                    type="button"
+                    disabled={ro}
+                    onClick={() => abrirPesquisaCliente((c) => {
+                      setXClientesCache(prev => ({ ...prev, [c.cadastro_id]: { id: c.cadastro_id, cnpj: c.cnpj || "", razao: c.razao_social || "", fantasia: c.nome_fantasia || "" } }));
+                      setField("cadastro_id", c.cadastro_id as any);
+                    })}
+                    className="px-2 py-1 border border-border rounded bg-card hover:bg-accent disabled:opacity-50"
+                    title="Pesquisar cliente"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+                  {record.cadastro_id && !ro && (
+                    <button
+                      type="button"
+                      onClick={() => setField("cadastro_id", null as any)}
+                      className="px-2 py-1 border border-border rounded bg-card hover:bg-accent text-xs"
+                      title="Limpar"
+                    >×</button>
+                  )}
+                </div>
               </div>
               <div className="col-span-3">
                 <label className="text-xs text-muted-foreground">Vendedor <span className="text-destructive">*</span></label>
@@ -299,6 +353,13 @@ const PedidoForm: React.FC = () => {
         );
       }}
     />
+    <ClienteSearchDialog
+      open={XSearchOpen}
+      onClose={() => setXSearchOpen(false)}
+      empresaId={XEmpresaId}
+      onSelect={(c) => XSearchTarget?.(c)}
+    />
+    </>
   );
 };
 

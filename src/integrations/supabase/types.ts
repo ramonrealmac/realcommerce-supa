@@ -423,6 +423,89 @@ export type Database = {
           },
         ]
       }
+      agendamento_proc_split: {
+        Row: {
+          agendamento_proc_split_id: number
+          agendamento_split_id: number
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number
+          especialidade_id: number
+          excluido: boolean | null
+          plano_id: number
+          profissional_id: number
+          vl_split: number
+        }
+        Insert: {
+          agendamento_proc_split_id: number
+          agendamento_split_id: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id: number
+          especialidade_id: number
+          excluido?: boolean | null
+          plano_id: number
+          profissional_id: number
+          vl_split: number
+        }
+        Update: {
+          agendamento_proc_split_id?: number
+          agendamento_split_id?: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number
+          especialidade_id?: number
+          excluido?: boolean | null
+          plano_id?: number
+          profissional_id?: number
+          vl_split?: number
+        }
+        Relationships: []
+      }
+      agendamento_procedimento: {
+        Row: {
+          agendamento_id: number | null
+          agendamento_procedimento_id: number
+          dt_alteracao: string | null
+          dt_cadastro: string | null
+          empresa_id: number | null
+          excluido: boolean | null
+          procedimento_id: number | null
+          vl_procedimento: number | null
+          vl_split: number | null
+        }
+        Insert: {
+          agendamento_id?: number | null
+          agendamento_procedimento_id: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number | null
+          excluido?: boolean | null
+          procedimento_id?: number | null
+          vl_procedimento?: number | null
+          vl_split?: number | null
+        }
+        Update: {
+          agendamento_id?: number | null
+          agendamento_procedimento_id?: number
+          dt_alteracao?: string | null
+          dt_cadastro?: string | null
+          empresa_id?: number | null
+          excluido?: boolean | null
+          procedimento_id?: number | null
+          vl_procedimento?: number | null
+          vl_split?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_agendamento_procedimento"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamento"
+            referencedColumns: ["agendamento_id"]
+          },
+        ]
+      }
       auditoria: {
         Row: {
           id: number
@@ -1566,6 +1649,39 @@ export type Database = {
             referencedColumns: ["financeiro_id"]
           },
         ]
+      }
+      funcionario: {
+        Row: {
+          corretora_id: number | null
+          empresa_id: number | null
+          funcionario_id: number
+          nome: string | null
+          pc_comissao_av: number | null
+          pc_comissao_prz: number | null
+          tp_comissao: string | null
+          usr_id: number | null
+        }
+        Insert: {
+          corretora_id?: number | null
+          empresa_id?: number | null
+          funcionario_id?: number
+          nome?: string | null
+          pc_comissao_av?: number | null
+          pc_comissao_prz?: number | null
+          tp_comissao?: string | null
+          usr_id?: number | null
+        }
+        Update: {
+          corretora_id?: number | null
+          empresa_id?: number | null
+          funcionario_id?: number
+          nome?: string | null
+          pc_comissao_av?: number | null
+          pc_comissao_prz?: number | null
+          tp_comissao?: string | null
+          usr_id?: number | null
+        }
+        Relationships: []
       }
       galpao_ambiencia: {
         Row: {
