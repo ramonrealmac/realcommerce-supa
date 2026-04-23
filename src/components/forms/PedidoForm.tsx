@@ -152,7 +152,7 @@ const PedidoForm: React.FC = () => {
           key: "itens", label: "Itens do Pedido",
           render: ({ record, currentRecord }) => {
             const ped = (currentRecord || record) as IMovimento;
-            return <PedidoItensTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} />;
+            return <PedidoItensTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} autoNovoTrigger={XAutoNovoItem} />;
           },
         },
         {
