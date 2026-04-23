@@ -8,10 +8,13 @@ import type { IMovimento } from "./pedido/types";
 import { ST_PEDIDO_LABELS, TP_DESCONTO_LABELS } from "./pedido/types";
 import PedidoItensTab from "./pedido/PedidoItensTab";
 import PedidoPagamentoTab from "./pedido/PedidoPagamentoTab";
+import ClienteSearchDialog, { IClienteRow } from "./pedido/ClienteSearchDialog";
+import { Search } from "lucide-react";
 
 const db = supabase as any;
 
 interface ILookup { id: number; label: string; }
+interface IClienteInfo { id: number; cnpj: string; razao: string; fantasia: string; }
 
 const XGridCols: IGridColumn[] = [
   { key: "nr_movimento", label: "Pedido", width: "90px", align: "right" },
@@ -44,37 +47,52 @@ const XDefaultRecord: Partial<IMovimento> = {
 
 const PedidoForm: React.FC = () => {
   const { XEmpresaId } = useAppContext();
-  const [XClientes, setXClientes] = useState<ILookup[]>([]);
   const [XVendedores, setXVendedores] = useState<ILookup[]>([]);
   const [XTpOperacoes, setXTpOperacoes] = useState<ILookup[]>([]);
   const [XRotas, setXRotas] = useState<ILookup[]>([]);
   const [XCidades, setXCidades] = useState<ILookup[]>([]);
+  const [XClientesCache, setXClientesCache] = useState<Record<number, IClienteInfo>>({});
+  const [XSearchOpen, setXSearchOpen] = useState(false);
+  const [XSearchTarget, setXSearchTarget] = useState<((c: IClienteRow) => void) | null>(null);
 
-  // Lookups
+  // Lookups (sem clientes — usa pesquisa via diálogo)
   useEffect(() => {
     (async () => {
-      const [{ data: cli }, { data: vend }, { data: tps }, { data: rotas }, { data: cid }] = await Promise.all([
-        db.from("cadastro").select("cadastro_id, cnpj, razao_social").eq("excluido", false).eq("st_cliente", "S").order("razao_social").limit(500),
-        db.from("cadastro").select("cadastro_id, razao_social").eq("excluido", false).eq("st_vendedor", "S").order("razao_social").limit(200),
+      const [{ data: vend }, { data: tps }, { data: rotas }, { data: cid }] = await Promise.all([
+        db.from("funcionario").select("funcionario_id, nome").order("nome").limit(500),
         db.from("tp_operacao").select("tp_operacao_id, descricao").order("descricao"),
         db.from("rota").select("rota_id, descricao").eq("excluido", false).order("descricao"),
         db.from("cidade").select("cidade_id, descricao, uf").eq("excluido", false).order("descricao").limit(1000),
       ]);
-      setXClientes((cli || []).map((c: any) => ({ id: c.cadastro_id, label: `${c.cadastro_id} - ${c.cnpj || ""} - ${c.razao_social}` })));
-      setXVendedores((vend || []).map((c: any) => ({ id: c.cadastro_id, label: c.razao_social })));
+      setXVendedores((vend || []).map((c: any) => ({ id: c.funcionario_id, label: c.nome })));
       setXTpOperacoes((tps || []).map((t: any) => ({ id: t.tp_operacao_id, label: t.descricao })));
       setXRotas((rotas || []).map((r: any) => ({ id: r.rota_id, label: r.descricao })));
       setXCidades((cid || []).map((c: any) => ({ id: c.cidade_id, label: `${c.descricao} - ${c.uf || ""}` })));
     })();
   }, []);
 
-  const enrich = useCallback((rows: any[]) => {
-    return rows.map(r => ({
-      ...r,
-      _cliente_nome: XClientes.find(c => c.id === r.cadastro_id)?.label,
-      _vendedor_nome: XVendedores.find(v => v.id === r.funcionario_id)?.label,
-    }));
-  }, [XClientes, XVendedores]);
+  // Resolve nomes de clientes para o grid sob demanda
+  const ensureClienteInfo = useCallback(async (ids: number[]) => {
+    const faltando = ids.filter(id => id && !XClientesCache[id]);
+    if (!faltando.length) return;
+    const { data } = await db.from("cadastro")
+      .select("cadastro_id, cnpj, razao_social, nome_fantasia")
+      .in("cadastro_id", faltando);
+    if (data) {
+      setXClientesCache(prev => {
+        const next = { ...prev };
+        for (const c of data as any[]) {
+          next[c.cadastro_id] = { id: c.cadastro_id, cnpj: c.cnpj || "", razao: c.razao_social || "", fantasia: c.nome_fantasia || "" };
+        }
+        return next;
+      });
+    }
+  }, [XClientesCache]);
+
+  const abrirPesquisaCliente = (onPick: (c: IClienteRow) => void) => {
+    setXSearchTarget(() => onPick);
+    setXSearchOpen(true);
+  };
 
   // Status change helpers (Orçamento / Caixa buttons)
   const mudarStatus = async (movimento_id: number, novo: string) => {
