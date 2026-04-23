@@ -139,10 +139,14 @@ const PedidoForm: React.FC = () => {
           }
           return { ...rec, empresa_id: rec.empresa_id || XEmpresaId };
         },
+        XOnAfterSave: (_rec, mode) => {
+          if (mode === "insert") setXAutoNovoItem(n => n + 1);
+        },
         XSoftDelete: false,
       }}
       XGridCols={buildGridCols(XVendedores, XClientesCache)}
       XExportTitle="Pedidos"
+      XAfterInsertTab="itens"
       XExtraTabs={[
         {
           key: "itens", label: "Itens do Pedido",
