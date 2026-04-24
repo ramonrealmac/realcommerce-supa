@@ -110,6 +110,20 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
   }
   const ro = !podeEditar;
 
+  const XPagtoToolbar = (
+    <>
+      <button
+        disabled={ro}
+        onClick={novo}
+        title="Novo Pagamento"
+        className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-success text-success-foreground hover:opacity-90 disabled:opacity-50"
+      >
+        + Novo Pagamento
+      </button>
+      <span className="ml-2 text-xs text-muted-foreground">{XPagtos.length} registro(s)</span>
+    </>
+  );
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-4">
@@ -121,7 +135,6 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
           <span className="text-muted-foreground">Total Pedido:</span>{" "}
           <span className="font-medium">{fmt(Number(pedido?.vl_movimento || 0))}</span>
         </div>
-        <button disabled={ro} onClick={novo} className="ml-auto text-sm px-3 py-1.5 border border-border rounded bg-primary text-primary-foreground disabled:opacity-50">+ Novo Pagamento</button>
       </div>
 
       {XEdit && (
@@ -144,7 +157,14 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
         </div>
       )}
 
-      <DataGrid columns={cols} data={XPagtos} maxHeight="300px" />
+      <DataGrid
+        columns={cols}
+        data={XPagtos}
+        maxHeight="300px"
+        exportTitle="Pagamentos do Pedido"
+        toolbarLeft={XPagtoToolbar}
+        showRecordCount={false}
+      />
     </div>
   );
 };

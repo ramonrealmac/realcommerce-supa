@@ -94,17 +94,19 @@ const SubgrupoGrid: React.FC<SubgrupoGridProps> = ({ XEmpresaId, XGrupoId }) => 
     setXFilterValues(prev => ({ ...prev, [key]: value }));
   };
 
+  const XToolbar = (
+    <>
+      <GridBtn icon={<Plus size={14} />} label="Incluir" onClick={handleIncluir} color="success" />
+      <GridBtn icon={<Pencil size={14} />} label="Alterar" onClick={handleEditar} disabled={!XSelectedSub} color="primary" />
+      <GridBtn icon={<Trash2 size={14} />} label="Excluir" onClick={handleExcluir} disabled={!XSelectedSub} color="destructive" />
+      <GridBtn icon={<RefreshCw size={14} />} label="Atualizar" onClick={loadData} />
+      <GridBtn icon={<Filter size={14} />} label="Filtrar" onClick={() => setXShowFilters(!XShowFilters)} active={XShowFilters} />
+      <span className="ml-2 text-xs text-muted-foreground">{XFiltered.length} registro(s)</span>
+    </>
+  );
+
   return (
     <div className="space-y-2">
-      {/* Subgroup toolbar */}
-      <div className="flex items-center gap-1">
-        <GridBtn icon={<Plus size={14} />} label="Incluir" onClick={handleIncluir} color="success" />
-        <GridBtn icon={<Pencil size={14} />} label="Alterar" onClick={handleEditar} disabled={!XSelectedSub} color="primary" />
-        <GridBtn icon={<Trash2 size={14} />} label="Excluir" onClick={handleExcluir} disabled={!XSelectedSub} color="destructive" />
-        <GridBtn icon={<RefreshCw size={14} />} label="Atualizar" onClick={loadData} />
-        <GridBtn icon={<Filter size={14} />} label="Filtrar" onClick={() => setXShowFilters(!XShowFilters)} active={XShowFilters} />
-      </div>
-
       {/* Edit row (inline) */}
       {XEditMode !== "none" && (
         <div className="flex items-center gap-2 p-2 bg-accent rounded border border-border">
@@ -148,6 +150,8 @@ const SubgrupoGrid: React.FC<SubgrupoGridProps> = ({ XEmpresaId, XGrupoId }) => 
         onFilterChange={handleFilterChange}
         maxHeight="250px"
         exportTitle="Subgrupos"
+        toolbarLeft={XToolbar}
+        showRecordCount={false}
       />
     </div>
   );
