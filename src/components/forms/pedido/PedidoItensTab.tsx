@@ -444,7 +444,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
             </div>
             <div className="col-span-2">
               <label className="text-xs text-muted-foreground">Total</label>
-              <input readOnly value={fmt(XEdit.vl_movimento || 0)}
+              <input readOnly tabIndex={-1} value={fmt(XEdit.vl_movimento || 0)}
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right font-semibold" />
             </div>
             <div className="col-span-2 flex items-end gap-1">
