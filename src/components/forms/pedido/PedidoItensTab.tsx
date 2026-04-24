@@ -37,6 +37,8 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
   const [XValidaEstoque, setXValidaEstoque] = useState(false);
   const [XSelectedIdx, setXSelectedIdx] = useState<number | null>(null);
   const codigoRef = useRef<HTMLInputElement>(null);
+  const lupaRef = useRef<HTMLButtonElement>(null);
+  const precoUnitRef = useRef<HTMLInputElement>(null);
 
   const XGroupEmpresaIds = useMemo(() => {
     return XEmpresas
@@ -137,24 +139,34 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
     setXEdit(prev => recalc({ ...prev!, [k]: v }));
   };
 
-  const aplicarProduto = useCallback((p: IProdutoRow) => {
+  const aplicarProduto = useCallback((p: IProdutoRow, deposito_id?: number) => {
     setXEdit(prev => recalc({
       ...(prev || {}),
       produto_id: p.produto_id,
       cd_produto: String(p.produto_id),
       nm_produto: p.nome,
       unidade_id: p.unidade_id,
-      vl_und_produto: Number(p.preco_venda) || 0,
+      vl_und_produto: Number(p.st_promo && p.preco_promocional > 0 ? p.preco_promocional : p.preco_venda) || 0,
+      ...(deposito_id ? { deposito_id } : {}),
     }));
     setXEditEstoque({ disp: p.estoque_disponivel, res: p.estoque_reservado });
     setXCodigo(String(p.produto_id));
     carregarEstoquePorDeposito(p.produto_id);
+    // foco no preço unitário
+    setTimeout(() => { precoUnitRef.current?.focus(); precoUnitRef.current?.select(); }, 80);
   }, [carregarEstoquePorDeposito]);
 
   const onCodigoBlur = async () => {
     const t = XCodigo.trim();
-    if (!t) return;
-    if (XEdit?.produto_id && (String(XEdit.produto_id) === t || XEdit.cd_produto === t)) return;
+    if (!t) {
+      // vazio → vai pro botão da lupa
+      setTimeout(() => lupaRef.current?.focus(), 30);
+      return;
+    }
+    if (XEdit?.produto_id && (String(XEdit.produto_id) === t || XEdit.cd_produto === t)) {
+      setTimeout(() => { precoUnitRef.current?.focus(); precoUnitRef.current?.select(); }, 30);
+      return;
+    }
     const p = await buscarProdutoPorCodigo(t, XEmpresaId, XGroupEmpresaIds);
     if (!p) { toast.error("Produto não encontrado."); return; }
     aplicarProduto(p);
@@ -211,10 +223,15 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
     }
     await db.rpc("fu_recalcular_pedido", { _movimento_id: pedido.movimento_id });
     toast.success("Item salvo.");
+    const wasInsert = !XEditingId;
     setXEdit(null); setXEditingId(null); setXEditEstoque(null);
     setXDepEstoque({}); setXCodigo("");
     await loadItens();
     onTotalsChanged?.();
+    // Após inserir, abrir automaticamente um novo item para inserção contínua
+    if (wasInsert && podeEditar) {
+      setTimeout(() => novo(), 100);
+    }
   };
 
   const excluirItem = async (it: IMovimentoItem) => {
@@ -309,7 +326,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
               />
             </div>
             <div className="col-span-1 flex gap-1">
-              <button type="button" disabled={ro} onClick={() => setXSearchOpen(true)}
+              <button ref={lupaRef} type="button" disabled={ro} onClick={() => setXSearchOpen(true)}
                 className="px-2 py-1 border border-border rounded bg-card hover:bg-accent disabled:opacity-50"
                 title="Pesquisar produto">
                 <Search className="w-4 h-4" />
@@ -322,18 +339,18 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
             </div>
             <div className="col-span-4">
               <label className="text-xs text-muted-foreground">Produto</label>
-              <input readOnly value={XEdit.nm_produto || ""}
+              <input readOnly tabIndex={-1} value={XEdit.nm_produto || ""}
                 placeholder="Selecione um produto..."
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary" />
             </div>
             <div className="col-span-1">
               <label className="text-xs text-muted-foreground">Und.</label>
-              <input readOnly value={XEdit.unidade_id ?? ""}
+              <input readOnly tabIndex={-1} value={XEdit.unidade_id ?? ""}
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary" />
             </div>
             <div className="col-span-1">
               <label className="text-xs text-muted-foreground">Preço Unit.</label>
-              <input type="number" step="0.01" disabled={ro}
+              <input ref={precoUnitRef} type="number" step="0.01" disabled={ro}
                 value={XEdit.vl_und_produto ?? 0}
                 onChange={e => setF("vl_und_produto", Number(e.target.value))}
                 className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${NO_SPIN}`} />
@@ -345,10 +362,10 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
                 onChange={e => setF("qt_movimento", Number(e.target.value))}
                 className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${NO_SPIN}`} />
             </div>
-            <div className="col-span-1">
+            <div className="col-span-1 flex flex-col justify-end">
               <label className="text-xs text-muted-foreground">Subtotal</label>
-              <input readOnly value={fmt(XEdit.vl_produto || 0)}
-                className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" />
+              <input readOnly tabIndex={-1} value={fmt(XEdit.vl_produto || 0)}
+                className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right font-semibold" />
             </div>
           </div>
 
@@ -378,7 +395,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
             </div>
             <div className="col-span-2">
               <label className="text-xs text-muted-foreground">Estoq. Disp.</label>
-              <input readOnly value={XEditEstoque ? fmt(XEditEstoque.disp, 4) : ""}
+              <input readOnly tabIndex={-1} value={XEditEstoque ? fmt(XEditEstoque.disp, 4) : ""}
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" />
             </div>
             <div className="col-span-4">
@@ -387,12 +404,14 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
                 onChange={e => setF("deposito_id", Number(e.target.value))}
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
                 <option value="">--</option>
-                {XDepositos.map(d => (
-                  <option key={d.deposito_id} value={d.deposito_id}>
-                    {d.deposito_id} - {d.nome}
-                    {XEdit.produto_id ? ` (${fmt(XDepEstoque[d.deposito_id] || 0, 4)})` : ""}
-                  </option>
-                ))}
+                {XDepositos
+                  .filter(d => !XEdit.produto_id || XDepEstoque[d.deposito_id] !== undefined)
+                  .map(d => (
+                    <option key={d.deposito_id} value={d.deposito_id}>
+                      {d.deposito_id} - {d.nome}
+                      {XEdit.produto_id ? ` (${fmt(XDepEstoque[d.deposito_id] || 0, 4)})` : ""}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -425,7 +444,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
             </div>
             <div className="col-span-2">
               <label className="text-xs text-muted-foreground">Total</label>
-              <input readOnly value={fmt(XEdit.vl_movimento || 0)}
+              <input readOnly tabIndex={-1} value={fmt(XEdit.vl_movimento || 0)}
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right font-semibold" />
             </div>
             <div className="col-span-2 flex items-end gap-1">
