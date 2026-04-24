@@ -37,6 +37,8 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
   const [XValidaEstoque, setXValidaEstoque] = useState(false);
   const [XSelectedIdx, setXSelectedIdx] = useState<number | null>(null);
   const codigoRef = useRef<HTMLInputElement>(null);
+  const lupaRef = useRef<HTMLButtonElement>(null);
+  const precoUnitRef = useRef<HTMLInputElement>(null);
 
   const XGroupEmpresaIds = useMemo(() => {
     return XEmpresas
