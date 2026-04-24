@@ -166,8 +166,8 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
         toolbarLeft={XPagtoToolbar}
         showRecordCount={false}
         onRowClick={(r) => setXSelected(r)}
-        selectedRow={XSelected}
-        rowKey="movimento_pagamento_id"
+        onRowDoubleClick={(r) => editar(r)}
+        selectedIdx={XSelected ? XPagtos.findIndex(p => p.movimento_pagamento_id === XSelected.movimento_pagamento_id) : null}
       />
 
       {/* Rodapé: ações à esquerda, totais empilhados à direita */}
