@@ -117,6 +117,15 @@ const PedidoForm: React.FC = () => {
     window.location.reload();
   };
 
+  const fetchItensCadastro = useCallback(async (movimento_id: number) => {
+    const { data } = await db.from("movimento_item")
+      .select("*").eq("movimento_id", movimento_id).eq("excluido", false)
+      .order("movimento_item_id");
+    const itens = (data || []) as IMovimentoItem[];
+    const total = itens.reduce((a, i) => a + Number(i.vl_movimento || 0), 0);
+    setXPedidoTotalCtx({ movimentoId: movimento_id, total, itens });
+  }, []);
+
   return (
     <>
     <StandardCrudForm<IMovimento>
