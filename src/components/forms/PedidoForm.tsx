@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
@@ -66,6 +66,7 @@ const PedidoForm: React.FC = () => {
   const [XAutoNovoItem, setXAutoNovoItem] = useState(0);
   const [XPagamentoRefreshToken, setXPagamentoRefreshToken] = useState(0);
   const [XPedidoTotalCtx, setXPedidoTotalCtx] = useState<{ movimentoId: number | null; total: number; itens: IMovimentoItem[] }>({ movimentoId: null, total: 0, itens: [] });
+  const XFetchingItensRef = useRef<Set<number>>(new Set());
 
   // Lookups (sem clientes — usa pesquisa via diálogo)
   useEffect(() => {
@@ -268,12 +269,10 @@ const PedidoForm: React.FC = () => {
         // Itens em cache (sincronizados com a aba Itens). Fallback: busca quando ainda não há cache para este pedido.
         const movId = currentRecord?.movimento_id;
         const itensCache = XPedidoTotalCtx.movimentoId === movId ? XPedidoTotalCtx.itens : [];
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        useEffect(() => {
-          if (movId && XPedidoTotalCtx.movimentoId !== movId) {
-            fetchItensCadastro(movId);
-          }
-        }, [movId]);
+        if (movId && XPedidoTotalCtx.movimentoId !== movId && !XFetchingItensRef.current.has(movId)) {
+          XFetchingItensRef.current.add(movId);
+          fetchItensCadastro(movId).finally(() => XFetchingItensRef.current.delete(movId));
+        }
 
         const T = itensCache.reduce((acc, i: any) => ({
           vl_produto: acc.vl_produto + Number(i.vl_produto || 0),
