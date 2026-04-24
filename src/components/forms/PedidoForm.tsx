@@ -127,6 +127,12 @@ const PedidoForm: React.FC = () => {
     setXPedidoTotalCtx({ movimentoId: movimento_id, total, itens });
   }, []);
 
+  // Reseta o contexto ao entrar em modo de inclusão (novo pedido) para evitar mostrar dados de pedido anterior
+  const resetPedidoCtx = useCallback(() => {
+    setXPedidoTotalCtx({ movimentoId: null, total: 0, itens: [] });
+    XFetchingItensRef.current.clear();
+  }, []);
+
   return (
     <>
     <StandardCrudForm<IMovimento>
