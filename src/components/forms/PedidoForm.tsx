@@ -221,6 +221,19 @@ const PedidoForm: React.FC = () => {
             );
           },
         },
+        {
+          key: "pagamento", label: "Forma de Pagamento",
+          render: ({ record, currentRecord }) => {
+            const ped = (currentRecord || record) as IMovimento;
+            return (
+              <PedidoPagamentoTab
+                pedido={ped?.movimento_id ? ped : null}
+                podeEditar={ped?.st_pedido === "O"}
+                onMudarStatus={(novo) => mudarStatus(ped.movimento_id, novo)}
+              />
+            );
+          },
+        },
       ]}
       renderCadastro={({ record, setField, mode, isEditing, currentRecord }) => {
         const stAtual = (record.st_pedido || "O") as string;
