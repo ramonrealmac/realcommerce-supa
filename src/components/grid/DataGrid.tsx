@@ -27,6 +27,8 @@ interface DataGridProps {
   onFilterChange?: (key: string, value: string) => void;
   maxHeight?: string;
   exportTitle?: string;
+  toolbarLeft?: React.ReactNode;
+  showRecordCount?: boolean;
 }
 
 // --- Sorting logic ---
