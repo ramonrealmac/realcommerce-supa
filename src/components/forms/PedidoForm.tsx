@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import StandardCrudForm from "@/components/shared/StandardCrudForm";
 import type { IGridColumn } from "@/components/grid/DataGrid";
-import type { IMovimento } from "./pedido/types";
+import type { IMovimento, IMovimentoItem } from "./pedido/types";
+import DataGrid from "@/components/grid/DataGrid";
 import { ST_PEDIDO_LABELS, TP_DESCONTO_LABELS } from "./pedido/types";
 import PedidoItensTab from "./pedido/PedidoItensTab";
 import PedidoPagamentoTab from "./pedido/PedidoPagamentoTab";
@@ -64,7 +65,7 @@ const PedidoForm: React.FC = () => {
   const [XSearchTarget, setXSearchTarget] = useState<((c: IClienteRow) => void) | null>(null);
   const [XAutoNovoItem, setXAutoNovoItem] = useState(0);
   const [XPagamentoRefreshToken, setXPagamentoRefreshToken] = useState(0);
-  const [XPedidoTotalCtx, setXPedidoTotalCtx] = useState<{ movimentoId: number | null; total: number }>({ movimentoId: null, total: 0 });
+  const [XPedidoTotalCtx, setXPedidoTotalCtx] = useState<{ movimentoId: number | null; total: number; itens: IMovimentoItem[] }>({ movimentoId: null, total: 0, itens: [] });
 
   // Lookups (sem clientes — usa pesquisa via diálogo)
   useEffect(() => {
@@ -159,8 +160,8 @@ const PedidoForm: React.FC = () => {
                 pedido={ped?.movimento_id ? ped : null}
                 podeEditar={ped?.st_pedido === "O"}
                 autoNovoTrigger={XAutoNovoItem}
-                onTotalsChanged={(total) => {
-                  setXPedidoTotalCtx({ movimentoId: ped.movimento_id, total });
+                onTotalsChanged={(total, itens) => {
+                  setXPedidoTotalCtx({ movimentoId: ped.movimento_id, total, itens });
                   setXPagamentoRefreshToken((n) => n + 1);
                 }}
               />
