@@ -470,6 +470,9 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
         selectedIdx={XSelectedIdx}
         onRowClick={(_r, i) => setXSelectedIdx(i)}
         onRowDoubleClick={(r) => editar(r as IMovimentoItem)}
+        toolbarLeft={itensToolbar}
+        showRecordCount={false}
+        exportTitle="Itens do Pedido"
       />
 
       {/* Painel de Totais — 7 cards horizontais */}
