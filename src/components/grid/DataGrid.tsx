@@ -289,9 +289,11 @@ const DataGrid: React.FC<DataGridProps> = ({
       </div>
 
       {/* Record count */}
-      <div className="text-xs text-muted-foreground">
-        {XSortedData.length} registro(s)
-      </div>
+      {showRecordCount && (
+        <div className="text-xs text-muted-foreground">
+          {XSortedData.length} registro(s)
+        </div>
+      )}
 
       {/* Context menu - column visibility */}
       {XContextMenu && (
