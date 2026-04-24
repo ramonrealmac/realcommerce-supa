@@ -156,13 +156,6 @@ const PedidoForm: React.FC = () => {
           },
         },
         {
-          key: "pagamento", label: "Forma de Pagamento",
-          render: ({ record, currentRecord }) => {
-            const ped = (currentRecord || record) as IMovimento;
-            return <PedidoPagamentoTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} />;
-          },
-        },
-        {
           key: "entrega", label: "Dados de Entrega",
           render: ({ record, setField, isEditing }) => {
             const ro = !isEditing || record.st_pedido !== "O";
@@ -225,6 +218,19 @@ const PedidoForm: React.FC = () => {
                   <textarea disabled={ro} value={record.observacao_nf ?? ""} onChange={e => setField("observacao_nf" as any, e.target.value as any)} className="w-full border border-border rounded px-2 py-2 text-sm min-h-[100px]" />
                 </div>
               </div>
+            );
+          },
+        },
+        {
+          key: "pagamento", label: "Forma de Pagamento",
+          render: ({ record, currentRecord }) => {
+            const ped = (currentRecord || record) as IMovimento;
+            return (
+              <PedidoPagamentoTab
+                pedido={ped?.movimento_id ? ped : null}
+                podeEditar={ped?.st_pedido === "O"}
+                onMudarStatus={(novo) => mudarStatus(ped.movimento_id, novo)}
+              />
             );
           },
         },
