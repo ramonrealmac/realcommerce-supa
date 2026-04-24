@@ -64,6 +64,7 @@ const PedidoForm: React.FC = () => {
   const [XSearchTarget, setXSearchTarget] = useState<((c: IClienteRow) => void) | null>(null);
   const [XAutoNovoItem, setXAutoNovoItem] = useState(0);
   const [XPagamentoRefreshToken, setXPagamentoRefreshToken] = useState(0);
+  const [XPedidoTotalCtx, setXPedidoTotalCtx] = useState<{ movimentoId: number | null; total: number }>({ movimentoId: null, total: 0 });
 
   // Lookups (sem clientes — usa pesquisa via diálogo)
   useEffect(() => {
@@ -158,7 +159,10 @@ const PedidoForm: React.FC = () => {
                 pedido={ped?.movimento_id ? ped : null}
                 podeEditar={ped?.st_pedido === "O"}
                 autoNovoTrigger={XAutoNovoItem}
-                onTotalsChanged={() => setXPagamentoRefreshToken((n) => n + 1)}
+                onTotalsChanged={(total) => {
+                  setXPedidoTotalCtx({ movimentoId: ped.movimento_id, total });
+                  setXPagamentoRefreshToken((n) => n + 1);
+                }}
               />
             );
           },
@@ -237,6 +241,7 @@ const PedidoForm: React.FC = () => {
               <PedidoPagamentoTab
                 pedido={ped?.movimento_id ? ped : null}
                 podeEditar={ped?.st_pedido === "O"}
+                totalPedido={XPedidoTotalCtx.movimentoId === ped?.movimento_id ? XPedidoTotalCtx.total : Number(ped?.vl_movimento || 0)}
                 refreshToken={XPagamentoRefreshToken}
                 onMudarStatus={(novo) => mudarStatus(ped.movimento_id, novo)}
               />
