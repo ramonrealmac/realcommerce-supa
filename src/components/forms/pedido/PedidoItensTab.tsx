@@ -223,10 +223,15 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
     }
     await db.rpc("fu_recalcular_pedido", { _movimento_id: pedido.movimento_id });
     toast.success("Item salvo.");
+    const wasInsert = !XEditingId;
     setXEdit(null); setXEditingId(null); setXEditEstoque(null);
     setXDepEstoque({}); setXCodigo("");
     await loadItens();
     onTotalsChanged?.();
+    // Após inserir, abrir automaticamente um novo item para inserção contínua
+    if (wasInsert && podeEditar) {
+      setTimeout(() => novo(), 100);
+    }
   };
 
   const excluirItem = async (it: IMovimentoItem) => {
