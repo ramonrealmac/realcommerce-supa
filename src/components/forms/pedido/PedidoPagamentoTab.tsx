@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import type { IMovimento, IMovimentoPagamento } from "./types";
+import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 
 const db = supabase as any;
 
@@ -12,16 +13,32 @@ interface ICondicao { condicao_id: number; descricao: string; qtd_parcelas: numb
 interface IProps {
   pedido: IMovimento | null;
   podeEditar: boolean;
+  onMudarStatus?: (novo: string) => void;
 }
 
 const fmt = (v: number) => (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
+const GridBtn: React.FC<{ icon: React.ReactNode; label: string; onClick?: () => void; disabled?: boolean; variant?: "default" | "danger" | "primary" }> = ({ icon, label, onClick, disabled, variant = "default" }) => {
+  const cls = variant === "danger"
+    ? "bg-destructive text-destructive-foreground"
+    : variant === "primary"
+      ? "bg-success text-success-foreground"
+      : "bg-card border border-border hover:bg-accent";
+  return (
+    <button onClick={onClick} disabled={disabled} title={label}
+      className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${cls} disabled:opacity-50`}>
+      {icon}<span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+};
+
+const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatus }) => {
   const { XEmpresaId } = useAppContext();
   const [XPagtos, setXPagtos] = useState<IMovimentoPagamento[]>([]);
   const [XCondicoes, setXCondicoes] = useState<ICondicao[]>([]);
   const [XEdit, setXEdit] = useState<Partial<IMovimentoPagamento> | null>(null);
   const [XEditingId, setXEditingId] = useState<number | null>(null);
+  const [XSelected, setXSelected] = useState<IMovimentoPagamento | null>(null);
 
   const load = useCallback(async () => {
     if (!pedido?.movimento_id) { setXPagtos([]); return; }
@@ -42,15 +59,19 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
     })();
   }, []);
 
+  const totalPedido = Number(pedido?.vl_movimento || 0);
   const totalPago = XPagtos.reduce((a, p) => a + Number(p.vl_pagamento || 0), 0);
-  const valorAPagar = Math.max(0, Number(pedido?.vl_movimento || 0) - totalPago);
+  const valorAPagar = Math.max(0, totalPedido - totalPago);
 
   const novo = () => {
     setXEditingId(null);
     setXEdit({ vl_pagamento: valorAPagar, n_parcelas: 1, vl_parcelas: valorAPagar, condicao_id: 0, tp_pagamento: "DI", obs_pagamento: "", nr_autorizacao: "" });
   };
 
-  const editar = (p: IMovimentoPagamento) => { setXEdit({ ...p }); setXEditingId(p.movimento_pagamento_id); };
+  const editar = (p: IMovimentoPagamento | null) => {
+    if (!p) { toast.error("Selecione um pagamento."); return; }
+    setXEdit({ ...p }); setXEditingId(p.movimento_pagamento_id);
+  };
 
   const setCondicao = (cid: number) => {
     const c = XCondicoes.find(x => x.condicao_id === cid);
@@ -82,10 +103,12 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
     await load();
   };
 
-  const excluir = async (p: IMovimentoPagamento) => {
+  const excluir = async (p: IMovimentoPagamento | null) => {
+    if (!p) { toast.error("Selecione um pagamento."); return; }
     if (!confirm("Excluir pagamento?")) return;
     const { error } = await db.from("movimento_pagamento").update({ excluido: true }).eq("movimento_pagamento_id", p.movimento_pagamento_id);
     if (error) { toast.error(error.message); return; }
+    setXSelected(null);
     await load();
   };
 
@@ -94,15 +117,6 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
     { key: "vl_pagamento", label: "Valor", width: "120px", align: "right", render: r => fmt(r.vl_pagamento) },
     { key: "n_parcelas", label: "Parcelas", width: "100px", align: "right" },
     { key: "vl_parcelas", label: "Valor Parcela", width: "120px", align: "right", render: r => fmt(r.vl_parcelas) },
-    {
-      key: "_acoes", label: "Ações", width: "100px",
-      render: r => (
-        <div className="flex gap-1">
-          <button disabled={!podeEditar} onClick={() => editar(r)} className="text-xs px-2 py-0.5 border border-border rounded disabled:opacity-50">✏</button>
-          <button disabled={!podeEditar} onClick={() => excluir(r)} className="text-xs px-2 py-0.5 border border-border rounded text-destructive disabled:opacity-50">🗑</button>
-        </div>
-      ),
-    },
   ];
 
   if (!pedido?.movimento_id) {
@@ -112,31 +126,18 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
 
   const XPagtoToolbar = (
     <>
-      <button
-        disabled={ro}
-        onClick={novo}
-        title="Novo Pagamento"
-        className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-success text-success-foreground hover:opacity-90 disabled:opacity-50"
-      >
-        + Novo Pagamento
-      </button>
+      <GridBtn icon={<Plus className="w-3.5 h-3.5" />} label="Incluir" onClick={novo} disabled={ro} variant="primary" />
+      <GridBtn icon={<Pencil className="w-3.5 h-3.5" />} label="Alterar" onClick={() => editar(XSelected)} disabled={ro || !XSelected} />
+      <GridBtn icon={<Trash2 className="w-3.5 h-3.5" />} label="Excluir" onClick={() => excluir(XSelected)} disabled={ro || !XSelected} variant="danger" />
+      <GridBtn icon={<RefreshCw className="w-3.5 h-3.5" />} label="Atualizar" onClick={load} />
       <span className="ml-2 text-xs text-muted-foreground">{XPagtos.length} registro(s)</span>
     </>
   );
 
+  const stAtual = pedido.st_pedido;
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-4">
-        <div className="text-sm">
-          <span className="text-muted-foreground">Valor a Pagar:</span>{" "}
-          <span className="font-bold text-primary text-lg">{fmt(valorAPagar)}</span>
-        </div>
-        <div className="text-sm">
-          <span className="text-muted-foreground">Total Pedido:</span>{" "}
-          <span className="font-medium">{fmt(Number(pedido?.vl_movimento || 0))}</span>
-        </div>
-      </div>
-
       {XEdit && (
         <div className="border border-border rounded p-3 space-y-2 bg-card">
           <div className="grid grid-cols-12 gap-2">
@@ -164,7 +165,42 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar }) => {
         exportTitle="Pagamentos do Pedido"
         toolbarLeft={XPagtoToolbar}
         showRecordCount={false}
+        onRowClick={(r) => setXSelected(r)}
+        selectedRow={XSelected}
+        rowKey="movimento_pagamento_id"
       />
+
+      {/* Rodapé: ações à esquerda, totais empilhados à direita */}
+      <div className="flex items-start justify-between gap-4 pt-2 border-t border-border">
+        <div className="flex flex-col gap-2">
+          {stAtual === "O" && onMudarStatus && (
+            <button onClick={() => onMudarStatus("P")} className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground">→ Caixa (Pedido)</button>
+          )}
+          {(stAtual === "O" || stAtual === "P") && onMudarStatus && (
+            <button
+              onClick={() => { if (confirm("Cancelar este pedido?")) onMudarStatus("C"); }}
+              className="text-sm px-4 py-1.5 rounded border border-destructive text-destructive"
+            >Cancelar Pedido</button>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 items-end min-w-[240px]">
+          <div className="w-full border border-border rounded px-3 py-2 bg-muted/40 flex justify-between items-center">
+            <span className="text-xs text-muted-foreground">Total Pedido</span>
+            <span className="font-semibold text-sm">{fmt(totalPedido)}</span>
+          </div>
+          <div className="w-full border border-blue-300 rounded px-3 py-2 bg-blue-50 dark:bg-blue-950/30 flex justify-between items-center">
+            <span className="text-xs text-blue-900 dark:text-blue-200">Valor Pago</span>
+            <span className="font-semibold text-sm text-blue-900 dark:text-blue-200">{fmt(totalPago)}</span>
+          </div>
+          {valorAPagar > 0 && (
+            <div className="w-full border border-red-300 rounded px-3 py-2 bg-red-50 dark:bg-red-950/30 flex justify-between items-center">
+              <span className="text-xs text-red-900 dark:text-red-200">Valor a Pagar</span>
+              <span className="font-bold text-base text-red-700 dark:text-red-300">{fmt(valorAPagar)}</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
