@@ -27,6 +27,8 @@ interface DataGridProps {
   onFilterChange?: (key: string, value: string) => void;
   maxHeight?: string;
   exportTitle?: string;
+  toolbarLeft?: React.ReactNode;
+  showRecordCount?: boolean;
 }
 
 // --- Sorting logic ---
@@ -114,6 +116,8 @@ const DataGrid: React.FC<DataGridProps> = ({
   onFilterChange,
   maxHeight = "300px",
   exportTitle = "Dados",
+  toolbarLeft,
+  showRecordCount = true,
 }) => {
   const [XSorts, setXSorts] = useState<ISortItem[]>([]);
   const [XHiddenCols, setXHiddenCols] = useState<Set<string>>(new Set());
@@ -175,9 +179,10 @@ const DataGrid: React.FC<DataGridProps> = ({
 
   return (
     <div className="space-y-1">
-      {/* Export button */}
-      <div className="flex justify-end relative">
-        <div ref={exportRef}>
+      {/* Top bar: toolbar à esquerda + Exportar à direita */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 flex-wrap">{toolbarLeft}</div>
+        <div className="relative" ref={exportRef}>
           <button
             onClick={() => setXShowExport(!XShowExport)}
             className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-accent transition-colors"
@@ -284,9 +289,11 @@ const DataGrid: React.FC<DataGridProps> = ({
       </div>
 
       {/* Record count */}
-      <div className="text-xs text-muted-foreground">
-        {XSortedData.length} registro(s)
-      </div>
+      {showRecordCount && (
+        <div className="text-xs text-muted-foreground">
+          {XSortedData.length} registro(s)
+        </div>
+      )}
 
       {/* Context menu - column visibility */}
       {XContextMenu && (
