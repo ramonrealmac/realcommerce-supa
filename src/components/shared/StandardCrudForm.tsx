@@ -72,6 +72,7 @@ function StandardCrudForm<T extends Record<string, any>>({
   const XActiveRecord: Partial<T> = ctrl.XIsEditing
     ? ctrl.XEditRecord
     : (ctrl.XCurrentRecord || {} as Partial<T>);
+  const XEffectiveCurrentRecord = ctrl.XFormMode === "insert" ? null : ctrl.XCurrentRecord;
 
   return (
     <div className="flex flex-col h-full bg-card" data-form-container>
@@ -117,7 +118,7 @@ function StandardCrudForm<T extends Record<string, any>>({
           setRecord: ctrl.setXEditRecord,
           mode: ctrl.XFormMode,
           isEditing: ctrl.XIsEditing,
-          currentRecord: ctrl.XCurrentRecord,
+          currentRecord: XEffectiveCurrentRecord,
         })}
 
         {XExtraTabs.map(t => XInnerTab === t.key && (
@@ -127,7 +128,7 @@ function StandardCrudForm<T extends Record<string, any>>({
             setField: ctrl.setField,
             setRecord: ctrl.setXEditRecord,
             isEditing: ctrl.XIsEditing,
-            currentRecord: ctrl.XCurrentRecord,
+            currentRecord: XEffectiveCurrentRecord,
           })}</div>
         ))}
 
