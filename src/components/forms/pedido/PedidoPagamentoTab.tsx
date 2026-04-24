@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+import GridActionToolbar, { gridActions } from "@/components/grid/GridActionToolbar";
 import type { IMovimento, IMovimentoPagamento } from "./types";
-import { Plus, SquarePen, Trash2, RefreshCw } from "lucide-react";
 
 const db = supabase as any;
 
@@ -116,29 +116,18 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
   }
   const ro = !podeEditar;
 
-  // Toolbar no MESMO padrão do PedidoItensTab
+  // Toolbar padrão (GridActionToolbar)
   const pagtoToolbar = (
-    <>
-      <button disabled={ro} onClick={novo} title="Novo pagamento"
-        className="p-1.5 rounded text-success hover:bg-success/10 disabled:opacity-30 disabled:cursor-not-allowed">
-        <Plus size={16} />
-      </button>
-      <button disabled={ro || !XSelected} onClick={() => editar(XSelected)} title="Alterar pagamento"
-        className="p-1.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed">
-        <SquarePen size={16} />
-      </button>
-      <div className="w-px h-5 bg-border mx-0.5" />
-      <button disabled={ro || !XSelected} onClick={() => excluir(XSelected)} title="Excluir pagamento"
-        className="p-1.5 rounded text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed">
-        <Trash2 size={16} />
-      </button>
-      <button onClick={load} title="Recarregar"
-        className="p-1.5 rounded hover:bg-accent">
-        <RefreshCw size={16} />
-      </button>
-      <div className="w-px h-5 bg-border mx-0.5" />
-      <span className="text-xs text-muted-foreground px-1">{XPagtos.length} pagto(s)</span>
-    </>
+    <GridActionToolbar
+      actions={[
+        gridActions.incluir(novo, ro),
+        gridActions.alterar(() => editar(XSelected), ro || !XSelected),
+        null, // separador
+        gridActions.excluir(() => excluir(XSelected), ro || !XSelected),
+        gridActions.atualizar(load),
+      ]}
+      count={`${XPagtos.length} pagto(s)`}
+    />
   );
 
   const stAtual = pedido.st_pedido;
