@@ -15,7 +15,7 @@ interface IDepositoLookup { deposito_id: number; nome: string; }
 interface IProps {
   pedido: IMovimento | null;
   podeEditar: boolean;
-  onTotalsChanged?: (total: number) => void;
+  onTotalsChanged?: (total: number, itens: IMovimentoItem[]) => void;
   autoNovoTrigger?: number;
 }
 
@@ -279,8 +279,8 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
   }), { vl_produto: 0, vl_desconto: 0, vl_frete: 0, vl_despesa: 0, vl_seguro: 0, vl_outro: 0, vl_movimento: 0 });
 
   useEffect(() => {
-    onTotalsChanged?.(T.vl_movimento);
-  }, [T.vl_movimento, onTotalsChanged]);
+    onTotalsChanged?.(T.vl_movimento, XItens);
+  }, [T.vl_movimento, XItens, onTotalsChanged]);
 
   if (!pedido?.movimento_id) {
     return <div className="text-sm text-muted-foreground p-4">Salve o pedido para começar a inserir itens.</div>;

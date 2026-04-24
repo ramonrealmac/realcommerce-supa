@@ -19,6 +19,7 @@ interface IProps {
 }
 
 const fmt = (v: number) => (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const NO_SPIN = "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
 const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, totalPedido: totalPedidoProp, refreshToken, onMudarStatus }) => {
   const { XEmpresaId } = useAppContext();
@@ -148,8 +149,8 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, totalPedido:
                 {XCondicoes.map(c => <option key={c.condicao_id} value={c.condicao_id}>{c.descricao}</option>)}
               </select>
             </div>
-            <div className="col-span-3"><label className="text-xs text-muted-foreground">Valor</label><input type="number" disabled={ro} value={XEdit.vl_pagamento ?? 0} onChange={e => setVlPagto(Number(e.target.value))} className="w-full border border-border rounded px-2 py-1 text-sm text-right" /></div>
-            <div className="col-span-2"><label className="text-xs text-muted-foreground">Parcelas</label><input type="number" disabled={ro} value={XEdit.n_parcelas ?? 1} onChange={e => setXEdit(prev => { const p = Number(e.target.value) || 1; const v = Number(prev?.vl_pagamento) || 0; return { ...prev!, n_parcelas: p, vl_parcelas: p > 0 ? +(v / p).toFixed(2) : v }; })} className="w-full border border-border rounded px-2 py-1 text-sm text-right" /></div>
+            <div className="col-span-3"><label className="text-xs text-muted-foreground">Valor</label><input type="number" disabled={ro} value={XEdit.vl_pagamento ?? 0} onChange={e => setVlPagto(Number(e.target.value))} className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${NO_SPIN}`} /></div>
+            <div className="col-span-2"><label className="text-xs text-muted-foreground">Parcelas</label><input type="number" disabled={ro} value={XEdit.n_parcelas ?? 1} onChange={e => setXEdit(prev => { const p = Number(e.target.value) || 1; const v = Number(prev?.vl_pagamento) || 0; return { ...prev!, n_parcelas: p, vl_parcelas: p > 0 ? +(v / p).toFixed(2) : v }; })} className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${NO_SPIN}`} /></div>
             <div className="col-span-2">
               <label className="text-xs text-muted-foreground">Vlr. Parcela</label>
               <div className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right text-foreground select-text">
@@ -180,7 +181,7 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, totalPedido:
       <div className="flex items-start justify-between gap-4 pt-2 border-t border-border">
         <div className="flex flex-col gap-2">
           {stAtual === "O" && onMudarStatus && (
-            <button onClick={() => onMudarStatus("P")} className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground">→ Caixa (Pedido)</button>
+            <button onClick={() => { if (confirm("Confirma o envio deste pedido para o Caixa?")) onMudarStatus("P"); }} className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground">→ Caixa (Pedido)</button>
           )}
           {(stAtual === "O" || stAtual === "P") && onMudarStatus && (
             <button
