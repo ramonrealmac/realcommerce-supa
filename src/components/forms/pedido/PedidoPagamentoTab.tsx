@@ -13,27 +13,23 @@ interface ICondicao { condicao_id: number; descricao: string; qtd_parcelas: numb
 interface IProps {
   pedido: IMovimento | null;
   podeEditar: boolean;
+  totalPedido?: number;
   refreshToken?: number;
   onMudarStatus?: (novo: string) => void;
 }
 
 const fmt = (v: number) => (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, refreshToken, onMudarStatus }) => {
+const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, totalPedido: totalPedidoProp, refreshToken, onMudarStatus }) => {
   const { XEmpresaId } = useAppContext();
   const [XPagtos, setXPagtos] = useState<IMovimentoPagamento[]>([]);
   const [XCondicoes, setXCondicoes] = useState<ICondicao[]>([]);
   const [XEdit, setXEdit] = useState<Partial<IMovimentoPagamento> | null>(null);
   const [XEditingId, setXEditingId] = useState<number | null>(null);
   const [XSelected, setXSelected] = useState<IMovimentoPagamento | null>(null);
-  const [XTotalPedido, setXTotalPedido] = useState<number>(0);
 
   const load = useCallback(async () => {
-    if (!pedido?.movimento_id) { setXPagtos([]); setXTotalPedido(0); return; }
-    // Recarrega total do pedido direto do banco (vl_movimento pode estar desatualizado no objeto em memória)
-    const { data: mov } = await db.from("movimento")
-      .select("vl_movimento").eq("movimento_id", pedido.movimento_id).maybeSingle();
-    setXTotalPedido(Number(mov?.vl_movimento || 0));
+    if (!pedido?.movimento_id) { setXPagtos([]); return; }
 
     const { data, error } = await db.from("movimento_pagamento")
       .select("*").eq("movimento_id", pedido.movimento_id).eq("excluido", false)
@@ -52,7 +48,7 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, refreshToken
     })();
   }, []);
 
-  const totalPedido = XTotalPedido;
+  const totalPedido = Number(totalPedidoProp ?? pedido?.vl_movimento ?? 0);
   const totalPago = XPagtos.reduce((a, p) => a + Number(p.vl_pagamento || 0), 0);
   const valorAPagar = Math.max(0, totalPedido - totalPago);
 
