@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
-import { Search, Plus, SquarePen, Trash2, RefreshCw } from "lucide-react";
+import GridActionToolbar, { gridActions } from "@/components/grid/GridActionToolbar";
+import { Search } from "lucide-react";
 import type { IMovimento, IMovimentoItem } from "./types";
 import ProdutoSearchDialog, { IProdutoRow, buscarProdutoPorCodigo } from "./ProdutoSearchDialog";
 
