@@ -1259,6 +1259,7 @@ export type Database = {
           url_favicon: string | null
           url_link_vendas: string | null
           url_logo: string | null
+          valida_estoque: string | null
           vl_saida_qt_decimais: number | null
           vl_venda_qt_decimais: number | null
         }
@@ -1311,6 +1312,7 @@ export type Database = {
           url_favicon?: string | null
           url_link_vendas?: string | null
           url_logo?: string | null
+          valida_estoque?: string | null
           vl_saida_qt_decimais?: number | null
           vl_venda_qt_decimais?: number | null
         }
@@ -1363,6 +1365,7 @@ export type Database = {
           url_favicon?: string | null
           url_link_vendas?: string | null
           url_logo?: string | null
+          valida_estoque?: string | null
           vl_saida_qt_decimais?: number | null
           vl_venda_qt_decimais?: number | null
         }
