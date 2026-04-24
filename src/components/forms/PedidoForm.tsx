@@ -127,6 +127,12 @@ const PedidoForm: React.FC = () => {
     setXPedidoTotalCtx({ movimentoId: movimento_id, total, itens });
   }, []);
 
+  // Reseta o contexto ao entrar em modo de inclusão (novo pedido) para evitar mostrar dados de pedido anterior
+  const resetPedidoCtx = useCallback(() => {
+    setXPedidoTotalCtx({ movimentoId: null, total: 0, itens: [] });
+    XFetchingItensRef.current.clear();
+  }, []);
+
   return (
     <>
     <StandardCrudForm<IMovimento>
@@ -268,10 +274,16 @@ const PedidoForm: React.FC = () => {
 
         // Itens em cache (sincronizados com a aba Itens). Fallback: busca quando ainda não há cache para este pedido.
         const movId = currentRecord?.movimento_id;
-        const itensCache = XPedidoTotalCtx.movimentoId === movId ? XPedidoTotalCtx.itens : [];
-        if (movId && XPedidoTotalCtx.movimentoId !== movId && !XFetchingItensRef.current.has(movId)) {
+        // Em modo INSERT (novo pedido sem registro salvo), nunca mostra cache de pedido anterior
+        const isInsertNovo = mode === "insert" && !movId;
+        const itensCache = !isInsertNovo && XPedidoTotalCtx.movimentoId === movId ? XPedidoTotalCtx.itens : [];
+        if (!isInsertNovo && movId && XPedidoTotalCtx.movimentoId !== movId && !XFetchingItensRef.current.has(movId)) {
           XFetchingItensRef.current.add(movId);
           fetchItensCadastro(movId).finally(() => XFetchingItensRef.current.delete(movId));
+        }
+        // Reset do contexto quando entra em insert sem id salvo (limpa lixo do pedido anterior)
+        if (isInsertNovo && (XPedidoTotalCtx.movimentoId !== null || XPedidoTotalCtx.itens.length > 0)) {
+          queueMicrotask(() => resetPedidoCtx());
         }
 
         const T = itensCache.reduce((acc, i: any) => ({
