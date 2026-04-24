@@ -156,13 +156,6 @@ const PedidoForm: React.FC = () => {
           },
         },
         {
-          key: "pagamento", label: "Forma de Pagamento",
-          render: ({ record, currentRecord }) => {
-            const ped = (currentRecord || record) as IMovimento;
-            return <PedidoPagamentoTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} />;
-          },
-        },
-        {
           key: "entrega", label: "Dados de Entrega",
           render: ({ record, setField, isEditing }) => {
             const ro = !isEditing || record.st_pedido !== "O";
