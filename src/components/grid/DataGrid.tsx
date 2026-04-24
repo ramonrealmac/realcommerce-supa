@@ -179,9 +179,10 @@ const DataGrid: React.FC<DataGridProps> = ({
 
   return (
     <div className="space-y-1">
-      {/* Export button */}
-      <div className="flex justify-end relative">
-        <div ref={exportRef}>
+      {/* Top bar: toolbar à esquerda + Exportar à direita */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 flex-wrap">{toolbarLeft}</div>
+        <div className="relative" ref={exportRef}>
           <button
             onClick={() => setXShowExport(!XShowExport)}
             className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-accent transition-colors"
