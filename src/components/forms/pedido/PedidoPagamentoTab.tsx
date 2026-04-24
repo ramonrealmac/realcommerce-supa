@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
 import type { IMovimento, IMovimentoPagamento } from "./types";
-import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, SquarePen, Trash2, RefreshCw } from "lucide-react";
 
 const db = supabase as any;
 
@@ -18,20 +18,6 @@ interface IProps {
 
 const fmt = (v: number) => (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const GridBtn: React.FC<{ icon: React.ReactNode; label: string; onClick?: () => void; disabled?: boolean; variant?: "default" | "danger" | "primary" }> = ({ icon, label, onClick, disabled, variant = "default" }) => {
-  const cls = variant === "danger"
-    ? "bg-destructive text-destructive-foreground"
-    : variant === "primary"
-      ? "bg-success text-success-foreground"
-      : "bg-card border border-border hover:bg-accent";
-  return (
-    <button onClick={onClick} disabled={disabled} title={label}
-      className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${cls} disabled:opacity-50`}>
-      {icon}<span className="hidden sm:inline">{label}</span>
-    </button>
-  );
-};
-
 const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatus }) => {
   const { XEmpresaId } = useAppContext();
   const [XPagtos, setXPagtos] = useState<IMovimentoPagamento[]>([]);
@@ -39,9 +25,15 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
   const [XEdit, setXEdit] = useState<Partial<IMovimentoPagamento> | null>(null);
   const [XEditingId, setXEditingId] = useState<number | null>(null);
   const [XSelected, setXSelected] = useState<IMovimentoPagamento | null>(null);
+  const [XTotalPedido, setXTotalPedido] = useState<number>(0);
 
   const load = useCallback(async () => {
-    if (!pedido?.movimento_id) { setXPagtos([]); return; }
+    if (!pedido?.movimento_id) { setXPagtos([]); setXTotalPedido(0); return; }
+    // Recarrega total do pedido direto do banco (vl_movimento pode estar desatualizado no objeto em memória)
+    const { data: mov } = await db.from("movimento")
+      .select("vl_movimento").eq("movimento_id", pedido.movimento_id).maybeSingle();
+    setXTotalPedido(Number(mov?.vl_movimento || 0));
+
     const { data, error } = await db.from("movimento_pagamento")
       .select("*").eq("movimento_id", pedido.movimento_id).eq("excluido", false)
       .order("movimento_pagamento_id");
@@ -59,7 +51,7 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
     })();
   }, []);
 
-  const totalPedido = Number(pedido?.vl_movimento || 0);
+  const totalPedido = XTotalPedido;
   const totalPago = XPagtos.reduce((a, p) => a + Number(p.vl_pagamento || 0), 0);
   const valorAPagar = Math.max(0, totalPedido - totalPago);
 
@@ -124,13 +116,28 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
   }
   const ro = !podeEditar;
 
-  const XPagtoToolbar = (
+  // Toolbar no MESMO padrão do PedidoItensTab
+  const pagtoToolbar = (
     <>
-      <GridBtn icon={<Plus className="w-3.5 h-3.5" />} label="Incluir" onClick={novo} disabled={ro} variant="primary" />
-      <GridBtn icon={<Pencil className="w-3.5 h-3.5" />} label="Alterar" onClick={() => editar(XSelected)} disabled={ro || !XSelected} />
-      <GridBtn icon={<Trash2 className="w-3.5 h-3.5" />} label="Excluir" onClick={() => excluir(XSelected)} disabled={ro || !XSelected} variant="danger" />
-      <GridBtn icon={<RefreshCw className="w-3.5 h-3.5" />} label="Atualizar" onClick={load} />
-      <span className="ml-2 text-xs text-muted-foreground">{XPagtos.length} registro(s)</span>
+      <button disabled={ro} onClick={novo} title="Novo pagamento"
+        className="p-1.5 rounded text-success hover:bg-success/10 disabled:opacity-30 disabled:cursor-not-allowed">
+        <Plus size={16} />
+      </button>
+      <button disabled={ro || !XSelected} onClick={() => editar(XSelected)} title="Alterar pagamento"
+        className="p-1.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed">
+        <SquarePen size={16} />
+      </button>
+      <div className="w-px h-5 bg-border mx-0.5" />
+      <button disabled={ro || !XSelected} onClick={() => excluir(XSelected)} title="Excluir pagamento"
+        className="p-1.5 rounded text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed">
+        <Trash2 size={16} />
+      </button>
+      <button onClick={load} title="Recarregar"
+        className="p-1.5 rounded hover:bg-accent">
+        <RefreshCw size={16} />
+      </button>
+      <div className="w-px h-5 bg-border mx-0.5" />
+      <span className="text-xs text-muted-foreground px-1">{XPagtos.length} pagto(s)</span>
     </>
   );
 
@@ -163,7 +170,7 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
         data={XPagtos}
         maxHeight="300px"
         exportTitle="Pagamentos do Pedido"
-        toolbarLeft={XPagtoToolbar}
+        toolbarLeft={pagtoToolbar}
         showRecordCount={false}
         onRowClick={(r) => setXSelected(r)}
         onRowDoubleClick={(r) => editar(r)}
