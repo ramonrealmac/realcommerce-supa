@@ -228,7 +228,6 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
     setXEdit(null); setXEditingId(null); setXEditEstoque(null);
     setXDepEstoque({}); setXCodigo("");
     await loadItens();
-    onTotalsChanged?.();
     // Após inserir, abrir automaticamente um novo item para inserção contínua
     if (wasInsert && podeEditar) {
       setTimeout(() => novo(), 100);
@@ -241,7 +240,6 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
     if (error) { toast.error(error.message); return; }
     await db.rpc("fu_recalcular_pedido", { _movimento_id: pedido!.movimento_id });
     await loadItens();
-    onTotalsChanged?.();
   };
 
   const itemSelecionado = XSelectedIdx != null ? XItens[XSelectedIdx] : null;
