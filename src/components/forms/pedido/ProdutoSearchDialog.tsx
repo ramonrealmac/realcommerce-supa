@@ -24,6 +24,61 @@ interface IProps {
 const fmtNum = (v: number, dec = 2) =>
   (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
+/**
+ * Busca um produto pelo código (produto_id), referência ou GTIN dentro do
+ * grupo de empresas + soma de estoque dos depósitos visíveis.
+ * Retorna o primeiro match ou null.
+ */
+export async function buscarProdutoPorCodigo(
+  termo: string,
+  XEmpresaId: number,
+  XGroupEmpresaIds: number[]
+): Promise<IProdutoRow | null> {
+  const t = (termo || "").trim();
+  if (!t) return null;
+  const ids = XGroupEmpresaIds.length > 0 ? XGroupEmpresaIds : [XEmpresaId];
+
+  let q = db.from("produto")
+    .select("produto_id, nome, unidade_id, preco_venda, referencia, gtin")
+    .in("empresa_id", ids)
+    .eq("excluido", false)
+    .limit(5);
+  if (/^\d+$/.test(t)) {
+    q = q.or(`produto_id.eq.${t},referencia.eq.${t},gtin.eq.${t}`);
+  } else {
+    q = q.or(`referencia.eq.${t},gtin.eq.${t}`);
+  }
+  const { data: prods } = await q;
+  if (!prods || prods.length === 0) return null;
+  const p: any = prods[0];
+
+  const { data: deps } = await db.from("deposito")
+    .select("deposito_id, empresa_id, st_privado")
+    .in("empresa_id", ids).eq("excluido", false);
+  const visibleDepIds = new Set(
+    (deps || [])
+      .filter((d: any) => d.empresa_id === XEmpresaId || d.st_privado === false)
+      .map((d: any) => d.deposito_id)
+  );
+  const { data: ests } = await db.from("estoque")
+    .select("produto_id, deposito_id, estoque_disponivel, estoque_reservado")
+    .eq("produto_id", p.produto_id).in("empresa_id", ids).eq("excluido", false);
+  let disp = 0, res = 0;
+  for (const e of (ests || []) as any[]) {
+    if (!visibleDepIds.has(e.deposito_id)) continue;
+    disp += Number(e.estoque_disponivel || 0);
+    res += Number(e.estoque_reservado || 0);
+  }
+  return {
+    produto_id: p.produto_id,
+    nome: p.nome,
+    unidade_id: p.unidade_id,
+    preco_venda: Number(p.preco_venda || 0),
+    estoque_disponivel: disp,
+    estoque_reservado: res,
+  };
+}
+
 const ProdutoSearchDialog: React.FC<IProps> = ({ open, onClose, onSelect }) => {
   const { XEmpresaId, XEmpresaMatrizId, XEmpresas } = useAppContext();
   const [XTermo, setXTermo] = useState("");
