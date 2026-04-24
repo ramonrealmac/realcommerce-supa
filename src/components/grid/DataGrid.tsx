@@ -116,6 +116,8 @@ const DataGrid: React.FC<DataGridProps> = ({
   onFilterChange,
   maxHeight = "300px",
   exportTitle = "Dados",
+  toolbarLeft,
+  showRecordCount = true,
 }) => {
   const [XSorts, setXSorts] = useState<ISortItem[]>([]);
   const [XHiddenCols, setXHiddenCols] = useState<Set<string>>(new Set());
