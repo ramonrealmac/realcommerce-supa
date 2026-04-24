@@ -181,7 +181,7 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, totalPedido:
       <div className="flex items-start justify-between gap-4 pt-2 border-t border-border">
         <div className="flex flex-col gap-2">
           {stAtual === "O" && onMudarStatus && (
-            <button onClick={() => onMudarStatus("P")} className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground">→ Caixa (Pedido)</button>
+            <button onClick={() => { if (confirm("Confirma o envio deste pedido para o Caixa?")) onMudarStatus("P"); }} className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground">→ Caixa (Pedido)</button>
           )}
           {(stAtual === "O" || stAtual === "P") && onMudarStatus && (
             <button
