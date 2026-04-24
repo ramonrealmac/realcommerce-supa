@@ -139,24 +139,34 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
     setXEdit(prev => recalc({ ...prev!, [k]: v }));
   };
 
-  const aplicarProduto = useCallback((p: IProdutoRow) => {
+  const aplicarProduto = useCallback((p: IProdutoRow, deposito_id?: number) => {
     setXEdit(prev => recalc({
       ...(prev || {}),
       produto_id: p.produto_id,
       cd_produto: String(p.produto_id),
       nm_produto: p.nome,
       unidade_id: p.unidade_id,
-      vl_und_produto: Number(p.preco_venda) || 0,
+      vl_und_produto: Number(p.st_promo && p.preco_promocional > 0 ? p.preco_promocional : p.preco_venda) || 0,
+      ...(deposito_id ? { deposito_id } : {}),
     }));
     setXEditEstoque({ disp: p.estoque_disponivel, res: p.estoque_reservado });
     setXCodigo(String(p.produto_id));
     carregarEstoquePorDeposito(p.produto_id);
+    // foco no preço unitário
+    setTimeout(() => { precoUnitRef.current?.focus(); precoUnitRef.current?.select(); }, 80);
   }, [carregarEstoquePorDeposito]);
 
   const onCodigoBlur = async () => {
     const t = XCodigo.trim();
-    if (!t) return;
-    if (XEdit?.produto_id && (String(XEdit.produto_id) === t || XEdit.cd_produto === t)) return;
+    if (!t) {
+      // vazio → vai pro botão da lupa
+      setTimeout(() => lupaRef.current?.focus(), 30);
+      return;
+    }
+    if (XEdit?.produto_id && (String(XEdit.produto_id) === t || XEdit.cd_produto === t)) {
+      setTimeout(() => { precoUnitRef.current?.focus(); precoUnitRef.current?.select(); }, 30);
+      return;
+    }
     const p = await buscarProdutoPorCodigo(t, XEmpresaId, XGroupEmpresaIds);
     if (!p) { toast.error("Produto não encontrado."); return; }
     aplicarProduto(p);
