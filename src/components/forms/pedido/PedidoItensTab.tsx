@@ -326,7 +326,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
               />
             </div>
             <div className="col-span-1 flex gap-1">
-              <button type="button" disabled={ro} onClick={() => setXSearchOpen(true)}
+              <button ref={lupaRef} type="button" disabled={ro} onClick={() => setXSearchOpen(true)}
                 className="px-2 py-1 border border-border rounded bg-card hover:bg-accent disabled:opacity-50"
                 title="Pesquisar produto">
                 <Search className="w-4 h-4" />
@@ -339,18 +339,18 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
             </div>
             <div className="col-span-4">
               <label className="text-xs text-muted-foreground">Produto</label>
-              <input readOnly value={XEdit.nm_produto || ""}
+              <input readOnly tabIndex={-1} value={XEdit.nm_produto || ""}
                 placeholder="Selecione um produto..."
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary" />
             </div>
             <div className="col-span-1">
               <label className="text-xs text-muted-foreground">Und.</label>
-              <input readOnly value={XEdit.unidade_id ?? ""}
+              <input readOnly tabIndex={-1} value={XEdit.unidade_id ?? ""}
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary" />
             </div>
             <div className="col-span-1">
               <label className="text-xs text-muted-foreground">Preço Unit.</label>
-              <input type="number" step="0.01" disabled={ro}
+              <input ref={precoUnitRef} type="number" step="0.01" disabled={ro}
                 value={XEdit.vl_und_produto ?? 0}
                 onChange={e => setF("vl_und_produto", Number(e.target.value))}
                 className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${NO_SPIN}`} />
@@ -362,10 +362,10 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
                 onChange={e => setF("qt_movimento", Number(e.target.value))}
                 className={`w-full border border-border rounded px-2 py-1 text-sm text-right ${NO_SPIN}`} />
             </div>
-            <div className="col-span-1">
+            <div className="col-span-1 flex flex-col justify-end">
               <label className="text-xs text-muted-foreground">Subtotal</label>
-              <input readOnly value={fmt(XEdit.vl_produto || 0)}
-                className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" />
+              <input readOnly tabIndex={-1} value={fmt(XEdit.vl_produto || 0)}
+                className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right font-semibold" />
             </div>
           </div>
 
