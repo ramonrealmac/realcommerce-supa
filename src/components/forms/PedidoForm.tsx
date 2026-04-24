@@ -169,8 +169,8 @@ const PedidoForm: React.FC = () => {
       XExtraTabs={[
         {
           key: "itens", label: "Itens do Pedido",
-          render: ({ record, currentRecord }) => {
-            const ped = (currentRecord || record) as IMovimento;
+          render: ({ record, currentRecord, mode }) => {
+            const ped = (mode === "insert" ? record : (currentRecord || record)) as IMovimento;
             return (
               <PedidoItensTab
                 pedido={ped?.movimento_id ? ped : null}
@@ -252,8 +252,8 @@ const PedidoForm: React.FC = () => {
         },
         {
           key: "pagamento", label: "Forma de Pagamento",
-          render: ({ record, currentRecord }) => {
-            const ped = (currentRecord || record) as IMovimento;
+          render: ({ record, currentRecord, mode }) => {
+            const ped = (mode === "insert" ? record : (currentRecord || record)) as IMovimento;
             return (
               <PedidoPagamentoTab
                 pedido={ped?.movimento_id ? ped : null}

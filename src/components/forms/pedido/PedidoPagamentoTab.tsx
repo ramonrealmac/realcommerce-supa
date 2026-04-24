@@ -42,6 +42,15 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, totalPedido:
   useEffect(() => { load(); }, [load, refreshToken]);
 
   useEffect(() => {
+    if (!pedido?.movimento_id) {
+      setXPagtos([]);
+      setXEdit(null);
+      setXEditingId(null);
+      setXSelected(null);
+    }
+  }, [pedido?.movimento_id]);
+
+  useEffect(() => {
     (async () => {
       const { data } = await db.from("condicao_pagamento")
         .select("condicao_id, descricao, qtd_parcelas").eq("excluido", false).order("descricao");

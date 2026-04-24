@@ -58,6 +58,18 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
 
   useEffect(() => { loadItens(); }, [loadItens]);
 
+  useEffect(() => {
+    if (!pedido?.movimento_id) {
+      setXItens([]);
+      setXEdit(null);
+      setXEditingId(null);
+      setXEditEstoque(null);
+      setXCodigo("");
+      setXDepEstoque({});
+      setXSelectedIdx(null);
+    }
+  }, [pedido?.movimento_id]);
+
   // Depósitos visíveis
   useEffect(() => {
     (async () => {
