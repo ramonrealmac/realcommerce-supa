@@ -1,54 +1,81 @@
 
 
-## Correções no Formulário de Pedidos
+## Ajustes na aba "Itens do Pedido"
 
-### 1. Carregamento de produtos no item do pedido
+### 1. Foco automático após salvar cabeçalho
+Garantir que após `insert` do cabeçalho o `PedidoForm` mude para a aba **Itens** e dispare `novo()` na primeira renderização (revisar `XAfterInsertTab` + `autoNovoTrigger`).
 
-**Problema**: `PedidoItensTab` consulta `produto.cd_produto` e `produto.vl_venda` — colunas que **não existem**. As corretas são `nome` e `preco_venda`. Por isso o `<select>` vem vazio.
+### 2. Linha superior do formulário de inclusão (nova ordem)
 
-**Correção**:
-- Trocar o `select` da query por: `produto_id, nome, preco_venda, unidade_id`.
-- Usar a mesma regra de filtragem do formulário **Meus Estoques (`EstoqueForm`)**:
-  - Considerar todas as empresas do grupo (`empresa_matriz_id === XEmpresaMatrizId` ou `empresa_id === XEmpresaMatrizId`) → `XGroupEmpresaIds`.
-  - Produtos: `.in("empresa_id", XGroupEmpresaIds)` (hoje filtra só pela matriz).
-  - Depósitos: já filtrados — manter, mas reaproveitar os ids para somar estoque do grupo.
-- Ajustar mapeamento de campos no `setProduto`: usar `p.nome` em `nm_produto` e `p.preco_venda` em `vl_und_produto`. Manter `cd_produto = String(p.produto_id)` (banco não tem código separado).
+```text
+[Código/EAN] [🔎] [Produto (read-only)] [Und] [Preço Unit] [Qtd] [Subtotal]
+```
 
-### 2. Pesquisa de produto (substituir `<select>`)
+| Campo | col-span (12) | Observação |
+|---|---|---|
+| **Código/EAN** | 2 | input editável; ao **blur** busca em `produto.produto_id`, `referencia` ou `gtin` (regra do grupo de empresas). Se achar → preenche tudo. Se não → toast "Produto não encontrado" |
+| 🔎 lupa | botão | abre `ProdutoSearchDialog` |
+| **Produto** | 4 | nome read-only |
+| **Und.** | 1 | mantém |
+| **Preço Unit.** | 1 | reduzido ~30%; 2 decimais; sem spin |
+| **Qtd.** | 2 | aumentado ~25%; 4 decimais; sem spin |
+| **Subtotal** | 1 | reduzido ~50% |
 
-Criar `src/components/forms/pedido/ProdutoSearchDialog.tsx`, espelhando `ClienteSearchDialog`:
+Segunda linha: Desc.(%), Desc.(R$), P/Entrega, **Estoq. Disp.**, **Depósito** (FC removido).
 
-- Campo de busca com debounce 300ms (filtra por `produto_id`, `nome`, `referencia`, `gtin`).
-- Resultados (limite 100) carregados via duas queries paralelas:
-  1. `produto`: `produto_id, nome, unidade_id, preco_venda` filtrado por grupo de empresas e `excluido=false`.
-  2. `estoque`: `produto_id, estoque_disponivel, estoque_reservado` para os mesmos `produto_id`s, restrito aos depósitos visíveis (mesma regra do `EstoqueForm`: depósito da própria empresa **ou** depósito não privado de empresa irmã). Soma por `produto_id`.
-- Grade com colunas: **Código** (`produto_id`), **Nome**, **Unidade**, **Preço Venda** (R$), **Estoque Disponível**, **Estoque Reservado**.
-- Clique/duplo-clique seleciona e fecha — retorna objeto com produto + somatórios.
+Terceira linha (custos): Vlr.Desp, Vlr.Frete, Vlr.Seg, Vlr.Outros, Total, [Inserir/Cancelar].
 
-No `PedidoItensTab`:
-- Substituir o `<select>` de produto por: input read-only com nome + botão lupa (🔎) e botão limpar (×), padrão idêntico ao do cliente.
-- Ao selecionar, popular `produto_id`, `nm_produto`, `unidade_id`, `vl_und_produto = preco_venda`, e mostrar os estoques retornados no campo "Estoq. Disp." (atualmente vazio).
+**Sem spin** nos number inputs: `[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`.
 
-### 3. Após salvar o cabeçalho → ir para "Itens do Pedido" em modo de inclusão
+### 3. Combo de Depósito
+Mantém filtro por empresas do grupo + `st_privado=false` para irmãs. **Adiciona** ao lado do nome o estoque disponível **do produto selecionado** naquele depósito (ex.: `1 - Matriz (12,00)`). Para isso, ao selecionar produto, faço uma query `estoque` por `produto_id` nos depósitos visíveis e monto `XDepEstoque: Record<deposito_id, number>`.
 
-**Mudanças em `StandardCrudForm.tsx`**:
-- Aceitar nova prop opcional `XOnAfterSave?: (record, mode) => void` que dispara após `ctrl.handleSalvar` concluir com sucesso (envolver em wrapper local).
+### 4. Validação de estoque
+Ler `empresa.valida_estoque` (campo recém-criado pelo usuário). Quando indicar "S"/`true`:
+- Ao salvar item, comparar `qt_movimento` com `estoque_disponivel` do produto no depósito escolhido. Se ultrapassar → bloquear com toast `"Quantidade (X) excede o estoque disponível (Y) no depósito Z."`.
+- Buscar valor uma vez ao montar a aba (cache local).
 
-**Mudanças em `PedidoForm.tsx`**:
-- Passar `XOnAfterSave={(rec, mode) => { if (mode === "insert") { setXInnerTab("itens"); setXAutoNovoItem(true); } }}`.
-- Como `setXInnerTab` é interno do `StandardCrudForm`, expor também via callback que recebe um objeto `{ setInnerTab }` (o handler retorna a aba alvo). Implementação simples: adicionar prop `XInitialTabAfterInsert` + bandeira `XTriggerNovoItemAfterInsert` no `XExtraTabs` da aba "itens".
+### 5. Toolbar do grid (botões padrão do projeto)
+Substituir os botões soltos por `FormToolbar` com **Novo / Alterar / Excluir / Refresh**, atuando sobre a linha selecionada do grid (selectable). Remover coluna "Ações".
 
-**Mudanças em `PedidoItensTab.tsx`**:
-- Aceitar prop opcional `autoNovo?: boolean`. Quando `true` e o pedido tem `movimento_id`, chamar `novo()` automaticamente uma vez (efeito com guarda).
+### 6. Colunas do grid (nova ordem e nomes)
 
-### 4. Ajustes técnicos resumidos
+| Coluna | Origem | Observação |
+|---|---|---|
+| **Código** | `cd_produto` ou `produto_id` | NOVO, antes do nome |
+| Produto | `nm_produto` | — |
+| Qtd. | `qt_movimento` | 4 decimais |
+| Vlr. Unit | `vl_und_produto` | 2 decimais |
+| **Subtotal** | `vl_produto` | renomeado (era "Vlr. Produto") |
+| Desc.(%) | `pc_desconto` | — |
+| **Desc.(R$)** | `vl_desconto` | logo após Desc.(%) |
+| Vlr. Desp. | `vl_despesa` | NOVO |
+| Vlr. Frete | `vl_frete` | NOVO |
+| Vlr. Seg. | `vl_seguro` | NOVO |
+| Vlr. Outros | `vl_outro` | — |
+| **Total** | `vl_movimento` | última coluna |
+| ~~Ações~~ | — | removida |
+
+### 7. Painel de Totais — 7 cards horizontais
+
+```text
+┌────────┬──────┬─────┬─────┬─────┬───────┬──────┐
+│Subtotal│Desc. │Frete│Desp.│Seg. │Outros │Total │
+│ R$ X   │ R$ X │R$ X │R$ X │R$ X │ R$ X  │ R$ X │
+└────────┴──────┴─────┴─────┴─────┴───────┴──────┘
+```
+
+- "Vlr. dos Itens" → **Subtotal**.
+- `grid-cols-2 sm:grid-cols-4 lg:grid-cols-7`.
+- Label `text-xs uppercase text-muted-foreground`; valor `text-base font-semibold`; **Total** `text-lg font-bold text-primary`.
+
+### Arquivos alterados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/forms/pedido/ProdutoSearchDialog.tsx` | **Novo** — diálogo de busca de produto com estoque agregado |
-| `src/components/forms/pedido/PedidoItensTab.tsx` | Corrigir colunas da query, usar grupo de empresas, trocar `<select>` por lupa, exibir estoque, suportar `autoNovo` |
-| `src/components/shared/StandardCrudForm.tsx` | Adicionar `XOnAfterSave` + `XInitialTabAfterInsert` |
-| `src/components/forms/PedidoForm.tsx` | Após salvar (insert) navegar para aba "Itens do Pedido" e disparar `autoNovo` |
+| `src/components/forms/pedido/PedidoItensTab.tsx` | campo Código/EAN, novo layout, toolbar padrão, colunas reordenadas, totais horizontais, validação de estoque, estoque por depósito no select |
+| `src/components/forms/pedido/ProdutoSearchDialog.tsx` | exportar helper `buscarProdutoPorCodigo(termo, ...ctx)` reusado pelo input "Código" |
+| `src/components/forms/PedidoForm.tsx` | confirmar disparo do `autoNovoTrigger` após `insert` |
 
-Sem necessidade de alterações no banco — colunas e RLS já existem.
+Sem migrações de banco — `empresa.valida_estoque` já foi criado pelo usuário.
 
