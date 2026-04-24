@@ -395,7 +395,7 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
             </div>
             <div className="col-span-2">
               <label className="text-xs text-muted-foreground">Estoq. Disp.</label>
-              <input readOnly value={XEditEstoque ? fmt(XEditEstoque.disp, 4) : ""}
+              <input readOnly tabIndex={-1} value={XEditEstoque ? fmt(XEditEstoque.disp, 4) : ""}
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" />
             </div>
             <div className="col-span-4">
@@ -404,12 +404,14 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
                 onChange={e => setF("deposito_id", Number(e.target.value))}
                 className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
                 <option value="">--</option>
-                {XDepositos.map(d => (
-                  <option key={d.deposito_id} value={d.deposito_id}>
-                    {d.deposito_id} - {d.nome}
-                    {XEdit.produto_id ? ` (${fmt(XDepEstoque[d.deposito_id] || 0, 4)})` : ""}
-                  </option>
-                ))}
+                {XDepositos
+                  .filter(d => !XEdit.produto_id || XDepEstoque[d.deposito_id] !== undefined)
+                  .map(d => (
+                    <option key={d.deposito_id} value={d.deposito_id}>
+                      {d.deposito_id} - {d.nome}
+                      {XEdit.produto_id ? ` (${fmt(XDepEstoque[d.deposito_id] || 0, 4)})` : ""}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
