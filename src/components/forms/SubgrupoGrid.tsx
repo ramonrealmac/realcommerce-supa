@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { Plus, Pencil, Trash2, RefreshCw, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DataGrid, { IGridColumn } from "@/components/grid/DataGrid";
+import GridActionToolbar, { gridActions } from "@/components/grid/GridActionToolbar";
 
 const db = supabase as any;
 
@@ -95,14 +95,17 @@ const SubgrupoGrid: React.FC<SubgrupoGridProps> = ({ XEmpresaId, XGrupoId }) => 
   };
 
   const XToolbar = (
-    <>
-      <GridBtn icon={<Plus size={14} />} label="Incluir" onClick={handleIncluir} color="success" />
-      <GridBtn icon={<Pencil size={14} />} label="Alterar" onClick={handleEditar} disabled={!XSelectedSub} color="primary" />
-      <GridBtn icon={<Trash2 size={14} />} label="Excluir" onClick={handleExcluir} disabled={!XSelectedSub} color="destructive" />
-      <GridBtn icon={<RefreshCw size={14} />} label="Atualizar" onClick={loadData} />
-      <GridBtn icon={<Filter size={14} />} label="Filtrar" onClick={() => setXShowFilters(!XShowFilters)} active={XShowFilters} />
-      <span className="ml-2 text-xs text-muted-foreground">{XFiltered.length} registro(s)</span>
-    </>
+    <GridActionToolbar
+      actions={[
+        gridActions.incluir(handleIncluir),
+        gridActions.alterar(handleEditar, !XSelectedSub),
+        null,
+        gridActions.excluir(handleExcluir, !XSelectedSub),
+        gridActions.atualizar(loadData),
+        gridActions.filtro(() => setXShowFilters(!XShowFilters), XShowFilters),
+      ]}
+      count={`${XFiltered.length} registro(s)`}
+    />
   );
 
   return (
@@ -154,35 +157,6 @@ const SubgrupoGrid: React.FC<SubgrupoGridProps> = ({ XEmpresaId, XGrupoId }) => 
         showRecordCount={false}
       />
     </div>
-  );
-};
-
-const GridBtn: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  color?: string;
-  active?: boolean;
-}> = ({ icon, label, onClick, disabled, color = "default", active }) => {
-  const XColorMap: Record<string, string> = {
-    success: "bg-success text-success-foreground hover:opacity-90",
-    primary: "bg-primary text-primary-foreground hover:opacity-90",
-    destructive: "bg-destructive text-destructive-foreground hover:opacity-90",
-    default: `bg-secondary text-secondary-foreground hover:bg-accent ${active ? "ring-2 ring-ring" : ""}`,
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      className={`p-1.5 rounded transition-colors ${XColorMap[color] || XColorMap.default} ${
-        disabled ? "opacity-30 cursor-not-allowed" : ""
-      }`}
-    >
-      {icon}
-    </button>
   );
 };
 
