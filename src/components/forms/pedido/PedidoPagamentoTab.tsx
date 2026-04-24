@@ -13,12 +13,13 @@ interface ICondicao { condicao_id: number; descricao: string; qtd_parcelas: numb
 interface IProps {
   pedido: IMovimento | null;
   podeEditar: boolean;
+  refreshToken?: number;
   onMudarStatus?: (novo: string) => void;
 }
 
 const fmt = (v: number) => (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatus }) => {
+const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, refreshToken, onMudarStatus }) => {
   const { XEmpresaId } = useAppContext();
   const [XPagtos, setXPagtos] = useState<IMovimentoPagamento[]>([]);
   const [XCondicoes, setXCondicoes] = useState<ICondicao[]>([]);
@@ -41,7 +42,7 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
     setXPagtos(data || []);
   }, [pedido?.movimento_id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshToken]);
 
   useEffect(() => {
     (async () => {
@@ -82,6 +83,14 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
   const salvar = async () => {
     if (!pedido?.movimento_id) { toast.error("Salve o pedido antes."); return; }
     if (!XEdit?.condicao_id) { toast.error("Selecione a condição."); return; }
+    const valorPagamento = Number(XEdit.vl_pagamento || 0);
+    if (valorPagamento <= 0) { toast.error("Informe um valor de pagamento maior que zero."); return; }
+    const valorAnterior = XEditingId ? Number(XSelected?.vl_pagamento || 0) : 0;
+    const novoTotalPago = totalPago - valorAnterior + valorPagamento;
+    if (novoTotalPago > totalPedido) {
+      toast.error("O valor pago não pode ser maior que o valor do pedido.");
+      return;
+    }
     const payload = { ...XEdit, empresa_id: XEmpresaId, movimento_id: pedido.movimento_id };
     if (XEditingId) {
       const { error } = await db.from("movimento_pagamento").update(payload).eq("movimento_pagamento_id", XEditingId);
@@ -145,7 +154,12 @@ const PedidoPagamentoTab: React.FC<IProps> = ({ pedido, podeEditar, onMudarStatu
             </div>
             <div className="col-span-3"><label className="text-xs text-muted-foreground">Valor</label><input type="number" disabled={ro} value={XEdit.vl_pagamento ?? 0} onChange={e => setVlPagto(Number(e.target.value))} className="w-full border border-border rounded px-2 py-1 text-sm text-right" /></div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">Parcelas</label><input type="number" disabled={ro} value={XEdit.n_parcelas ?? 1} onChange={e => setXEdit(prev => { const p = Number(e.target.value) || 1; const v = Number(prev?.vl_pagamento) || 0; return { ...prev!, n_parcelas: p, vl_parcelas: p > 0 ? +(v / p).toFixed(2) : v }; })} className="w-full border border-border rounded px-2 py-1 text-sm text-right" /></div>
-            <div className="col-span-2"><label className="text-xs text-muted-foreground">Vlr. Parcela</label><input readOnly value={fmt(XEdit.vl_parcelas || 0)} className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right" /></div>
+            <div className="col-span-2">
+              <label className="text-xs text-muted-foreground">Vlr. Parcela</label>
+              <div className="w-full border border-border rounded px-2 py-1 text-sm bg-secondary text-right text-foreground select-text">
+                {fmt(XEdit.vl_parcelas || 0)}
+              </div>
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={salvar} disabled={ro} className="text-sm px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">Salvar</button>

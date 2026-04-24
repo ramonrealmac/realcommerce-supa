@@ -63,6 +63,7 @@ const PedidoForm: React.FC = () => {
   const [XSearchOpen, setXSearchOpen] = useState(false);
   const [XSearchTarget, setXSearchTarget] = useState<((c: IClienteRow) => void) | null>(null);
   const [XAutoNovoItem, setXAutoNovoItem] = useState(0);
+  const [XPagamentoRefreshToken, setXPagamentoRefreshToken] = useState(0);
 
   // Lookups (sem clientes — usa pesquisa via diálogo)
   useEffect(() => {
@@ -152,7 +153,14 @@ const PedidoForm: React.FC = () => {
           key: "itens", label: "Itens do Pedido",
           render: ({ record, currentRecord }) => {
             const ped = (currentRecord || record) as IMovimento;
-            return <PedidoItensTab pedido={ped?.movimento_id ? ped : null} podeEditar={ped?.st_pedido === "O"} autoNovoTrigger={XAutoNovoItem} />;
+            return (
+              <PedidoItensTab
+                pedido={ped?.movimento_id ? ped : null}
+                podeEditar={ped?.st_pedido === "O"}
+                autoNovoTrigger={XAutoNovoItem}
+                onTotalsChanged={() => setXPagamentoRefreshToken((n) => n + 1)}
+              />
+            );
           },
         },
         {
@@ -229,6 +237,7 @@ const PedidoForm: React.FC = () => {
               <PedidoPagamentoTab
                 pedido={ped?.movimento_id ? ped : null}
                 podeEditar={ped?.st_pedido === "O"}
+                refreshToken={XPagamentoRefreshToken}
                 onMudarStatus={(novo) => mudarStatus(ped.movimento_id, novo)}
               />
             );
