@@ -285,28 +285,32 @@ const PedidoItensTab: React.FC<IProps> = ({ pedido, podeEditar, onTotalsChanged,
 
   const ro = !podeEditar;
 
+  const itensToolbar = (
+    <>
+      <button disabled={ro} onClick={novo} title="Novo item"
+        className="p-1.5 rounded text-success hover:bg-success/10 disabled:opacity-30 disabled:cursor-not-allowed">
+        <Plus size={16} />
+      </button>
+      <button disabled={ro || !itemSelecionado} onClick={onToolbarEditar} title="Alterar item"
+        className="p-1.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed">
+        <SquarePen size={16} />
+      </button>
+      <div className="w-px h-5 bg-border mx-0.5" />
+      <button disabled={ro || !itemSelecionado} onClick={onToolbarExcluir} title="Excluir item"
+        className="p-1.5 rounded text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed">
+        <Trash2 size={16} />
+      </button>
+      <button onClick={loadItens} title="Recarregar"
+        className="p-1.5 rounded hover:bg-accent">
+        <RefreshCw size={16} />
+      </button>
+      <div className="w-px h-5 bg-border mx-0.5" />
+      <span className="text-xs text-muted-foreground px-1">{XItens.length} item(ns)</span>
+    </>
+  );
+
   return (
     <div className="space-y-3">
-      {/* Toolbar padrão */}
-      <div className="flex items-center gap-1 px-2 py-1.5 border border-border bg-card rounded">
-        <button disabled={ro} onClick={novo} title="Novo item"
-          className="p-1.5 rounded text-success hover:bg-success/10 disabled:opacity-30 disabled:cursor-not-allowed">
-          <Plus size={16} />
-        </button>
-        <button disabled={ro || !itemSelecionado} onClick={onToolbarEditar} title="Alterar item"
-          className="p-1.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed">
-          <SquarePen size={16} />
-        </button>
-        <div className="w-px h-5 bg-border mx-0.5" />
-        <button disabled={ro || !itemSelecionado} onClick={onToolbarExcluir} title="Excluir item"
-          className="p-1.5 rounded text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed">
-          <Trash2 size={16} />
-        </button>
-        <button onClick={loadItens} title="Recarregar"
-          className="p-1.5 rounded hover:bg-accent">
-          <RefreshCw size={16} />
-        </button>
-      </div>
 
       {XEdit && (
         <div className="border border-border rounded p-3 space-y-2 bg-card">
