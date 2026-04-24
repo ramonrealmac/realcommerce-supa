@@ -262,6 +262,44 @@ const PedidoForm: React.FC = () => {
       renderCadastro={({ record, setField, mode, isEditing, currentRecord }) => {
         const stAtual = (record.st_pedido || "O") as string;
         const ro = !isEditing || (mode === "edit" && stAtual !== "O");
+        const fmt = (v: number) => Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const fmtQ = (v: number) => Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+
+        // Itens em cache (sincronizados com a aba Itens). Fallback: busca quando ainda não há cache para este pedido.
+        const movId = currentRecord?.movimento_id;
+        const itensCache = XPedidoTotalCtx.movimentoId === movId ? XPedidoTotalCtx.itens : [];
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        useEffect(() => {
+          if (movId && XPedidoTotalCtx.movimentoId !== movId) {
+            fetchItensCadastro(movId);
+          }
+        }, [movId]);
+
+        const T = itensCache.reduce((acc, i: any) => ({
+          vl_produto: acc.vl_produto + Number(i.vl_produto || 0),
+          vl_desconto: acc.vl_desconto + Number(i.vl_desconto || 0),
+          vl_frete: acc.vl_frete + Number(i.vl_frete || 0),
+          vl_despesa: acc.vl_despesa + Number(i.vl_despesa || 0),
+          vl_seguro: acc.vl_seguro + Number(i.vl_seguro || 0),
+          vl_outro: acc.vl_outro + Number(i.vl_outro || 0),
+          vl_movimento: acc.vl_movimento + Number(i.vl_movimento || 0),
+        }), { vl_produto: 0, vl_desconto: 0, vl_frete: 0, vl_despesa: 0, vl_seguro: 0, vl_outro: 0, vl_movimento: 0 });
+
+        const visualCols = [
+          { key: "cd_produto", label: "Código", width: "90px", align: "right" as const, render: (r: any) => r.cd_produto || (r.produto_id ?? "") },
+          { key: "nm_produto", label: "Produto", width: "2fr" },
+          { key: "qt_movimento", label: "Qtd.", width: "90px", align: "right" as const, render: (r: any) => fmtQ(r.qt_movimento) },
+          { key: "vl_und_produto", label: "Vlr. Unit", width: "100px", align: "right" as const, render: (r: any) => fmt(r.vl_und_produto) },
+          { key: "vl_produto", label: "Subtotal", width: "110px", align: "right" as const, render: (r: any) => fmt(r.vl_produto) },
+          { key: "pc_desconto", label: "Desc.(%)", width: "80px", align: "right" as const, render: (r: any) => fmt(r.pc_desconto) },
+          { key: "vl_desconto", label: "Desc.(R$)", width: "100px", align: "right" as const, render: (r: any) => fmt(r.vl_desconto) },
+          { key: "vl_despesa", label: "Vlr. Desp.", width: "100px", align: "right" as const, render: (r: any) => fmt(r.vl_despesa) },
+          { key: "vl_frete", label: "Vlr. Frete", width: "100px", align: "right" as const, render: (r: any) => fmt(r.vl_frete) },
+          { key: "vl_seguro", label: "Vlr. Seg.", width: "100px", align: "right" as const, render: (r: any) => fmt(r.vl_seguro) },
+          { key: "vl_outro", label: "Vlr. Outros", width: "100px", align: "right" as const, render: (r: any) => fmt(r.vl_outro) },
+          { key: "vl_movimento", label: "Total", width: "110px", align: "right" as const, render: (r: any) => fmt(r.vl_movimento) },
+        ];
+
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-12 gap-3">
@@ -347,7 +385,8 @@ const PedidoForm: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-12 gap-3">
+            {/* Linha do Tipo de Desconto + Botões de status à direita */}
+            <div className="grid grid-cols-12 gap-3 items-end">
               <div className="col-span-3">
                 <label className="text-xs text-muted-foreground">Tipo de Desconto <span className="text-destructive">*</span></label>
                 <select disabled={ro} value={record.tp_desconto || "N"} onChange={e => setField("tp_desconto", e.target.value as any)} className="w-full border border-border rounded px-2 py-1 text-sm bg-card">
@@ -366,23 +405,55 @@ const PedidoForm: React.FC = () => {
                   </div>
                 </>
               )}
+              {currentRecord?.movimento_id && (
+                <div className="col-span-12 sm:col-span-auto ml-auto flex gap-2 justify-end">
+                  {stAtual === "O" && (
+                    <button onClick={() => { if (confirm("Confirma o envio deste pedido para o Caixa?")) mudarStatus(currentRecord.movimento_id, "P"); }} className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground">→ Caixa (Pedido)</button>
+                  )}
+                  {stAtual === "P" && (
+                    <button onClick={() => mudarStatus(currentRecord.movimento_id, "O")} className="text-sm px-4 py-1.5 rounded border border-border">↩ Voltar p/ Orçamento</button>
+                  )}
+                  {(stAtual === "O" || stAtual === "P") && (
+                    <button onClick={() => { if (confirm("Confirma o cancelamento deste pedido?")) mudarStatus(currentRecord.movimento_id, "C"); }} className="text-sm px-4 py-1.5 rounded border border-destructive text-destructive">Cancelar Pedido</button>
+                  )}
+                </div>
+              )}
             </div>
 
+            {/* Grid de produtos somente leitura */}
             {currentRecord?.movimento_id && (
-              <div className="flex gap-2 pt-3 border-t border-border">
-                {stAtual === "O" && (
-                  <button onClick={() => mudarStatus(currentRecord.movimento_id, "P")} className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground">→ Caixa (Pedido)</button>
-                )}
-                {stAtual === "P" && (
-                  <button onClick={() => mudarStatus(currentRecord.movimento_id, "O")} className="text-sm px-4 py-1.5 rounded border border-border">↩ Voltar p/ Orçamento</button>
-                )}
-                {(stAtual === "O" || stAtual === "P") && (
-                  <button onClick={() => { if (confirm("Cancelar este pedido?")) mudarStatus(currentRecord.movimento_id, "C"); }} className="text-sm px-4 py-1.5 rounded border border-destructive text-destructive">Cancelar Pedido</button>
-                )}
-                <div className="ml-auto text-sm text-muted-foreground self-center">
-                  Vlr. Total: <span className="font-bold text-primary">{Number(currentRecord.vl_movimento || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+              <>
+                <DataGrid
+                  columns={visualCols}
+                  data={itensCache as any[]}
+                  maxHeight="260px"
+                  exportTitle="Itens do Pedido"
+                  showRecordCount={true}
+                />
+
+                {/* Painel de totalizadores — 7 cards */}
+                <div className="border border-border rounded p-3 bg-card">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                    {[
+                      { label: "Subtotal", value: T.vl_produto },
+                      { label: "Desc. (R$)", value: T.vl_desconto },
+                      { label: "Vlr. Frete", value: T.vl_frete },
+                      { label: "Vlr. Desp.", value: T.vl_despesa },
+                      { label: "Vlr. Seg.", value: T.vl_seguro },
+                      { label: "Vlr. Outros", value: T.vl_outro },
+                    ].map((c) => (
+                      <div key={c.label} className="flex flex-col border border-border rounded px-3 py-2 bg-secondary/40">
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground">{c.label}</span>
+                        <span className="text-base font-semibold text-right tabular-nums">{fmt(c.value)}</span>
+                      </div>
+                    ))}
+                    <div className="flex flex-col border border-primary/40 rounded px-3 py-2 bg-primary/10">
+                      <span className="text-xs uppercase tracking-wide text-primary/80">Total</span>
+                      <span className="text-lg font-bold text-primary text-right tabular-nums">{fmt(T.vl_movimento)}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         );
