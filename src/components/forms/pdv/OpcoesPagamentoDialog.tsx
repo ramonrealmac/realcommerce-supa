@@ -76,15 +76,15 @@ const imprimir = (d: IImpressaoDados | null, modo: "bobina" | "a4") => {
   w.document.close();
 };
 
-const OpcoesPagamentoDialog: React.FC<IProps> = ({ open, dados, onClose, onContinuarPagamento }) => {
+const OpcoesPagamentoDialog: React.FC<IProps> = ({ open, dados, onClose, onConcluir }) => {
   const cards = [
-    { key: "bobina", label: "Bobina", desc: "Impressão térmica 80mm", icon: <Printer size={28} />,
+    { key: "bobina", label: "Bobina", desc: "Impressão térmica 80mm", icon: <Printer size={28} />, color: "text-blue-600",
       action: () => imprimir(dados, "bobina"), enabled: true },
-    { key: "a4", label: "A4", desc: "Folha grande", icon: <FileText size={28} />,
+    { key: "a4", label: "A4", desc: "Folha grande", icon: <FileText size={28} />, color: "text-indigo-600",
       action: () => imprimir(dados, "a4"), enabled: true },
-    { key: "nfe", label: "NFe", desc: "Em desenvolvimento", icon: <FileCode2 size={28} />,
+    { key: "nfe", label: "NFe", desc: "Em desenvolvimento", icon: <FileCode2 size={28} />, color: "text-amber-600",
       action: () => toast.info("NFe será implementada em seguida."), enabled: false },
-    { key: "nfce", label: "NFCe", desc: "Em desenvolvimento", icon: <ScanLine size={28} />,
+    { key: "nfce", label: "NFCe", desc: "Em desenvolvimento", icon: <ScanLine size={28} />, color: "text-emerald-600",
       action: () => toast.info("NFCe será implementada em seguida."), enabled: false },
   ];
 
