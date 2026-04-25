@@ -1,56 +1,88 @@
+## Novo formulário "PDV - Caixa" (recebimento de vendas)
 
+Cria fluxo completo: **seleção de Caixa → abertura de caixa → tela PDV → finalização de pagamento**, usando `caixa_movimento` (cabeçalho) + `caixa_movimento_item` (formas de pagamento).
 
-## Mudanças no Pedido — Aba Cadastro e Aba Forma de Pagamento
+---
 
-### 1. Aba Forma de Pagamento (`PedidoPagamentoTab.tsx`)
-- **Remover spinners** dos campos numéricos (Valor, Parcelas) aplicando a classe utilitária `NO_SPIN` (`[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`), igual ao usado em `PedidoItensTab`.
-- **Confirmação ao mudar status**: ao clicar em "→ Caixa (Pedido)" pedir `confirm("Confirma envio deste pedido para o Caixa?")`. O botão Cancelar Pedido já tem confirm; manter.
+### 1. Menu — `src/config/menuConfig.ts`
+Adicionar em `2. Movimentações > Saídas`:
+- `{ id: "pdv-caixa", title: "PDV - Caixa", icon: BadgeDollarSign }`
 
-### 2. Aba Cadastro (`PedidoForm.tsx` — bloco `renderCadastro`)
-Reorganizar a linha de "Tipo de Desconto" e o rodapé:
+### 2. Roteamento — `src/pages/Index.tsx`
+Adicionar `case "pdv-caixa": return <PdvCaixaForm />;`
 
-- **Mover botões "→ Caixa (Pedido)" e "Cancelar Pedido"** para a MESMA linha de "Tipo de Desconto", alinhados à direita (usar `ml-auto` dentro do grid/flex).
-- **Adicionar confirmação** ao clicar em "→ Caixa (Pedido)": `confirm("Confirma envio deste pedido para o Caixa?")`. O Cancelar já confirma.
-- **Remover o "Vlr. Total"** que aparece no rodapé (linha `Vlr. Total: ...`).
-- **Remover o bloco antigo de botões no rodapé** (a div `flex gap-2 pt-3 border-t`), pois eles passam para junto do Tipo de Desconto.
-- **Adicionar grid de produtos somente leitura** abaixo do bloco anterior:
-  - Reusar o componente `DataGrid` com as mesmas colunas usadas em `PedidoItensTab` (Código, Produto, Qtd, Vlr. Unit, Subtotal, Desc%, Desc R$, Despesa, Frete, Seguro, Outros, Total).
-  - Sem `toolbarLeft`, sem `onRowDoubleClick` de edição — apenas visualização.
-  - Carregar de `movimento_item` filtrado por `movimento_id` e `excluido=false`.
-- **Adicionar painel de totalizadores** idêntico ao da aba Itens (Subtotal, Desc., Frete, Despesa, Seguro, Outros, Total) — 7 cards.
-- **Sincronização em tempo real**: 
-  - Criar um novo state `XPedidoItensCtx` em `PedidoForm` que guarda `{ movimentoId, itens: IMovimentoItem[] }`.
-  - Estender o callback `onTotalsChanged` de `PedidoItensTab` para também enviar a lista de itens (ou criar um segundo callback `onItensChanged`).
-  - `PedidoItensTab` já possui `XItens` e o `useEffect` em `[T.vl_movimento]` — basta passar `XItens` no callback.
-  - `PedidoForm` consome `XPedidoItensCtx.itens` (quando `movimentoId` bate) para alimentar o grid de visualização e calcular os totais. Fallback inicial: ao abrir um pedido existente sem ter ido na aba Itens ainda, fazer um fetch inicial em um `useEffect` que dispara quando `currentRecord.movimento_id` muda.
+### 3. Novos arquivos
+```
+src/components/forms/pdv/
+  PdvCaixaForm.tsx              ← orquestrador (etapas)
+  SelecionarCaixaDialog.tsx     ← Etapa 1: combo financeiro (caixa='S') + data
+  PdvTela.tsx                   ← Etapa 2: layout PDV (baseado no PDV.tsx enviado)
+  PagamentoDialog.tsx           ← Etapa 3: tela de pagamento (layout da imagem)
+  types.ts
+```
+
+---
+
+### Fluxo de telas
+
+#### Etapa 1 — Seleção de Caixa (`SelecionarCaixaDialog`)
+- Combo **Caixa**: `SELECT financeiro_id, nm_financeiro FROM financeiro WHERE caixa='S' AND empresa_id=? AND excluido=false`.  
+  *(verificar nome real da coluna; usar `descricao`/`nome` conforme schema)*
+- Campo **Data movimento** (default = hoje).
+- Botões **Prosseguir** / **Cancelar**.
+
+#### Lógica do "Prosseguir"
+1. Resolver `funcionario_id`: `SELECT funcionario_id FROM funcionario WHERE usr_id = <auth.uid mapped> AND empresa_id=? AND caixa='S'`.  
+   Se não achar → toast "Usuário sem perfil de caixa".
+2. `SELECT * FROM caixa_abertura WHERE funcionario_id=? AND empresa_id=? AND status='A'`.
+   - **Não encontrado** → `confirm("Caixa fechado. Deseja abrir?")` → INSERT `caixa_abertura (empresa_id, funcionario_id, dt_abertura=data, vl_abertura=0, status='A')` → segue PDV.
+   - **Encontrado, dt_abertura ≠ data** → toast "Existe caixa aberto com data dd/mm/aaaa" → permanece na seleção.
+   - **Encontrado, dt_abertura = data** → segue PDV.
+
+#### Etapa 2 — Tela PDV (`PdvTela`)
+Layout aproveitado do `user-uploads://PDV.tsx`, adaptado ao stack do projeto (DataGrid próprio, supabase client local, cores via tokens semânticos do tailwind, sem componentes shadcn novos):
+
+- **Painel esquerdo — Pedidos a receber**: lista `movimento WHERE empresa_id=? AND st_pedido='F' AND excluido=false`, mostra nº, cliente, valor. Duplo clique adiciona ao "carrinho de fechamento".
+- **Painel central — Venda direta**:
+  - Busca produto (input) + bipagem por código de barras → INSERT em `movimento` novo (st_pedido='F', tp_origem='PDV', deposito_id = `empresa.deposito_estoque_caixa`, funcionario_id, tp_operacao_id = `empresa.tp_operacao_caixa`) + `movimento_item`.
+  - Reusa `ProdutoSearchDialog` existente para busca avançada.
+  - Reusa `ClienteSearchDialog` existente.
+- **Painel direito — Resumo**: cliente, totais, botão **Receber** (abre `PagamentoDialog`).
+
+#### Etapa 3 — Pagamento (`PagamentoDialog`)
+Layout idêntico à imagem `tela_pagamento.jpg`:
+- Cards à direita: **Total Pedido / Valor Pago / Valor a Pagar / Troco**.
+- Formulário esquerdo: **Condição** (combo `condicao_pagamento`), **Bandeira** (combo `bandeira`), **Operadora** (combo `operadora`), **Nº Autorização**, **Vlr a Pagar**, **Vezes**, **Vlr Parcela** (calculado).
+- Botão **Confirmar** → adiciona linha no grid inferior (estado local).
+- Grid inferior: condição, valor, parcelas, valor parcela. Toolbar: incluir / alterar / excluir / refresh.
+- Validação: soma `vl_recebido` dos itens não pode exceder Total Pedido. Troco = Pago − Total quando condição é DINHEIRO.
+- Botão **Finalizar Recebimento**:
+  1. INSERT `caixa_movimento`:
+     ```
+     empresa_id, caixa_movimento_id (seq), funcionario_id, colaborador_id=funcionario_id,
+     dt_movimento, tp_movimento='E', tp_operacao = empresa.tp_operacao_caixa,
+     conta_gerencial_id = empresa.conta_gerencial_caixa,
+     centro_custo_id = empresa.centro_custo_caixa,
+     historico='Recebimento Pedido '||nr_movimento, documento=nr_movimento::text,
+     vlr_movimento = total, movimento_id, excluido=false
+     ```
+  2. INSERT N × `caixa_movimento_item` com `condicao_id`, `bandeira_id`, `operadora_id`, `numero_autoriza`, `qt_parcela`, `vl_parcela`, `vl_recebido`.
+  3. UPDATE `movimento SET st_pedido='R', dt_pagamento=now() WHERE movimento_id=?`.
+  4. Toast sucesso e volta à lista de pedidos a receber (carrinho limpo).
+
+---
 
 ### Detalhes técnicos
 
-**PedidoForm.tsx**:
-```tsx
-const [XPedidoItensCtx, setXPedidoItensCtx] = useState<{ movimentoId, itens: IMovimentoItem[] }>({ movimentoId: null, itens: [] });
+- **Identificação do funcionário**: `funcionario.usr_id = auth.uid()` (precisa que esse mapeamento exista; se não houver match, exibir mensagem clara para o usuário ajustar o cadastro).
+- **Sequência de IDs**: usar mesmo padrão do projeto (max+1 por empresa, como em `PedidoForm`).
+- **Empresa params**: leitura única de `empresa` no mount: `tp_operacao_caixa, conta_gerencial_caixa, centro_custo_caixa, deposito_estoque_caixa, empresa_deposito_caixa`.
+- **Estado preservado entre etapas** via `useState` no `PdvCaixaForm`. Cancelar/sair em qualquer etapa volta para a Etapa 1.
+- **Padrões visuais**: usar `DataGrid`, `GridActionToolbar`, `border-border`, `bg-card`, `text-muted-foreground` etc., seguindo memória `mem://design/grid-action-toolbar.md`.
+- **Sem alteração de schema**: todas as tabelas necessárias já existem.
+- **Uploaded `PDV.tsx` / `Pedidos.tsx`**: usados apenas como referência de layout/UX — não copiados para o projeto.
 
-// useEffect: ao trocar currentRecord.movimento_id sem itens em cache, busca de movimento_item
-// onTotalsChanged em PedidoItensTab → setXPedidoItensCtx({ movimentoId, itens })
-// renderCadastro recebe XPedidoItensCtx.itens (filtrado pelo movimento_id atual)
-```
-
-**Linha do Tipo de Desconto** (refator):
-```tsx
-<div className="grid grid-cols-12 gap-3 items-end">
-  <div className="col-span-3">Tipo de Desconto ...</div>
-  {tp_desconto === "P" && (<>Desc. % ... Desc. R$ ...</>)}
-  <div className="col-span-... ml-auto flex gap-2 justify-end">
-    {stAtual === "O" && <button onClick={() => confirm("Enviar para o Caixa?") && mudarStatus(...,"P")}>→ Caixa (Pedido)</button>}
-    {(stAtual === "O" || "P") && <button onClick={() => confirm("Cancelar?") && mudarStatus(...,"C")}>Cancelar Pedido</button>}
-  </div>
-</div>
-```
-
-**Grid visual + totais** (após linha acima, ainda dentro do renderCadastro), usando os mesmos cards de `PedidoItensTab` linhas 470-491.
-
-### Arquivos a editar
-- `src/components/forms/pedido/PedidoPagamentoTab.tsx`
-- `src/components/forms/pedido/PedidoItensTab.tsx` (estender callback para enviar itens)
-- `src/components/forms/PedidoForm.tsx` (refator do cadastro + grid + totais + sincronização)
-
+### Arquivos editados
+- `src/config/menuConfig.ts` (1 linha)
+- `src/pages/Index.tsx` (import + case)
+- 5 novos arquivos em `src/components/forms/pdv/`
