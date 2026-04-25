@@ -102,7 +102,7 @@ const OpcoesPagamentoDialog: React.FC<IProps> = ({ open, dados, onClose, onConcl
             <button key={c.key} onClick={c.action} disabled={!c.enabled}
               className={`border border-border rounded p-4 text-left flex items-center gap-3 transition
                 ${c.enabled ? "hover:bg-accent hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed"}`}>
-              <div className="text-primary">{c.icon}</div>
+              <div className={c.color}>{c.icon}</div>
               <div>
                 <div className="font-semibold text-sm">{c.label}</div>
                 <div className="text-xs text-muted-foreground">{c.desc}</div>
@@ -110,13 +110,10 @@ const OpcoesPagamentoDialog: React.FC<IProps> = ({ open, dados, onClose, onConcl
             </button>
           ))}
         </div>
-        <div className="flex justify-between gap-2 pt-3 border-t border-border">
-          <button onClick={onClose} className="text-sm px-4 py-1.5 rounded border border-border hover:bg-accent">
-            Voltar
-          </button>
-          <button onClick={onContinuarPagamento}
-            className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground font-semibold">
-            Continuar para Pagamento →
+        <div className="flex justify-end gap-2 pt-3 border-t border-border">
+          <button onClick={onConcluir}
+            className="text-sm px-4 py-1.5 rounded bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
+            ✓ Concluir
           </button>
         </div>
       </DialogContent>
