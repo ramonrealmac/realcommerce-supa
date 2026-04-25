@@ -2524,6 +2524,7 @@ export type Database = {
         Row: {
           caixa: string | null
           caixa_cnc_venda: string | null
+          caixa_edit_venda: string
           caixa_inf_vend: string | null
           corretora_id: number | null
           empresa_id: number | null
@@ -2544,6 +2545,7 @@ export type Database = {
         Insert: {
           caixa?: string | null
           caixa_cnc_venda?: string | null
+          caixa_edit_venda?: string
           caixa_inf_vend?: string | null
           corretora_id?: number | null
           empresa_id?: number | null
@@ -2564,6 +2566,7 @@ export type Database = {
         Update: {
           caixa?: string | null
           caixa_cnc_venda?: string | null
+          caixa_edit_venda?: string
           caixa_inf_vend?: string | null
           corretora_id?: number | null
           empresa_id?: number | null
@@ -2963,6 +2966,7 @@ export type Database = {
           minuta_id: number | null
           mod_frete: string | null
           modelo_nf: number | null
+          mot_cancelamento: string
           motivo_cancelamento: string | null
           movimento_id: number
           nm_crianca: string
@@ -3060,6 +3064,7 @@ export type Database = {
           minuta_id?: number | null
           mod_frete?: string | null
           modelo_nf?: number | null
+          mot_cancelamento?: string
           motivo_cancelamento?: string | null
           movimento_id?: number
           nm_crianca?: string
@@ -3157,6 +3162,7 @@ export type Database = {
           minuta_id?: number | null
           mod_frete?: string | null
           modelo_nf?: number | null
+          mot_cancelamento?: string
           motivo_cancelamento?: string | null
           movimento_id?: number
           nm_crianca?: string

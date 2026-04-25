@@ -30,7 +30,7 @@ const SelecionarCaixaDialog: React.FC<IProps> = ({ onEntrar, onCancelar }) => {
   const carregarCaixas = useCallback(async () => {
     setXLoadingCaixas(true);
     const { data, error } = await db.from("funcionario")
-      .select("funcionario_id, nome, tamanho_fonte_pedidos, tamanho_fonte_produtos, tempo_refresh_pdv")
+      .select("funcionario_id, nome, tamanho_fonte_pedidos, tamanho_fonte_produtos, tempo_refresh_pdv, caixa_inf_vend, caixa_cnc_venda, caixa_edit_venda")
       .eq("empresa_id", XEmpresaId)
       .eq("caixa", "S")
       .order("nome");

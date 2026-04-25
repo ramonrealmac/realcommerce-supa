@@ -4,6 +4,14 @@ export interface IPdvCaixa {
   tamanho_fonte_pedidos?: number;
   tamanho_fonte_produtos?: number;
   tempo_refresh_pdv?: number;
+  caixa_inf_vend?: string | null;
+  caixa_cnc_venda?: string | null;
+  caixa_edit_venda?: string | null;
+}
+
+export interface IPdvVendedor {
+  funcionario_id: number;
+  nome: string;
 }
 
 export interface IPdvCaixaAbertura {

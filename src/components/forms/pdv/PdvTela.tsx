@@ -2,12 +2,16 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
-import { LogOut, Search, Trash2, Plus, Receipt, RefreshCw, Settings } from "lucide-react";
+import { LogOut, Search, Trash2, Plus, Receipt, RefreshCw, Settings, Wrench, Percent } from "lucide-react";
 import ProdutoSearchDialog, { buscarProdutoPorCodigo, IProdutoRow } from "../pedido/ProdutoSearchDialog";
 import ClienteSearchDialog, { IClienteRow } from "../pedido/ClienteSearchDialog";
+import VendedorSearchDialog, { IVendedorRow } from "./VendedorSearchDialog";
 import PagamentoDialog from "./PagamentoDialog";
 import ConfigurarDialog from "./ConfigurarDialog";
 import OpcoesPagamentoDialog, { IImpressaoDados } from "./OpcoesPagamentoDialog";
+import DescontoDialog from "./DescontoDialog";
+import FuncoesDialog from "./FuncoesDialog";
+import CancelamentoDialog from "./CancelamentoDialog";
 import type {
   IPdvCaixa, IPdvCaixaAbertura, IPdvParamsEmpresa, IPdvPedidoFechado,
   IPdvPagamentoLinha, IMovimentoPagamento,
@@ -37,11 +41,17 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
   const { XEmpresaId, XEmpresaMatrizId, XEmpresas } = useAppContext();
   const [XParams, setXParams] = useState<IPdvParamsEmpresa | null>(null);
 
+  // Permissões do caixa
+  const XPodeInfVend = caixa.caixa_inf_vend === "S";
+  const XPodeCancVenda = caixa.caixa_cnc_venda === "S";
+
   // Configurações por funcionário
   const [XFontePed, setXFontePed] = useState<number>(caixa.tamanho_fonte_pedidos || 12);
   const [XFonteProd, setXFonteProd] = useState<number>(caixa.tamanho_fonte_produtos || 12);
   const [XRefreshSeg, setXRefreshSeg] = useState<number>(caixa.tempo_refresh_pdv || 30);
   const [XOpenConfig, setXOpenConfig] = useState(false);
+  const [XOpenFuncoes, setXOpenFuncoes] = useState(false);
+  const [XOpenCanc, setXOpenCanc] = useState(false);
 
   // Pedidos fechados disponíveis
   const [XPedidos, setXPedidos] = useState<IPdvPedidoFechado[]>([]);
@@ -52,9 +62,16 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
   // Venda direta - carrinho
   const [XCart, setXCart] = useState<ICartItem[]>([]);
   const [XCliente, setXCliente] = useState<IClienteRow | null>(null);
+  const [XVendedor, setXVendedor] = useState<IVendedorRow | null>(null);
   const [XSearchTerm, setXSearchTerm] = useState("");
   const [XOpenProduto, setXOpenProduto] = useState(false);
   const [XOpenCliente, setXOpenCliente] = useState(false);
+  const [XOpenVend, setXOpenVend] = useState(false);
+
+  // Desconto
+  const [XVlDesc, setXVlDesc] = useState(0);
+  const [XPcDesc, setXPcDesc] = useState(0);
+  const [XOpenDesc, setXOpenDesc] = useState(false);
 
   // Fluxo de finalização
   const [XOpenOpcoes, setXOpenOpcoes] = useState(false);
@@ -75,7 +92,7 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
     })();
   }, [XEmpresaId]);
 
-  // Carrega pedidos fechados (com nome do vendedor)
+  // Carrega pedidos fechados
   const carregarPedidos = useCallback(async () => {
     const { data, error } = await db.from("movimento")
       .select("movimento_id, nr_movimento, cadastro_id, vl_movimento, dt_emissao, funcionario_id")
@@ -187,17 +204,19 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
 
   const removerItem = (idx: number) => setXCart(prev => prev.filter((_, i) => i !== idx));
 
-  const totalCart = XCart.reduce((a, c) => a + c.qt_item * c.vl_unitario, 0);
+  const subtotal = XCart.reduce((a, c) => a + c.qt_item * c.vl_unitario, 0);
 
-  // ===== Finalizar venda → tela de Opções (Bobina/A4/NFe/NFCe) =====
-  const totalReceber = XPedidoSel ? XPedidoSel.vl_movimento : totalCart;
+  // Quando pedido selecionado, usa total do pedido (sem desconto local)
+  const baseSubtotal = XPedidoSel ? XPedidoSel.vl_movimento : subtotal;
+  const vlDescAplicado = XPedidoSel ? 0 : XVlDesc;
+  const totalReceber = Math.max(0, baseSubtotal - vlDescAplicado);
   const podeReceber = (XPedidoSel != null) || (XCart.length > 0);
 
+  // ===== Finalizar venda → vai DIRETO para PagamentoDialog =====
   const finalizarVenda = async () => {
     if (!podeReceber) { toast.error("Selecione um pedido ou adicione itens à venda direta."); return; }
     if (!XParams) { toast.error("Parâmetros da empresa não carregados."); return; }
 
-    // Pre-busca pagamentos do pedido (somente quando há pedido selecionado)
     let pagtos: IMovimentoPagamento[] = [];
     if (XPedidoSel) {
       const { data } = await db.from("movimento_pagamento")
@@ -207,36 +226,10 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
       pagtos = (data || []) as IMovimentoPagamento[];
     }
     setXPagtosPedido(pagtos);
-
-    // Monta dados de impressão
-    const itensImp = XPedidoSel
-      ? XPedidoSelItens.map((it: any) => ({
-          nm_produto: it.nm_produto,
-          qt_movimento: Number(it.qt_movimento || 0),
-          unidade_id: it.unidade_id,
-          vl_und_produto: Number(it.vl_und_produto || 0),
-          vl_movimento: Number(it.vl_movimento || it.qt_movimento * it.vl_und_produto || 0),
-        }))
-      : XCart.map(c => ({
-          nm_produto: c.nm_produto,
-          qt_movimento: c.qt_item,
-          unidade_id: c.unidade_id,
-          vl_und_produto: c.vl_unitario,
-          vl_movimento: c.qt_item * c.vl_unitario,
-        }));
-    setXImpressaoDados({
-      nr_movimento: XPedidoSel ? (XPedidoSel.nr_movimento || XPedidoSel.movimento_id) : "(direta)",
-      cliente_nome: XPedidoSel ? XPedidoSel.cliente_nome : (XCliente?.nome_fantasia || XCliente?.razao_social || "(Consumidor)"),
-      caixa_nome: caixa.nome,
-      dt_movimento: new Date(dtMovimento + "T00:00:00").toLocaleDateString("pt-BR"),
-      itens: itensImp,
-      total: totalReceber,
-    });
-
-    setXOpenOpcoes(true);
+    setXOpenPagto(true);
   };
 
-  /** Cria movimento (st_pedido='F') quando for venda direta. Retorna movimento_id. */
+  /** Cria movimento (st_pedido='F') quando for venda direta. */
   const criarMovimentoVendaDireta = async (): Promise<{ movimento_id: number; nr: number; total: number; }> => {
     const { data: maxMov } = await db.from("movimento")
       .select("movimento_id").order("movimento_id", { ascending: false }).limit(1);
@@ -244,13 +237,13 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
     const { data: maxNr } = await db.from("movimento")
       .select("nr_movimento").eq("empresa_id", XEmpresaId).order("nr_movimento", { ascending: false }).limit(1);
     const nr = ((maxNr && maxNr[0]?.nr_movimento) || 0) + 1;
-    const total = totalCart;
+    const total = totalReceber;
 
     const mov = {
       movimento_id: movId,
       empresa_id: XEmpresaId,
       cadastro_id: XCliente?.cadastro_id || null,
-      funcionario_id: caixa.funcionario_id,
+      funcionario_id: XVendedor?.cadastro_id || caixa.funcionario_id,
       nr_movimento: nr,
       tp_movimento: "S",
       tp_origem: "PDV",
@@ -259,11 +252,11 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
       dt_emissao: new Date().toISOString(),
       dt_finalizacao: new Date().toISOString(),
       tp_operacao_id: XParams!.tp_operacao_caixa,
-      vl_produto: total,
+      vl_produto: subtotal,
       vl_movimento: total,
-      vl_desconto: 0,
-      tp_desconto: "N",
-      pc_desconto: 0,
+      vl_desconto: vlDescAplicado,
+      tp_desconto: vlDescAplicado > 0 ? "V" : "N",
+      pc_desconto: XPcDesc,
       deposito_id: XParams!.deposito_estoque_caixa,
       excluido: false,
     };
@@ -298,7 +291,7 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
     return { movimento_id: movId, nr, total };
   };
 
-  /** Confirmação do pagamento: grava caixa_movimento + itens + atualiza pedido para 'R'. */
+  /** Confirmação do pagamento: grava caixa_movimento + itens + status R, então abre Documento da Venda. */
   const confirmarPagamento = async (linhas: IPdvPagamentoLinha[]) => {
     try {
       let movimentoId: number;
@@ -364,36 +357,76 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
         .eq("movimento_id", movimentoId);
       if (e3) throw new Error("Falha ao baixar pedido: " + e3.message);
 
+      // Monta dados de impressão para o próximo dialog
+      const itensImp = XPedidoSel
+        ? XPedidoSelItens.map((it: any) => ({
+            nm_produto: it.nm_produto,
+            qt_movimento: Number(it.qt_movimento || 0),
+            unidade_id: it.unidade_id,
+            vl_und_produto: Number(it.vl_und_produto || 0),
+            vl_movimento: Number(it.vl_movimento || it.qt_movimento * it.vl_und_produto || 0),
+          }))
+        : XCart.map(c => ({
+            nm_produto: c.nm_produto,
+            qt_movimento: c.qt_item,
+            unidade_id: c.unidade_id,
+            vl_und_produto: c.vl_unitario,
+            vl_movimento: c.qt_item * c.vl_unitario,
+          }));
+      setXImpressaoDados({
+        nr_movimento: nrMov,
+        cliente_nome: XPedidoSel ? XPedidoSel.cliente_nome : (XCliente?.nome_fantasia || XCliente?.razao_social || "(Consumidor)"),
+        caixa_nome: caixa.nome,
+        dt_movimento: new Date(dtMovimento + "T00:00:00").toLocaleDateString("pt-BR"),
+        itens: itensImp,
+        total,
+      });
+
       toast.success(`Pedido ${nrMov} recebido com sucesso.`);
       setXOpenPagto(false);
-      setXPedidoSel(null);
-      setXCart([]);
-      setXCliente(null);
-      setXPagtosPedido([]);
-      setXImpressaoDados(null);
-      carregarPedidos();
+      setXOpenOpcoes(true);
     } catch (err: any) {
       toast.error(err.message || "Erro ao finalizar.");
     }
   };
+
+  const concluirVenda = () => {
+    setXOpenOpcoes(false);
+    setXPedidoSel(null);
+    setXCart([]);
+    setXCliente(null);
+    setXVendedor(null);
+    setXVlDesc(0);
+    setXPcDesc(0);
+    setXPagtosPedido([]);
+    setXImpressaoDados(null);
+    carregarPedidos();
+  };
+
+  // Cores dos painéis (usando o token do menu/sidebar)
+  const painelBg = "bg-sidebar/30 dark:bg-sidebar/40";
 
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
         <div className="flex items-center gap-4 text-sm">
-          <span className="font-semibold text-foreground">PDV</span>
-          <span className="text-muted-foreground">Caixa: <strong className="text-foreground">{caixa.nome}</strong></span>
+          <span className="font-semibold text-primary">PDV</span>
+          <span className="text-muted-foreground">Caixa: <strong className="text-blue-600 dark:text-blue-400">{caixa.nome}</strong></span>
           <span className="text-muted-foreground">Data: <strong className="text-foreground">{new Date(dtMovimento + "T00:00:00").toLocaleDateString("pt-BR")}</strong></span>
           <span className="text-muted-foreground">Abertura #<strong className="text-foreground">{abertura.caixa_abertura_id}</strong></span>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setXOpenFuncoes(true)}
+            className="text-sm px-3 py-1 rounded border border-amber-400 text-amber-700 dark:text-amber-400 flex items-center gap-1 hover:bg-amber-50 dark:hover:bg-amber-950/30">
+            <Wrench size={14} /> Funções
+          </button>
           <button onClick={() => setXOpenConfig(true)}
             className="text-sm px-3 py-1 rounded border border-border flex items-center gap-1 hover:bg-accent">
             <Settings size={14} /> Configurar
           </button>
           <button onClick={onSair}
-            className="text-sm px-3 py-1 rounded border border-border flex items-center gap-1 hover:bg-accent">
+            className="text-sm px-3 py-1 rounded border border-rose-300 text-rose-700 dark:text-rose-400 flex items-center gap-1 hover:bg-rose-50 dark:hover:bg-rose-950/30">
             <LogOut size={14} /> Sair
           </button>
         </div>
@@ -402,9 +435,9 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
       {/* Body */}
       <div className="flex-1 grid grid-cols-12 gap-3 p-3 overflow-hidden">
         {/* Coluna esquerda (col-span-8): Venda direta OU detalhes do pedido */}
-        <div className="col-span-8 flex flex-col border border-border rounded bg-card overflow-hidden">
-          <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-            <span className="text-sm font-semibold">
+        <div className={`col-span-8 flex flex-col border border-border rounded ${painelBg} overflow-hidden`}>
+          <div className="px-3 py-2 border-b border-border flex items-center justify-between bg-sidebar/50">
+            <span className="text-sm font-semibold text-sidebar-foreground">
               {XPedidoSel ? `Itens do Pedido Nº ${XPedidoSel.nr_movimento || XPedidoSel.movimento_id}` : "Venda Direta"}
             </span>
             {XPedidoSel && (
@@ -415,29 +448,30 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
           </div>
 
           {!XPedidoSel && (
-            <div className="px-3 py-2 border-b border-border flex gap-2">
+            <div className="px-3 py-2 border-b border-border flex gap-2 bg-card">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input ref={searchRef} value={XSearchTerm} onChange={e => setXSearchTerm(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") buscarTermo(); }}
                   placeholder="Código, GTIN ou nome do produto... (Enter)"
-                  className="w-full pl-8 pr-2 py-1.5 border border-border rounded text-sm bg-card" />
+                  className="w-full pl-8 pr-2 py-1.5 border border-border rounded text-sm bg-white text-black" />
               </div>
               <button onClick={() => setXOpenProduto(true)}
-                className="text-sm px-3 py-1.5 rounded border border-border hover:bg-accent flex items-center gap-1">
+                className="text-sm px-3 py-1.5 rounded border border-blue-400 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center gap-1">
                 <Plus size={14} /> Pesquisar
               </button>
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto relative" style={{ fontSize: `${XFonteProd}px` }}>
+          <div className="flex-1 overflow-y-auto relative bg-card" style={{ fontSize: `${XFonteProd}px` }}>
             {XPedidoSel ? (
-              <div className="divide-y divide-border">
-                {XPedidoSelItens.map((it: any) => (
-                  <div key={it.movimento_item_id} className="px-3 py-2">
+              <div>
+                {XPedidoSelItens.map((it: any, idx: number) => (
+                  <div key={it.movimento_item_id}
+                    className={`px-3 py-2 border-b border-border ${idx % 2 ? "bg-muted/40" : ""}`}>
                     <div className="flex justify-between">
                       <span className="truncate flex-1">{it.nm_produto}</span>
-                      <span className="font-mono">{fmt(Number(it.vl_movimento || it.qt_movimento * it.vl_und_produto))}</span>
+                      <span className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold">{fmt(Number(it.vl_movimento || it.qt_movimento * it.vl_und_produto))}</span>
                     </div>
                     <div className="text-muted-foreground" style={{ fontSize: `${XFonteProd - 1}px` }}>
                       {fmt(Number(it.qt_movimento))} {it.unidade_id || ""} × {fmt(Number(it.vl_und_produto))}
@@ -455,16 +489,17 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
                     <img src={XParams.imagem_caixa} alt="" className="max-w-[70%] max-h-[70%] object-contain opacity-30" />
                   </div>
                 )}
-                <div className="divide-y divide-border relative">
+                <div className="relative">
                   {XCart.length === 0 && !XParams?.imagem_caixa && (
                     <div className="p-4 text-xs text-muted-foreground text-center">Bipagem ou pesquisa para incluir itens.</div>
                   )}
                   {XCart.map((c, idx) => (
-                    <div key={idx} className="px-3 py-2 flex items-center gap-2">
+                    <div key={idx}
+                      className={`px-3 py-2 flex items-center gap-2 border-b border-border ${idx % 2 ? "bg-muted/40" : ""}`}>
                       <div className="flex-1">
-                        <div className="font-medium truncate">{c.nm_produto}</div>
+                        <div className="font-medium truncate text-blue-700 dark:text-blue-400">{c.nm_produto}</div>
                         <div className="text-muted-foreground" style={{ fontSize: `${XFonteProd - 1}px` }}>
-                          {fmt(c.qt_item)} {c.unidade_id || ""} × {fmt(c.vl_unitario)} = <span className="font-mono">{fmt(c.qt_item * c.vl_unitario)}</span>
+                          {fmt(c.qt_item)} {c.unidade_id || ""} × {fmt(c.vl_unitario)} = <span className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold">{fmt(c.qt_item * c.vl_unitario)}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -485,46 +520,50 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
         {/* Coluna direita (col-span-4): Pedidos a Receber (topo) + Resumo (rodapé) */}
         <div className="col-span-4 flex flex-col gap-3 overflow-hidden">
           {/* Pedidos a Receber */}
-          <div className="flex-1 flex flex-col border border-border rounded bg-card overflow-hidden min-h-0">
-            <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-              <span className="text-sm font-semibold">Pedidos a Receber</span>
-              <button onClick={carregarPedidos} title="Atualizar" className="p-1 rounded hover:bg-accent">
+          <div className={`flex-1 flex flex-col border border-border rounded ${painelBg} overflow-hidden min-h-0`}>
+            <div className="px-3 py-2 border-b border-border flex items-center justify-between bg-sidebar/50">
+              <span className="text-sm font-semibold text-sidebar-foreground">Pedidos a Receber</span>
+              <button onClick={carregarPedidos} title="Atualizar" className="p-1 rounded hover:bg-accent text-blue-600">
                 <RefreshCw size={14} />
               </button>
             </div>
-            <div className="px-2 py-1.5 border-b border-border">
+            <div className="px-2 py-1.5 border-b border-border bg-card">
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input
                   value={XBuscaPedido}
                   onChange={(e) => setXBuscaPedido(e.target.value)}
                   placeholder="Cliente, vendedor ou nº..."
-                  className="w-full pl-7 pr-2 py-1 border border-border rounded text-xs bg-card"
+                  className="w-full pl-7 pr-2 py-1 border border-border rounded text-xs bg-white text-black"
                 />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto" style={{ fontSize: `${XFontePed}px` }}>
+            <div className="flex-1 overflow-y-auto bg-card" style={{ fontSize: `${XFontePed}px` }}>
               {XPedidosFilt.length === 0 && (
                 <div className="p-4 text-xs text-muted-foreground text-center">
                   {XPedidos.length === 0 ? "Nenhum pedido fechado." : "Nenhum resultado para a busca."}
                 </div>
               )}
-              {XPedidosFilt.map(p => {
+              {XPedidosFilt.map((p, idx) => {
                 const sel = XPedidoSel?.movimento_id === p.movimento_id;
                 return (
                   <button key={p.movimento_id}
                     onClick={() => { setXPedidoSel(p); setXCart([]); }}
-                    className={`w-full text-left px-3 py-2 border-b border-border ${sel ? "bg-primary/15" : "hover:bg-accent/50"}`}>
-                    <div className="flex justify-between font-medium">
-                      <span>Nº {p.nr_movimento || p.movimento_id}</span>
-                      <span className="font-mono">{fmt(p.vl_movimento)}</span>
+                    className={`w-full text-left px-3 py-1.5 border-b border-border
+                      ${idx % 2 ? "bg-muted/40" : ""}
+                      ${sel ? "!bg-primary/15" : "hover:bg-accent/50"}`}>
+                    {/* Linha 1: Nº + Cliente */}
+                    <div className="flex justify-between items-baseline gap-2">
+                      <span className="font-bold text-foreground shrink-0">#{p.nr_movimento || p.movimento_id}</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold truncate flex-1">{p.cliente_nome}</span>
                     </div>
-                    <div className="text-muted-foreground truncate">{p.cliente_nome}</div>
-                    {p.vendedor_nome && (
-                      <div className="text-muted-foreground truncate" style={{ fontSize: `${XFontePed - 1}px` }}>
-                        Vend: {p.vendedor_nome}
-                      </div>
-                    )}
+                    {/* Linha 2: Vendedor + total */}
+                    <div className="flex justify-between items-baseline gap-2" style={{ fontSize: `${Math.max(10, XFontePed - 1)}px` }}>
+                      <span className="text-emerald-600 dark:text-emerald-400 italic truncate flex-1">
+                        Vend. {p.vendedor_nome || "—"}
+                      </span>
+                      <span className="font-mono font-semibold text-amber-700 dark:text-amber-400 shrink-0">R$ {fmt(p.vl_movimento)}</span>
+                    </div>
                   </button>
                 );
               })}
@@ -532,36 +571,75 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
           </div>
 
           {/* Resumo */}
-          <div className="flex flex-col border border-border rounded bg-card overflow-hidden">
-            <div className="px-3 py-2 border-b border-border text-sm font-semibold">Resumo</div>
-            <div className="p-3 space-y-2">
+          <div className={`flex flex-col border border-border rounded ${painelBg} overflow-hidden`}>
+            <div className="px-3 py-2 border-b border-border text-sm font-semibold bg-sidebar/50 text-sidebar-foreground">Resumo</div>
+            <div className="p-3 space-y-2 bg-card">
               {!XPedidoSel && (
-                <div>
-                  <label className="text-xs text-muted-foreground">Cliente</label>
-                  <div className="flex gap-1">
-                    <div className="flex-1 border border-border rounded px-2 py-1.5 text-sm bg-card truncate">
-                      {XCliente ? (XCliente.nome_fantasia || XCliente.razao_social) : "(Consumidor)"}
-                    </div>
-                    <button onClick={() => setXOpenCliente(true)} className="px-2 border border-border rounded hover:bg-accent">
-                      <Search size={14} />
-                    </button>
-                    {XCliente && (
-                      <button onClick={() => setXCliente(null)} className="px-2 border border-border rounded text-destructive hover:bg-destructive/10">
-                        ×
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Cliente</label>
+                    <div className="flex gap-1">
+                      <div className="flex-1 border border-border rounded px-2 py-1.5 text-sm bg-white text-black truncate">
+                        {XCliente ? (XCliente.nome_fantasia || XCliente.razao_social) : "(Consumidor)"}
+                      </div>
+                      <button onClick={() => setXOpenCliente(true)} className="px-2 border border-border rounded hover:bg-accent">
+                        <Search size={14} />
                       </button>
-                    )}
+                      {XCliente && (
+                        <button onClick={() => setXCliente(null)} className="px-2 border border-border rounded text-destructive hover:bg-destructive/10">
+                          ×
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+
+                  {XPodeInfVend && (
+                    <div>
+                      <label className="text-xs text-muted-foreground">Vendedor</label>
+                      <div className="flex gap-1">
+                        <div className="flex-1 border border-border rounded px-2 py-1.5 text-sm bg-white text-black truncate italic">
+                          {XVendedor ? (XVendedor.nome_fantasia || XVendedor.razao_social) : "(Sem vendedor)"}
+                        </div>
+                        <button onClick={() => setXOpenVend(true)} className="px-2 border border-border rounded hover:bg-accent">
+                          <Search size={14} />
+                        </button>
+                        {XVendedor && (
+                          <button onClick={() => setXVendedor(null)} className="px-2 border border-border rounded text-destructive hover:bg-destructive/10">
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-              <div className="border border-border rounded px-3 py-3 bg-muted/40 mt-2">
-                <div className="text-xs text-muted-foreground">Total</div>
-                <div className="text-2xl font-bold text-right">{fmt(totalReceber)}</div>
+
+              {/* Badges de totais */}
+              <div className="grid grid-cols-3 gap-1.5 mt-2">
+                <div className="border border-blue-300 bg-blue-50 dark:bg-blue-950/30 rounded px-1.5 py-1 text-center">
+                  <div className="text-[10px] text-blue-900 dark:text-blue-200 font-medium">Subtotal</div>
+                  <div className="font-bold text-sm text-blue-900 dark:text-blue-200">{fmt(baseSubtotal)}</div>
+                </div>
+                <div className="border border-amber-300 bg-amber-50 dark:bg-amber-950/30 rounded px-1.5 py-1 text-center">
+                  <div className="text-[10px] text-amber-900 dark:text-amber-200 font-medium">
+                    Desc.{XPcDesc > 0 ? ` ${XPcDesc.toFixed(1)}%` : ""}
+                  </div>
+                  <div className="font-bold text-sm text-amber-900 dark:text-amber-200">{fmt(vlDescAplicado)}</div>
+                </div>
+                <div className="border border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded px-1.5 py-1 text-center">
+                  <div className="text-[10px] text-emerald-900 dark:text-emerald-200 font-medium">Total</div>
+                  <div className="font-bold text-sm text-emerald-900 dark:text-emerald-200">{fmt(totalReceber)}</div>
+                </div>
               </div>
             </div>
-            <div className="p-3 border-t border-border">
+            <div className="p-2 border-t border-border bg-card flex gap-2">
+              <button onClick={() => setXOpenDesc(true)} disabled={XPedidoSel != null || XCart.length === 0}
+                className="text-xs px-3 py-1.5 rounded border border-amber-400 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50 flex items-center gap-1">
+                <Percent size={12} /> Desconto
+              </button>
               <button onClick={finalizarVenda} disabled={!podeReceber}
-                className="w-full text-sm px-4 py-2.5 rounded bg-primary text-primary-foreground disabled:opacity-50 flex items-center justify-center gap-2 font-semibold">
-                <Receipt size={16} /> Finalizar Venda
+                className="flex-1 text-sm px-3 py-1.5 rounded bg-primary text-primary-foreground disabled:opacity-50 flex items-center justify-center gap-1 font-semibold">
+                <Receipt size={14} /> Finalizar Venda
               </button>
             </div>
           </div>
@@ -572,12 +650,16 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
         onSelect={(p, dep) => adicionarProdutoAoCarrinho(p, dep)} />
       <ClienteSearchDialog open={XOpenCliente} onClose={() => setXOpenCliente(false)}
         onSelect={(c) => setXCliente(c)} empresaId={XEmpresaId} />
+      <VendedorSearchDialog open={XOpenVend} onClose={() => setXOpenVend(false)}
+        onSelect={(v) => setXVendedor(v)} empresaId={XEmpresaId} />
 
-      <OpcoesPagamentoDialog
-        open={XOpenOpcoes}
-        dados={XImpressaoDados}
-        onClose={() => setXOpenOpcoes(false)}
-        onContinuarPagamento={() => { setXOpenOpcoes(false); setXOpenPagto(true); }}
+      <DescontoDialog
+        open={XOpenDesc}
+        subtotal={subtotal}
+        descontoAtual={XVlDesc}
+        percAtual={XPcDesc}
+        onClose={() => setXOpenDesc(false)}
+        onAplicar={(d) => { setXVlDesc(d.vl_desconto); setXPcDesc(d.pc_desconto); }}
       />
 
       <PagamentoDialog
@@ -586,6 +668,27 @@ const PdvTela: React.FC<IProps> = ({ caixa, abertura, dtMovimento, onSair }) => 
         pagtosPreCarregados={XPagtosPedido}
         onClose={() => setXOpenPagto(false)}
         onConfirmar={confirmarPagamento}
+      />
+
+      <OpcoesPagamentoDialog
+        open={XOpenOpcoes}
+        dados={XImpressaoDados}
+        onClose={concluirVenda}
+        onConcluir={concluirVenda}
+      />
+
+      <FuncoesDialog
+        open={XOpenFuncoes}
+        podeCancelar={XPodeCancVenda}
+        onClose={() => setXOpenFuncoes(false)}
+        onCancelamento={() => setXOpenCanc(true)}
+      />
+
+      <CancelamentoDialog
+        open={XOpenCanc}
+        caixaNome={caixa.nome}
+        onClose={() => setXOpenCanc(false)}
+        onCancelado={carregarPedidos}
       />
 
       <ConfigurarDialog

@@ -24,7 +24,7 @@ interface IProps {
   open: boolean;
   dados: IImpressaoDados | null;
   onClose: () => void;
-  onContinuarPagamento: () => void;
+  onConcluir: () => void;
 }
 
 const fmt = (v: number) => (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -76,15 +76,15 @@ const imprimir = (d: IImpressaoDados | null, modo: "bobina" | "a4") => {
   w.document.close();
 };
 
-const OpcoesPagamentoDialog: React.FC<IProps> = ({ open, dados, onClose, onContinuarPagamento }) => {
+const OpcoesPagamentoDialog: React.FC<IProps> = ({ open, dados, onClose, onConcluir }) => {
   const cards = [
-    { key: "bobina", label: "Bobina", desc: "Impressão térmica 80mm", icon: <Printer size={28} />,
+    { key: "bobina", label: "Bobina", desc: "Impressão térmica 80mm", icon: <Printer size={28} />, color: "text-blue-600",
       action: () => imprimir(dados, "bobina"), enabled: true },
-    { key: "a4", label: "A4", desc: "Folha grande", icon: <FileText size={28} />,
+    { key: "a4", label: "A4", desc: "Folha grande", icon: <FileText size={28} />, color: "text-indigo-600",
       action: () => imprimir(dados, "a4"), enabled: true },
-    { key: "nfe", label: "NFe", desc: "Em desenvolvimento", icon: <FileCode2 size={28} />,
+    { key: "nfe", label: "NFe", desc: "Em desenvolvimento", icon: <FileCode2 size={28} />, color: "text-amber-600",
       action: () => toast.info("NFe será implementada em seguida."), enabled: false },
-    { key: "nfce", label: "NFCe", desc: "Em desenvolvimento", icon: <ScanLine size={28} />,
+    { key: "nfce", label: "NFCe", desc: "Em desenvolvimento", icon: <ScanLine size={28} />, color: "text-emerald-600",
       action: () => toast.info("NFCe será implementada em seguida."), enabled: false },
   ];
 
@@ -102,7 +102,7 @@ const OpcoesPagamentoDialog: React.FC<IProps> = ({ open, dados, onClose, onConti
             <button key={c.key} onClick={c.action} disabled={!c.enabled}
               className={`border border-border rounded p-4 text-left flex items-center gap-3 transition
                 ${c.enabled ? "hover:bg-accent hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed"}`}>
-              <div className="text-primary">{c.icon}</div>
+              <div className={c.color}>{c.icon}</div>
               <div>
                 <div className="font-semibold text-sm">{c.label}</div>
                 <div className="text-xs text-muted-foreground">{c.desc}</div>
@@ -110,13 +110,10 @@ const OpcoesPagamentoDialog: React.FC<IProps> = ({ open, dados, onClose, onConti
             </button>
           ))}
         </div>
-        <div className="flex justify-between gap-2 pt-3 border-t border-border">
-          <button onClick={onClose} className="text-sm px-4 py-1.5 rounded border border-border hover:bg-accent">
-            Voltar
-          </button>
-          <button onClick={onContinuarPagamento}
-            className="text-sm px-4 py-1.5 rounded bg-primary text-primary-foreground font-semibold">
-            Continuar para Pagamento →
+        <div className="flex justify-end gap-2 pt-3 border-t border-border">
+          <button onClick={onConcluir}
+            className="text-sm px-4 py-1.5 rounded bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
+            ✓ Concluir
           </button>
         </div>
       </DialogContent>
