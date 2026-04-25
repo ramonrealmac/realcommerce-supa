@@ -21,6 +21,7 @@ import DepositoForm from "@/components/forms/DepositoForm";
 import EstoqueForm from "@/components/forms/EstoqueForm";
 import ProdutoForm from "@/components/forms/ProdutoForm";
 import PedidoForm from "@/components/forms/PedidoForm";
+import PdvCaixaForm from "@/components/forms/pdv/PdvCaixaForm";
 import AuthGate from "@/components/auth/AuthGate";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import RbConexaoForm from "@/rbuilder/components/rb_ConexaoForm";
@@ -80,6 +81,8 @@ const AppContent = () => {
         return <ProdutoForm />;
       case "pdv":
         return <PedidoForm />;
+      case "pdv-caixa":
+        return <PdvCaixaForm />;
       case "rb-conexoes":
         return <RbConexaoForm />;
       case "rb-templates":

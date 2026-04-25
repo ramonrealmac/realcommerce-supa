@@ -154,6 +154,7 @@ export const MENU_CONFIG: MenuItem[] = [
         icon: ArrowUpFromLine,
         children: [
           { id: "pdv", title: "Novo Pedido", icon: FilePen },
+          { id: "pdv-caixa", title: "PDV - Caixa", icon: BadgeDollarSign },
           { id: "finalizar-venda", title: "Finalizar Venda", icon: BadgeDollarSign },
           { id: "pedidos", title: "Meus Pedidos", icon: ClipboardList },
           {
