@@ -1,88 +1,98 @@
-## Novo formulário "PDV - Caixa" (recebimento de vendas)
+## PDV - Caixa: Refinamentos de UX e Fluxo de Pagamento
 
-Cria fluxo completo: **seleção de Caixa → abertura de caixa → tela PDV → finalização de pagamento**, usando `caixa_movimento` (cabeçalho) + `caixa_movimento_item` (formas de pagamento).
+### 1. Migrações (schema)
 
----
+Adicionar colunas:
+- `funcionario.tamanho_fonte_pedidos` (smallint, default 12)
+- `funcionario.tamanho_fonte_produtos` (smallint, default 12)
+- `funcionario.tempo_refresh_pdv` (integer, default 30)
+- `empresa.imagem_caixa` (text — URL/base64 da imagem de fundo)
 
-### 1. Menu — `src/config/menuConfig.ts`
-Adicionar em `2. Movimentações > Saídas`:
-- `{ id: "pdv-caixa", title: "PDV - Caixa", icon: BadgeDollarSign }`
+### 2. Reorganização de Layout (`PdvTela.tsx`)
 
-### 2. Roteamento — `src/pages/Index.tsx`
-Adicionar `case "pdv-caixa": return <PdvCaixaForm />;`
+Novo grid (3 colunas):
 
-### 3. Novos arquivos
+```text
++----------------------------------+----------------------+
+|                                  | Pedidos a Receber    |
+|     Venda Direta /               |  [busca cliente/vend/nº] |
+|     Itens do Pedido              |  Nº | Cliente            |
+|     (col-span-8)                 |  Vendedor | Total       |
+|                                  |  ...                    |
+|                                  +----------------------+
+|                                  | Resumo (totais)      |
++----------------------------------+----------------------+
 ```
-src/components/forms/pdv/
-  PdvCaixaForm.tsx              ← orquestrador (etapas)
-  SelecionarCaixaDialog.tsx     ← Etapa 1: combo financeiro (caixa='S') + data
-  PdvTela.tsx                   ← Etapa 2: layout PDV (baseado no PDV.tsx enviado)
-  PagamentoDialog.tsx           ← Etapa 3: tela de pagamento (layout da imagem)
-  types.ts
-```
 
----
+- **Lista de Pedidos** move para coluna direita superior (acima do Resumo).
+- Adiciona barra de pesquisa que filtra por **cliente**, **vendedor** ou **número do pedido**.
+- Adiciona **nome do vendedor** (via join com `cadastro` usando `movimento.funcionario_id`).
+- Tamanho da fonte da lista vinculado a `funcionario.tamanho_fonte_pedidos`.
+- Tamanho da fonte da área de produtos vinculado a `funcionario.tamanho_fonte_produtos`.
 
-### Fluxo de telas
+### 3. Botão "Configurar" (header, ao lado de Sair)
 
-#### Etapa 1 — Seleção de Caixa (`SelecionarCaixaDialog`)
-- Combo **Caixa**: `SELECT financeiro_id, nm_financeiro FROM financeiro WHERE caixa='S' AND empresa_id=? AND excluido=false`.  
-  *(verificar nome real da coluna; usar `descricao`/`nome` conforme schema)*
-- Campo **Data movimento** (default = hoje).
-- Botões **Prosseguir** / **Cancelar**.
+Ao clicar, exibe overlay/painel inline com:
+- Botões **A−** / **A+** sobre a lista de pedidos (range 10-24px).
+- Botões **A−** / **A+** sobre a lista de produtos (range 10-24px).
+- Campo numérico inteiro **Tempo de Refresh** (5–99999 segundos).
+- Botões **Salvar** e **Cancelar**.
 
-#### Lógica do "Prosseguir"
-1. Resolver `funcionario_id`: `SELECT funcionario_id FROM funcionario WHERE usr_id = <auth.uid mapped> AND empresa_id=? AND caixa='S'`.  
-   Se não achar → toast "Usuário sem perfil de caixa".
-2. `SELECT * FROM caixa_abertura WHERE funcionario_id=? AND empresa_id=? AND status='A'`.
-   - **Não encontrado** → `confirm("Caixa fechado. Deseja abrir?")` → INSERT `caixa_abertura (empresa_id, funcionario_id, dt_abertura=data, vl_abertura=0, status='A')` → segue PDV.
-   - **Encontrado, dt_abertura ≠ data** → toast "Existe caixa aberto com data dd/mm/aaaa" → permanece na seleção.
-   - **Encontrado, dt_abertura = data** → segue PDV.
+Salva os valores em `funcionario` do usuário logado (mapeado via `funcionario.usr_id`).
 
-#### Etapa 2 — Tela PDV (`PdvTela`)
-Layout aproveitado do `user-uploads://PDV.tsx`, adaptado ao stack do projeto (DataGrid próprio, supabase client local, cores via tokens semânticos do tailwind, sem componentes shadcn novos):
+Refresh automático: `setInterval(carregarPedidos, tempo_refresh_pdv * 1000)` na `PdvTela`.
 
-- **Painel esquerdo — Pedidos a receber**: lista `movimento WHERE empresa_id=? AND st_pedido='F' AND excluido=false`, mostra nº, cliente, valor. Duplo clique adiciona ao "carrinho de fechamento".
-- **Painel central — Venda direta**:
-  - Busca produto (input) + bipagem por código de barras → INSERT em `movimento` novo (st_pedido='F', tp_origem='PDV', deposito_id = `empresa.deposito_estoque_caixa`, funcionario_id, tp_operacao_id = `empresa.tp_operacao_caixa`) + `movimento_item`.
-  - Reusa `ProdutoSearchDialog` existente para busca avançada.
-  - Reusa `ClienteSearchDialog` existente.
-- **Painel direito — Resumo**: cliente, totais, botão **Receber** (abre `PagamentoDialog`).
+### 4. Imagem de Fundo Vazio
 
-#### Etapa 3 — Pagamento (`PagamentoDialog`)
-Layout idêntico à imagem `tela_pagamento.jpg`:
-- Cards à direita: **Total Pedido / Valor Pago / Valor a Pagar / Troco**.
-- Formulário esquerdo: **Condição** (combo `condicao_pagamento`), **Bandeira** (combo `bandeira`), **Operadora** (combo `operadora`), **Nº Autorização**, **Vlr a Pagar**, **Vezes**, **Vlr Parcela** (calculado).
-- Botão **Confirmar** → adiciona linha no grid inferior (estado local).
-- Grid inferior: condição, valor, parcelas, valor parcela. Toolbar: incluir / alterar / excluir / refresh.
-- Validação: soma `vl_recebido` dos itens não pode exceder Total Pedido. Troco = Pago − Total quando condição é DINHEIRO.
-- Botão **Finalizar Recebimento**:
-  1. INSERT `caixa_movimento`:
-     ```
-     empresa_id, caixa_movimento_id (seq), funcionario_id, colaborador_id=funcionario_id,
-     dt_movimento, tp_movimento='E', tp_operacao = empresa.tp_operacao_caixa,
-     conta_gerencial_id = empresa.conta_gerencial_caixa,
-     centro_custo_id = empresa.centro_custo_caixa,
-     historico='Recebimento Pedido '||nr_movimento, documento=nr_movimento::text,
-     vlr_movimento = total, movimento_id, excluido=false
-     ```
-  2. INSERT N × `caixa_movimento_item` com `condicao_id`, `bandeira_id`, `operadora_id`, `numero_autoriza`, `qt_parcela`, `vl_parcela`, `vl_recebido`.
-  3. UPDATE `movimento SET st_pedido='R', dt_pagamento=now() WHERE movimento_id=?`.
-  4. Toast sucesso e volta à lista de pedidos a receber (carrinho limpo).
+Quando `XCart.length === 0` e nenhum pedido selecionado:
+- Renderiza `<img src={empresa.imagem_caixa}>` centralizada como background da área de produtos (com opacidade reduzida).
+- Se o campo estiver vazio, mantém o placeholder textual atual.
 
----
+### 5. Tela "Pós-Finalização" (nova)
 
-### Detalhes técnicos
+Substituir o atual fluxo "Finalizar Venda → PagamentoDialog" por:
 
-- **Identificação do funcionário**: `funcionario.usr_id = auth.uid()` (precisa que esse mapeamento exista; se não houver match, exibir mensagem clara para o usuário ajustar o cadastro).
-- **Sequência de IDs**: usar mesmo padrão do projeto (max+1 por empresa, como em `PedidoForm`).
-- **Empresa params**: leitura única de `empresa` no mount: `tp_operacao_caixa, conta_gerencial_caixa, centro_custo_caixa, deposito_estoque_caixa, empresa_deposito_caixa`.
-- **Estado preservado entre etapas** via `useState` no `PdvCaixaForm`. Cancelar/sair em qualquer etapa volta para a Etapa 1.
-- **Padrões visuais**: usar `DataGrid`, `GridActionToolbar`, `border-border`, `bg-card`, `text-muted-foreground` etc., seguindo memória `mem://design/grid-action-toolbar.md`.
-- **Sem alteração de schema**: todas as tabelas necessárias já existem.
-- **Uploaded `PDV.tsx` / `Pedidos.tsx`**: usados apenas como referência de layout/UX — não copiados para o projeto.
+1. Clica **Finalizar Venda** → fecha tela atual e abre `OpcoesPagamentoDialog` com 4 cards:
+   - **Bobina** (impressão térmica 80mm)
+   - **A4** (folha grande)
+   - **NFe** (placeholder — "Em desenvolvimento")
+   - **NFCe** (placeholder — "Em desenvolvimento")
 
-### Arquivos editados
-- `src/config/menuConfig.ts` (1 linha)
-- `src/pages/Index.tsx` (import + case)
-- 5 novos arquivos em `src/components/forms/pdv/`
+2. Cada opção (Bobina/A4) abre uma janela de impressão (`window.print()` em template HTML específico) com os itens, totais, cliente, caixa, data.
+
+3. Botão **"Continuar para Pagamento"** abre o `PagamentoDialog` (fluxo original).
+
+> Observação: A ordem solicitada é `Finalizar venda → tela de opções (impressão / NFe / NFCe) → meios de pagamento`. Vamos manter essa sequência.
+
+### 6. Pré-preenchimento do `PagamentoDialog`
+
+Ao abrir:
+- Buscar `movimento_pagamento` do `movimento_id` do pedido selecionado (apenas para pedidos do grid, não venda direta).
+- Para cada registro encontrado: preenche **Condição** + **Vlr a Pagar** automaticamente no formulário.
+- Ao clicar **Confirmar**, adiciona linha e:
+  - Se há outra forma de pagamento pendente em `movimento_pagamento`, traz a próxima.
+  - Repete até esgotar formas cadastradas OU `totalPago === totalPedido`.
+
+### 7. Regras de campos no `PagamentoDialog`
+
+- Buscar `condicao.tp_documento` da condição selecionada.
+- Campos **Bandeira**, **Operadora**, **Nº Autorização**:
+  - **Editáveis e recebem foco** apenas se `tp_documento ∈ {3, 4}`.
+  - Caso contrário: `disabled`, fundo cinza, sem foco.
+- Campos **Condição** e **Vlr a Pagar**: sempre fundo branco (`bg-white`).
+- Bandeira/Operadora/Nº Autorização: fundo branco apenas quando editáveis; cinza quando bloqueados.
+
+### Arquivos afetados
+
+**Criados:**
+- `src/components/forms/pdv/ConfigurarDialog.tsx` — painel de configuração (fontes + refresh).
+- `src/components/forms/pdv/OpcoesPagamentoDialog.tsx` — tela com Bobina/A4/NFe/NFCe.
+- `src/components/forms/pdv/ImpressaoBobina.tsx` — template térmico 80mm.
+- `src/components/forms/pdv/ImpressaoA4.tsx` — template A4.
+- Migration: adicionar colunas em `funcionario` e `empresa`.
+
+**Editados:**
+- `src/components/forms/pdv/PdvTela.tsx` — novo layout 3 colunas, busca, vendedor, fontes dinâmicas, refresh, fundo de imagem, botão Configurar, fluxo finalizar.
+- `src/components/forms/pdv/PagamentoDialog.tsx` — pré-preenchimento via `movimento_pagamento`, regras de tp_documento, cores brancas.
+- `src/components/forms/pdv/types.ts` — novos tipos (`IPdvConfigUsuario`, `IMovimentoPagamento`).
+- `src/components/forms/EmpresaForm.tsx` — campo `imagem_caixa` (upload/URL).
