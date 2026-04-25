@@ -2032,6 +2032,7 @@ export type Database = {
           fone_geral: string | null
           identificacao: string | null
           ie: string | null
+          imagem_caixa: string
           lg_valida_estoque_link: boolean | null
           lg_valida_estoque_pdv: boolean | null
           logomarca: string | null
@@ -2090,6 +2091,7 @@ export type Database = {
           fone_geral?: string | null
           identificacao?: string | null
           ie?: string | null
+          imagem_caixa?: string
           lg_valida_estoque_link?: boolean | null
           lg_valida_estoque_pdv?: boolean | null
           logomarca?: string | null
@@ -2148,6 +2150,7 @@ export type Database = {
           fone_geral?: string | null
           identificacao?: string | null
           ie?: string | null
+          imagem_caixa?: string
           lg_valida_estoque_link?: boolean | null
           lg_valida_estoque_pdv?: boolean | null
           logomarca?: string | null
@@ -2531,6 +2534,9 @@ export type Database = {
           nome: string | null
           pc_comissao_av: number | null
           pc_comissao_prz: number | null
+          tamanho_fonte_pedidos: number
+          tamanho_fonte_produtos: number
+          tempo_refresh_pdv: number
           tp_comissao: string | null
           usr_id: number | null
           vendedor: string | null
@@ -2548,6 +2554,9 @@ export type Database = {
           nome?: string | null
           pc_comissao_av?: number | null
           pc_comissao_prz?: number | null
+          tamanho_fonte_pedidos?: number
+          tamanho_fonte_produtos?: number
+          tempo_refresh_pdv?: number
           tp_comissao?: string | null
           usr_id?: number | null
           vendedor?: string | null
@@ -2565,6 +2574,9 @@ export type Database = {
           nome?: string | null
           pc_comissao_av?: number | null
           pc_comissao_prz?: number | null
+          tamanho_fonte_pedidos?: number
+          tamanho_fonte_produtos?: number
+          tempo_refresh_pdv?: number
           tp_comissao?: string | null
           usr_id?: number | null
           vendedor?: string | null
