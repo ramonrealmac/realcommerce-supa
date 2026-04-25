@@ -24,7 +24,7 @@ interface IProps {
   open: boolean;
   dados: IImpressaoDados | null;
   onClose: () => void;
-  onContinuarPagamento: () => void;
+  onConcluir: () => void;
 }
 
 const fmt = (v: number) => (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
