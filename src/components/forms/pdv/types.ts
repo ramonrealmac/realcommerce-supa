@@ -1,6 +1,9 @@
 export interface IPdvCaixa {
   funcionario_id: number;
   nome: string;
+  tamanho_fonte_pedidos?: number;
+  tamanho_fonte_produtos?: number;
+  tempo_refresh_pdv?: number;
 }
 
 export interface IPdvCaixaAbertura {
@@ -18,6 +21,7 @@ export interface IPdvParamsEmpresa {
   conta_gerencial_caixa: number;
   centro_custo_caixa: number;
   deposito_estoque_caixa: number;
+  imagem_caixa?: string | null;
 }
 
 export interface IPdvPedidoFechado {
@@ -25,6 +29,8 @@ export interface IPdvPedidoFechado {
   nr_movimento: number | null;
   cadastro_id: number | null;
   cliente_nome: string;
+  vendedor_id: number | null;
+  vendedor_nome: string;
   vl_movimento: number;
   dt_emissao: string | null;
 }
@@ -42,4 +48,14 @@ export interface IPdvPagamentoLinha {
   qt_parcela: number;
   vl_parcela: number;
   vl_recebido: number;
+}
+
+export interface IMovimentoPagamento {
+  movimento_pagamento_id: number;
+  condicao_id: number | null;
+  vl_pagamento: number | null;
+  numero_autorizacao: string | null;
+  bandeira_id: number | null;
+  operadora_id: number | null;
+  n_parcelas: number | null;
 }
