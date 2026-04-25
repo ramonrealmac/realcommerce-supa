@@ -1478,7 +1478,7 @@ export type Database = {
           prazo_23: number | null
           prazo_24: number | null
           qt_parcelas: number | null
-          tp_documento_id: string | null
+          tp_documento: number
         }
         Insert: {
           ativo_entrada?: string | null
@@ -1520,7 +1520,7 @@ export type Database = {
           prazo_23?: number | null
           prazo_24?: number | null
           qt_parcelas?: number | null
-          tp_documento_id?: string | null
+          tp_documento: number
         }
         Update: {
           ativo_entrada?: string | null
@@ -1562,7 +1562,7 @@ export type Database = {
           prazo_23?: number | null
           prazo_24?: number | null
           qt_parcelas?: number | null
-          tp_documento_id?: string | null
+          tp_documento?: number
         }
         Relationships: []
       }
@@ -2520,6 +2520,8 @@ export type Database = {
       funcionario: {
         Row: {
           caixa: string | null
+          caixa_cnc_venda: string | null
+          caixa_inf_vend: string | null
           corretora_id: number | null
           empresa_id: number | null
           entregador: string | null
@@ -2535,6 +2537,8 @@ export type Database = {
         }
         Insert: {
           caixa?: string | null
+          caixa_cnc_venda?: string | null
+          caixa_inf_vend?: string | null
           corretora_id?: number | null
           empresa_id?: number | null
           entregador?: string | null
@@ -2550,6 +2554,8 @@ export type Database = {
         }
         Update: {
           caixa?: string | null
+          caixa_cnc_venda?: string | null
+          caixa_inf_vend?: string | null
           corretora_id?: number | null
           empresa_id?: number | null
           entregador?: string | null
