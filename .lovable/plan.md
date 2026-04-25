@@ -1,98 +1,128 @@
-## PDV - Caixa: Refinamentos de UX e Fluxo de Pagamento
+## PDV - Refinamentos visuais e novas funções
 
-### 1. Migrações (schema)
+### 1. Migração de schema
 
-Adicionar colunas:
-- `funcionario.tamanho_fonte_pedidos` (smallint, default 12)
-- `funcionario.tamanho_fonte_produtos` (smallint, default 12)
-- `funcionario.tempo_refresh_pdv` (integer, default 30)
-- `empresa.imagem_caixa` (text — URL/base64 da imagem de fundo)
+Adicionar à tabela `funcionario`:
+- `caixa_edit_venda` (char, default 'N') — permite editar venda
 
-### 2. Reorganização de Layout (`PdvTela.tsx`)
+(`caixa_inf_vend` e `caixa_cnc_venda` já existem.)
 
-Novo grid (3 colunas):
+Adicionar à tabela `movimento`:
+- `dt_cancelamento` (timestamptz, null)
+- `mot_cancelamento` (text, default '')
+
+### 2. Fluxo de finalização (corrigido)
+
+Ordem atualizada:
 
 ```text
-+----------------------------------+----------------------+
-|                                  | Pedidos a Receber    |
-|     Venda Direta /               |  [busca cliente/vend/nº] |
-|     Itens do Pedido              |  Nº | Cliente            |
-|     (col-span-8)                 |  Vendedor | Total       |
-|                                  |  ...                    |
-|                                  +----------------------+
-|                                  | Resumo (totais)      |
-+----------------------------------+----------------------+
+[Finalizar Venda] → PagamentoDialog (Meios de Pagamento e Prazo)
+                       ↓ (botão "Finalizar Recebimento")
+                    Salva venda (status R, baixa estoque, caixa_movimento)
+                       ↓
+                    Fecha PagamentoDialog
+                       ↓
+                    Abre OpcoesPagamentoDialog (Bobina / A4 / NFe / NFCe)
+                       ↓
+                    [Concluir] → limpa carrinho/pedido selecionado
 ```
 
-- **Lista de Pedidos** move para coluna direita superior (acima do Resumo).
-- Adiciona barra de pesquisa que filtra por **cliente**, **vendedor** ou **número do pedido**.
-- Adiciona **nome do vendedor** (via join com `cadastro` usando `movimento.funcionario_id`).
-- Tamanho da fonte da lista vinculado a `funcionario.tamanho_fonte_pedidos`.
-- Tamanho da fonte da área de produtos vinculado a `funcionario.tamanho_fonte_produtos`.
+`OpcoesPagamentoDialog`: remove o botão "Continuar para Pagamento" e troca por "Concluir".
 
-### 3. Botão "Configurar" (header, ao lado de Sair)
+### 3. Lista de Pedidos a Receber — formato 2 linhas
 
-Ao clicar, exibe overlay/painel inline com:
-- Botões **A−** / **A+** sobre a lista de pedidos (range 10-24px).
-- Botões **A−** / **A+** sobre a lista de produtos (range 10-24px).
-- Campo numérico inteiro **Tempo de Refresh** (5–99999 segundos).
-- Botões **Salvar** e **Cancelar**.
+Cada item em 2 linhas (compacto, zebra alternada):
 
-Salva os valores em `funcionario` do usuário logado (mapeado via `funcionario.usr_id`).
+```text
+┌──────────────────────────────────────────┐
+│ #1234   João da Silva                    │  ← linha 1: nº (negrito) + cliente (azul)
+│ Vend. Maria Souza            R$ 250,00   │  ← linha 2: vendedor (verde itálico) + total
+└──────────────────────────────────────────┘
+```
 
-Refresh automático: `setInterval(carregarPedidos, tempo_refresh_pdv * 1000)` na `PdvTela`.
+- Cliente: cor `text-blue-600`, semibold.
+- Vendedor: cor `text-emerald-600`, itálico, prefixo "Vend.".
+- Zebra: `odd:bg-muted/30`.
+- Hover: `hover:bg-accent`.
 
-### 4. Imagem de Fundo Vazio
+### 4. Cores de fundo dos painéis
 
-Quando `XCart.length === 0` e nenhum pedido selecionado:
-- Renderiza `<img src={empresa.imagem_caixa}>` centralizada como background da área de produtos (com opacidade reduzida).
-- Se o campo estiver vazio, mantém o placeholder textual atual.
+- Painéis "Venda Direta" e "Pedidos a Receber": fundo na cor do tema do menu principal (usar `bg-sidebar` / `bg-primary/5` conforme variável CSS atual da TopBar/SidebarMenu).
+- Listas de produtos (carrinho) e pedidos: linhas zebradas (`odd:bg-muted/40`).
+- Acentos coloridos em botões/textos (verde para confirmar, azul para info, âmbar para desconto).
 
-### 5. Tela "Pós-Finalização" (nova)
+### 5. Vendedor na Venda Direta
 
-Substituir o atual fluxo "Finalizar Venda → PagamentoDialog" por:
+Abaixo do campo "Cliente":
+- Novo campo "Vendedor" com botão de busca (reusa `ClienteSearchDialog` filtrando `st_vendedor='S'` ou cria pequeno `VendedorSearchDialog`).
+- Habilitado apenas se `funcionario.caixa_inf_vend === 'S'` do caixa logado; caso contrário fica oculto/desabilitado.
+- Vendedor selecionado é gravado em `movimento.funcionario_id` ao finalizar.
 
-1. Clica **Finalizar Venda** → fecha tela atual e abre `OpcoesPagamentoDialog` com 4 cards:
-   - **Bobina** (impressão térmica 80mm)
-   - **A4** (folha grande)
-   - **NFe** (placeholder — "Em desenvolvimento")
-   - **NFCe** (placeholder — "Em desenvolvimento")
+### 6. Permissões caixa_inf_vend / caixa_cnc_venda / caixa_edit_venda
 
-2. Cada opção (Bobina/A4) abre uma janela de impressão (`window.print()` em template HTML específico) com os itens, totais, cliente, caixa, data.
+Carregar do `funcionario` do caixa logado e expor como flags:
+- `XPodeInfVend` → mostra/oculta campo Vendedor.
+- `XPodeCancVenda` → habilita opção "Cancelamento" no menu Funções.
+- `XPodeEditVenda` → habilita edição de pedidos a receber (carregar para venda direta para alterar).
 
-3. Botão **"Continuar para Pagamento"** abre o `PagamentoDialog` (fluxo original).
+### 7. Botão Desconto + Totais em Badges
 
-> Observação: A ordem solicitada é `Finalizar venda → tela de opções (impressão / NFe / NFCe) → meios de pagamento`. Vamos manter essa sequência.
+Rodapé da Venda Direta:
 
-### 6. Pré-preenchimento do `PagamentoDialog`
+```text
+[Subtotal R$ 100,00] [Desc. 5% R$ 5,00] [Total R$ 95,00]   [%/$ Desconto]  [Finalizar Venda]
+   azul                  âmbar              verde            outline           primary (menor)
+```
 
-Ao abrir:
-- Buscar `movimento_pagamento` do `movimento_id` do pedido selecionado (apenas para pedidos do grid, não venda direta).
-- Para cada registro encontrado: preenche **Condição** + **Vlr a Pagar** automaticamente no formulário.
-- Ao clicar **Confirmar**, adiciona linha e:
-  - Se há outra forma de pagamento pendente em `movimento_pagamento`, traz a próxima.
-  - Repete até esgotar formas cadastradas OU `totalPago === totalPedido`.
+- 3 badges lado a lado com título acima e valor em destaque.
+- Label desconto: `Desc.` + `XPercDesc + '%'` quando houver percentual; vazio quando 0.
+- Botão **Finalizar Venda** menor (size sm).
+- Botão **Desconto** abre `DescontoDialog`:
+  - Tabs/radio: `%` ou `R$`
+  - Input numérico
+  - Aplica em `XDesconto` (valor) e `XPercDesc`.
+  - Total = Subtotal − Desconto.
 
-### 7. Regras de campos no `PagamentoDialog`
+### 8. Botão Funções (antes de Configurar)
 
-- Buscar `condicao.tp_documento` da condição selecionada.
-- Campos **Bandeira**, **Operadora**, **Nº Autorização**:
-  - **Editáveis e recebem foco** apenas se `tp_documento ∈ {3, 4}`.
-  - Caso contrário: `disabled`, fundo cinza, sem foco.
-- Campos **Condição** e **Vlr a Pagar**: sempre fundo branco (`bg-white`).
-- Bandeira/Operadora/Nº Autorização: fundo branco apenas quando editáveis; cinza quando bloqueados.
+Ordem header: `[Funções] [Configurar] [Sair]`
 
-### Arquivos afetados
+`FuncoesDialog` com 6 cards (grid 3x2):
+
+| Função | Implementar agora | Comportamento |
+|---|---|---|
+| Suprimento | Não | toast "Em desenvolvimento" |
+| Sangria | Não | toast "Em desenvolvimento" |
+| Última Venda | Não | toast "Em desenvolvimento" |
+| Reimpressão | Não | toast "Em desenvolvimento" |
+| **Cancelamento** | **Sim** | Abre `CancelamentoDialog` |
+| Fechamento | Não | toast "Em desenvolvimento" |
+
+### 9. Cancelamento de Venda
+
+`CancelamentoDialog`:
+- Campo: número do pedido (ou seleciona da lista).
+- Campo: motivo (textarea obrigatória).
+- Valida `caixa_cnc_venda='S'`.
+- Ao confirmar:
+  - `UPDATE movimento SET st_movimento='C', dt_cancelamento=now(), mot_cancelamento=:motivo WHERE movimento_id=:id`
+  - Imprime comprovante (template HTML simples via `window.print()`):
+    - Cabeçalho "COMPROVANTE DE CANCELAMENTO"
+    - Operador (nome do caixa), data/hora, nº pedido, motivo.
+- Recarrega lista de pedidos.
+
+### 10. Arquivos
 
 **Criados:**
-- `src/components/forms/pdv/ConfigurarDialog.tsx` — painel de configuração (fontes + refresh).
-- `src/components/forms/pdv/OpcoesPagamentoDialog.tsx` — tela com Bobina/A4/NFe/NFCe.
-- `src/components/forms/pdv/ImpressaoBobina.tsx` — template térmico 80mm.
-- `src/components/forms/pdv/ImpressaoA4.tsx` — template A4.
-- Migration: adicionar colunas em `funcionario` e `empresa`.
+- `src/components/forms/pdv/DescontoDialog.tsx`
+- `src/components/forms/pdv/FuncoesDialog.tsx`
+- `src/components/forms/pdv/CancelamentoDialog.tsx`
+- `src/components/forms/pdv/VendedorSearchDialog.tsx`
+- Migration: colunas em `funcionario` e `movimento`.
 
 **Editados:**
-- `src/components/forms/pdv/PdvTela.tsx` — novo layout 3 colunas, busca, vendedor, fontes dinâmicas, refresh, fundo de imagem, botão Configurar, fluxo finalizar.
-- `src/components/forms/pdv/PagamentoDialog.tsx` — pré-preenchimento via `movimento_pagamento`, regras de tp_documento, cores brancas.
-- `src/components/forms/pdv/types.ts` — novos tipos (`IPdvConfigUsuario`, `IMovimentoPagamento`).
-- `src/components/forms/EmpresaForm.tsx` — campo `imagem_caixa` (upload/URL).
+- `src/components/forms/pdv/PdvTela.tsx` — header com Funções, lista 2 linhas zebrada, vendedor, desconto, totais em badges, cores de fundo.
+- `src/components/forms/pdv/PagamentoDialog.tsx` — ao Finalizar Recebimento: salva, fecha, dispara `onAbrirDocumento()`.
+- `src/components/forms/pdv/OpcoesPagamentoDialog.tsx` — botão "Concluir" no lugar de "Continuar para Pagamento".
+- `src/components/forms/pdv/types.ts` — `caixa_edit_venda`, `vendedor_id`, campos de cancelamento.
+- `src/integrations/supabase/types.ts` — refletir colunas novas.
